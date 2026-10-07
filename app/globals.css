@@ -192,3 +192,43 @@ textarea.input { min-height: 104px; resize: vertical; }
 .steps li { display: flex; gap: 20px; padding: 24px 0; border-top: 1px solid var(--hairline); }
 .steps li:last-child { border-bottom: 1px solid var(--hairline); }
 .step-num { font: 500 12px var(--font-mono), monospace; letter-spacing: .18em; color: var(--copper-deep); padding-top: 8px; flex: none; }
+
+/* ── skip link ────────────────────────────── */
+.skip {
+  position: absolute; left: var(--gutter); top: -4rem; z-index: 30;
+  background: var(--bone); color: var(--verdigris);
+  font-weight: 600; padding: 12px 18px;
+}
+.skip:focus { top: 12px; }
+
+/* ── faq (native details) ─────────────────── */
+.faq { border-bottom: 1px solid var(--hairline); }
+.faq details { border-top: 1px solid var(--hairline); }
+.faq summary {
+  cursor: pointer; list-style: none; position: relative;
+  padding: 20px 44px 20px 0;
+  font-weight: 600; font-size: clamp(19px, 1.8vw, 22px); line-height: 1.35;
+  color: var(--verdigris);
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: "+"; position: absolute; right: 6px; top: 16px;
+  font-size: 26px; font-weight: 400; line-height: 1.2; color: var(--copper-deep);
+}
+.faq details[open] summary::after { content: "\2212"; }
+.faq details > p { padding: 0 0 22px; max-width: 68ch; }
+
+/* ── select (matches .input) ──────────────── */
+select.input {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  padding-right: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%230C2B25' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px;
+}
+
+/* ── prose (privacy) ──────────────────────── */
+.prose { max-width: 68ch; }
+.prose p { margin-top: 16px; color: var(--body-on-light); line-height: 1.65; }
+.prose h2 {
+  margin-top: 34px; font-weight: 600; font-size: 21px; color: var(--verdigris);
+}
