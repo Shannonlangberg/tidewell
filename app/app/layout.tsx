@@ -4,6 +4,7 @@ import "./app.css";
 
 export const metadata: Metadata = {
   title: "Tidewell",
+  robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: "Tidewell", statusBarStyle: "black-translucent" },
 };
 

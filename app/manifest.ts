@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Tidewell",
     short_name: "Tidewell",
-    description: "Your place, kept well.",
+    description: "Holiday homes, kept well.",
     start_url: "/app/owner",
     scope: "/",
     display: "standalone",

@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GUEST_STAY, property } from "@/lib/demo";
+import { SITE } from "@/lib/site";
 
 type Phase = "before" | "arrival" | "staying" | "leaving";
 const PHASES: { id: Phase; label: string }[] = [
@@ -23,7 +24,7 @@ export default function Stay() {
     return (
       <main className="o-main" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 40px)" }}>
         <h1 className="o-title">this link has expired</h1>
-        <p className="o-status">Stay links stop working after checkout. If you&rsquo;re still with us, ring 0417 604 882 — any hour.</p>
+        <p className="o-status">Stay links stop working after checkout.{SITE.phone && <> If you&rsquo;re still with us, ring {SITE.phone}, any hour.</>}</p>
       </main>
     );
   }

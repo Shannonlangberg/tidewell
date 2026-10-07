@@ -7,6 +7,7 @@ import { EMPTY, useAppState, type AppState } from "@/components/app/useAppState"
 import { OWNER, PEOPLE, ROLE_LABEL, property } from "@/lib/demo";
 import { ManagerCard } from "@/components/app/HumanTouchBits";
 import { ownerProfile } from "@/lib/humanTouch";
+import { SITE, telHref } from "@/lib/site";
 
 export default function More() {
   const router = useRouter();
@@ -57,11 +58,15 @@ export default function More() {
           <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <p className="o-label">Talk to us</p>
             <p className="o-small">A person answers inside the hour, 8am – 10pm, every day.{me.role === "tenant" ? " Urgent repairs, any hour." : ""}</p>
-            <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
-              <a href="tel:+61417604882" className="o-btn o-btn-green o-btn-sm">Call</a>
-              <a href="sms:+61417604882" className="o-btn o-btn-outline o-btn-sm">Text</a>
-              <a href="mailto:hello@tidewell.com.au" className="o-btn o-btn-outline o-btn-sm">Email</a>
-            </div>
+            {(SITE.phone || SITE.email) ? (
+              <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
+                {SITE.phone && <a href={telHref(SITE.phone)} className="o-btn o-btn-green o-btn-sm">Call</a>}
+                {SITE.phone && <a href={telHref(SITE.phone).replace("tel:", "sms:")} className="o-btn o-btn-outline o-btn-sm">Text</a>}
+                {SITE.email && <a href={`mailto:${SITE.email}`} className="o-btn o-btn-outline o-btn-sm">Email</a>}
+              </div>
+            ) : (
+              <p className="o-small">(Demo: contact details are added at launch.)</p>
+            )}
           </section>
         )}
 

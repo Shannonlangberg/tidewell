@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Header } from "@/components/app/Header";
 import { useAppState } from "@/components/app/useAppState";
 import { TENANT_REPAIRS } from "@/lib/demo";
+import { SITE } from "@/lib/site";
 
 export default function TenantRepairs() {
   const { state, ready, update } = useAppState();
@@ -56,7 +57,7 @@ export default function TenantRepairs() {
               <button type="button" aria-pressed={!urgent} onClick={() => setUrgent(false)}>Can wait a few days</button>
               <button type="button" aria-pressed={urgent} onClick={() => setUrgent(true)}>Urgent</button>
             </div>
-            {urgent && <p className="o-small" style={{ color: "var(--o-copper-text)" }}>If water, gas or power is involved, please ring as well: 0417 604 882, any hour.</p>}
+            {urgent && <p className="o-small" style={{ color: "var(--o-copper-text)" }}>If water, gas or power is involved, please ring as well{SITE.phone ? `: ${SITE.phone}, any hour.` : "."}</p>}
             <button className="o-btn o-btn-copper" type="submit">Send it</button>
           </form>
         )}
