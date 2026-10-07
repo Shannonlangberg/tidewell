@@ -1,5 +1,7 @@
+# Next.js on Netlify — the Next.js runtime is detected automatically.
 [build]
-  publish = "."
+  command = "npm run build"
+  publish = ".next"
 
 [[headers]]
   for = "/*"
