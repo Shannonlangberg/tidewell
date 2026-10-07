@@ -9,7 +9,8 @@ npm run dev     # http://localhost:3210
 
 - `app/page.tsx` — the homepage (built from `design/Tidewell Home.dc.html`)
 - `app/globals.css` — design tokens + styles
-- `components/EnquiryForm.tsx` — opens the visitor's email app with the enquiry filled in (no backend yet)
+- `components/EnquiryForm.tsx` — enquiry form, submitted to Netlify Forms (form name `enquiry`)
+- `public/__forms.html` — hidden copy of the form so Netlify detects it at deploy time. Keep its field names in sync with the component.
 - `app/app/` — **the Tidewell app** (one app, one login; tabs change with role). Installable web app.
   - `/app` — sign in (demo: pick a person)
   - `/app/owner` — Home, Bookings, Repairs, Money
@@ -20,6 +21,11 @@ npm run dev     # http://localhost:3210
 - `app/stay/[token]` — guest stay link, no login (`/stay/demo`)
 - `lib/demo.ts` — all sample data, dates relative to today. The app shows a "Demo" flag while this is the source.
 - `design/` — the original handoff bundle. Read `design/README.md` first.
+
+## Enquiries (Netlify Forms)
+The form only sends once deployed on Netlify — locally it shows "That didn't send", which is expected.
+After the first deploy: Netlify → Site configuration → Forms → enable form detection if it's off, then add an
+email notification under Form notifications so enquiries reach Shannon and Court. Spam is filtered with a honeypot field.
 
 ## Try the app on a phone
 Open `/app` in Safari → Share → Add to Home Screen. More › switch person to see each role. Owner's More › Demo season switches busy / quiet. More › Appearance forces light/dark.
