@@ -1,7 +1,12 @@
-# Next.js on Netlify — the Next.js runtime is detected automatically.
+# Next.js on Netlify. The runtime plugin is declared explicitly because this site was
+# created before Next.js was in the repo, so Netlify never auto-enabled it. Without it,
+# Netlify uploads the raw .next folder as static files and every page 404s.
 [build]
   command = "npm run build"
   publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [[headers]]
   for = "/*"
