@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import type { Stage } from "@/lib/demo";
 import { DEFAULT_TRIGGERS, type Interaction, type TriggerSettings } from "@/lib/humanTouch";
 
-// Demo-only state kept in this browser. Replace with a real backend when there is one.
+// Demo-only state kept in this browser. The screens are rewired to real rows in
+// later phases; sign-out wipes it (see SignOutButton). Only `theme` is meant to stay.
 export type AppState = {
   person: string | null;
   theme: "auto" | "light" | "dark";
@@ -16,7 +17,7 @@ export type AppState = {
   photographed: Record<string, string[]>; // jobId → rooms done
   jobsDone: string[];
   handover: Record<string, string>;
-  // tenant
+  // reports raised from the app
   reports: { id: string; title: string; detail: string; urgent: boolean; at: number }[];
   // manager
   sent: string[];
@@ -35,7 +36,7 @@ export type AppState = {
 
 export type OwnerState = AppState;
 
-const KEY = "tidewell-app-demo";
+export const STORAGE_KEY = "tidewell-app-demo";
 export const EMPTY: AppState = {
   person: null,
   theme: "auto",
@@ -60,39 +61,61 @@ export const EMPTY: AppState = {
 };
 const EVENT = "tidewell-app-state";
 
+// localStorage as an external store: the snapshot is cached per raw string so
+// React sees a stable object until the stored value actually changes.
+let cachedRaw: string | null | undefined;
+let cachedState: AppState = EMPTY;
+/** Used only when localStorage refuses writes (private mode), so the screen still updates. */
+let memoryRaw: string | null = null;
+
 function read(): AppState {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? { ...EMPTY, ...(JSON.parse(raw) as Partial<AppState>) } : EMPTY;
+    raw = localStorage.getItem(STORAGE_KEY) ?? memoryRaw;
   } catch {
-    return EMPTY;
+    raw = memoryRaw;
   }
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
+    try {
+      cachedState = raw ? { ...EMPTY, ...(JSON.parse(raw) as Partial<AppState>) } : EMPTY;
+    } catch {
+      cachedState = EMPTY;
+    }
+  }
+  return cachedState;
+}
+
+function subscribe(onChange: () => void) {
+  window.addEventListener(EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+const serverSnapshot = () => EMPTY;
+const noSubscribe = () => () => {};
+
+/** False during server render and hydration, true once the client is running. */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(noSubscribe, () => true, () => false);
 }
 
 export function useAppState() {
-  const [state, setState] = useState<AppState>(EMPTY);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setState(read());
-    setReady(true);
-    const sync = () => setState(read());
-    window.addEventListener(EVENT, sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener(EVENT, sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
+  const state = useSyncExternalStore(subscribe, read, serverSnapshot);
+  const ready = useHydrated();
 
   const update = useCallback((fn: (s: AppState) => AppState) => {
     const next = fn(read());
+    const raw = JSON.stringify(next);
     try {
-      localStorage.setItem(KEY, JSON.stringify(next));
+      localStorage.setItem(STORAGE_KEY, raw);
+      memoryRaw = null;
     } catch {
-      /* private mode — state just won't persist */
+      memoryRaw = raw; // private mode — state won't persist past this tab
     }
-    setState(next);
     window.dispatchEvent(new Event(EVENT));
   }, []);
 

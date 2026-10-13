@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useHydrated } from "@/components/app/useAppState";
 import { GUEST_STAY, property } from "@/lib/demo";
 import { SITE } from "@/lib/site";
 
@@ -17,8 +18,7 @@ export default function Stay() {
   const { token } = useParams<{ token: string }>();
   const [phase, setPhase] = useState<Phase>("arrival");
   const [revealed, setRevealed] = useState(false);
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  const ready = useHydrated();
 
   if (token !== GUEST_STAY.token) {
     return (

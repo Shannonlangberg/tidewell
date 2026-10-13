@@ -1,13 +1,19 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAppState } from "@/components/app/useAppState";
-import { PEOPLE, ROLE_LABEL } from "@/lib/demo";
+import { redirect } from "next/navigation";
+import { currentSession } from "@/lib/auth";
+import { SignInForm } from "@/components/app/SignInForm";
 
-export default function SignIn() {
-  const router = useRouter();
-  const { update } = useAppState();
+export const metadata: Metadata = { title: "Sign in · Tidewell" };
+
+/**
+ * One app, one login. The email form posts to the `sendCode` action; the code
+ * is checked on /app/verify; /app/route then reads the session and sends each
+ * person to their role. Someone already signed in skips straight to the router.
+ */
+export default async function SignIn() {
+  if (await currentSession()) redirect("/app/route");
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
 
   return (
     <>
@@ -23,35 +29,7 @@ export default function SignIn() {
           <p className="o-status">One app for everyone who looks after a place with us. What you see depends on who you are.</p>
         </div>
 
-        <form className="o-boxed" style={{ padding: 16, background: "var(--o-raised)", display: "flex", flexDirection: "column", gap: 10 }} onSubmit={(e) => e.preventDefault()}>
-          <label className="o-label" htmlFor="email">Your email</label>
-          <input id="email" type="email" className="o-textarea" style={{ minHeight: 0 }} placeholder="you@example.com" disabled />
-          <button className="o-btn o-btn-green" disabled style={{ opacity: 0.5 }}>Email me a sign-in link</button>
-          <p className="o-small">Not switched on yet. For now, pick someone below.</p>
-        </form>
-
-        <section>
-          <p className="o-label" style={{ marginBottom: 12 }}>Demo · sign in as</p>
-          <div className="o-list">
-            {PEOPLE.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  update((s) => ({ ...s, person: p.id }));
-                  router.push(`/app/${p.role}`);
-                }}
-                style={{ padding: "15px 0", display: "flex", gap: 13, alignItems: "center", border: 0, width: "100%", textAlign: "left", cursor: "pointer", color: "inherit", font: "inherit" }}
-              >
-                <span className="o-avatar" style={{ flex: "none" }}>{p.initials}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontWeight: 600, fontSize: 19 }}>{p.name}</span>
-                  <span className="o-small" style={{ display: "block" }}>{p.blurb}</span>
-                </span>
-                <span className="o-chip">{ROLE_LABEL[p.role]}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+        <SignInForm turnstileSiteKey={turnstileSiteKey} />
 
         <section className="o-sep">
           <p className="o-label" style={{ marginBottom: 8 }}>Staying with us?</p>
