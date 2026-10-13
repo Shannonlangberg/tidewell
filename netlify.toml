@@ -22,3 +22,9 @@
     Cache-Control = "no-store"
     X-Robots-Tag = "noindex, nofollow"
     Referrer-Policy = "no-referrer"
+
+# Parked Tidewell app: never indexed (mirrors the headers() entry in next.config.mjs).
+[[headers]]
+  for = "/app/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

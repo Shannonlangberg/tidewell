@@ -64,6 +64,12 @@ const nextConfig = {
           { key: "Referrer-Policy", value: "no-referrer" },
         ],
       },
+      {
+        // The parked Tidewell app. robots.txt already disallows it, but a header
+        // also covers crawlers that reach a URL directly (mirrored in netlify.toml).
+        source: "/app/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
     ];
   },
 };

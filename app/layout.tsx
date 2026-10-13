@@ -1,38 +1,36 @@
-import type { Metadata, Viewport } from "next";
-import { SITE } from "@/lib/site";
-import "./globals.css";
+import type { Viewport } from "next";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 
-const FONTS =
-  "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap";
+/*
+ * Minimal root. It owns the document and the typefaces only.
+ *
+ * Styling belongs to the route groups: the PLANTED. site loads its own system in
+ * app/(site)/layout.tsx, and the parked Tidewell app under /app and /stay keeps
+ * the one it already had. Nothing visual lives here, so the two never collide.
+ */
 
-const TITLE = `${SITE.name}: holiday homes, kept well`;
-const DESCRIPTION =
-  "Tidewell looks after holiday homes on the Copper Coast, South Australia, for owners who live two hours away. Guests, cleaners, pricing and repairs, with published prices.";
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  display: "swap",
+  variable: "--font-cormorant",
+});
 
-export const metadata: Metadata = {
-  ...(SITE.url ? { metadataBase: new URL(SITE.url) } : {}),
-  title: TITLE,
-  description: DESCRIPTION,
-  openGraph: {
-    type: "website",
-    siteName: SITE.name,
-    locale: "en_AU",
-    title: TITLE,
-    description: DESCRIPTION,
-  },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-dm-sans",
+});
+
+export const viewport: Viewport = {
+  themeColor: "#252525",
+  colorScheme: "light",
 };
-
-export const viewport: Viewport = { themeColor: "#10382F" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-AU">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link rel="stylesheet" href={FONTS} />
-      </head>
+    <html lang="en-AU" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body>{children}</body>
     </html>
   );
