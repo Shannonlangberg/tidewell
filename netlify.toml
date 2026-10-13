@@ -14,3 +14,11 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Guest stay page: mirrors the headers() entry in next.config.mjs (there is no proxy.ts).
+[[headers]]
+  for = "/stay/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+    Referrer-Policy = "no-referrer"

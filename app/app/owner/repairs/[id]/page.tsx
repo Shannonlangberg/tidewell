@@ -15,6 +15,7 @@ export default function RepairDetail() {
 
   // "Ask" on the Home card links here with #ask — open the question box straight away.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the hash only exists in the browser, read once after mount
     if (location.hash === "#ask") setAsking(true);
   }, []);
 

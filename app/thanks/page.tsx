@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Mark } from "@/components/Mark";
 import { SITE, telHref } from "@/lib/site";
 
@@ -13,10 +14,10 @@ export default function Thanks() {
     <>
       <header className="header">
         <div className="header-inner">
-          <a href="/" className="brand" aria-label="Tidewell, back to the home page">
+          <Link href="/" className="brand" aria-label="Tidewell, back to the home page">
             <Mark width={23} fill="var(--copper)" hole="var(--verdigris)" />
             <span className="wordmark" style={{ fontSize: 27 }}>tidewell</span>
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -31,7 +32,7 @@ export default function Thanks() {
             Can&rsquo;t wait? Ring <a href={telHref(SITE.phone)}>{SITE.phone}</a>.
           </p>
         )}
-        <p style={{ marginTop: 28 }}><a href="/" className="link-rule">Back to the home page</a></p>
+        <p style={{ marginTop: 28 }}><Link href="/" className="link-rule">Back to the home page</Link></p>
       </main>
 
       <footer style={{ background: "var(--deep)", color: "var(--sea-mist)" }}>

@@ -104,6 +104,9 @@ export function EnquiryForm() {
         <label className="field-label" htmlFor="message">Message</label>
         <textarea className="input" id="message" name="message" />
       </div>
+      <p className="small">
+        We use these details only to reply to you about your house. See how we look after them on our <a href="/privacy">privacy page</a>.
+      </p>
       <button type="submit" className="btn btn-copper" disabled={status === "sending"} style={status === "sending" ? { opacity: 0.6 } : undefined}>
         {status === "sending" ? "Sending…" : "Send enquiry"}
       </button>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Mark } from "@/components/Mark";
 import { SITE } from "@/lib/site";
 
@@ -17,10 +18,10 @@ export default function Privacy() {
     <>
       <header className="header">
         <div className="header-inner">
-          <a href="/" className="brand" aria-label="Tidewell, back to the home page">
+          <Link href="/" className="brand" aria-label="Tidewell, back to the home page">
             <Mark width={23} fill="var(--copper)" hole="var(--verdigris)" />
             <span className="wordmark" style={{ fontSize: 27 }}>tidewell</span>
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -33,9 +34,13 @@ export default function Privacy() {
 
           <h2>What we collect</h2>
           <p>
-            Only what you type into the enquiry form: your name, your email address, your phone
-            number if you give it, the suburb and size of your house, and your message. Nothing
-            else on this site collects information about you.
+            What you type into the enquiry form: your name, your email address, your phone
+            number if you give it, the suburb and size of your house, and your message.
+          </p>
+          <p>
+            If you have a login to the Tidewell app, we also use your email address to send you
+            a sign-in code, and your browser keeps a cookie so you stay signed in. Nothing else
+            on this site collects information about you.
           </p>
 
           <h2>What we do with it</h2>
@@ -48,7 +53,8 @@ export default function Privacy() {
           <h2>Where it goes</h2>
           <p>
             The form is handled by Netlify, who host this website and hold the enquiries we
-            receive. Their servers may be outside Australia.
+            receive. Their servers may be outside Australia. App logins are handled by
+            Supabase, who send the sign-in code and hold your account details.
           </p>
 
           <h2>Asking us about your details</h2>
@@ -59,7 +65,7 @@ export default function Privacy() {
 
           {/* Add the business name, ABN and a contact address for privacy requests before launch. */}
         </div>
-        <p style={{ marginTop: 32 }}><a href="/" className="link-rule">Back to the home page</a></p>
+        <p style={{ marginTop: 32 }}><Link href="/" className="link-rule">Back to the home page</Link></p>
       </main>
 
       <footer style={{ background: "var(--deep)", color: "var(--sea-mist)" }}>

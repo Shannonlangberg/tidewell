@@ -145,7 +145,7 @@ export const repairTotal = (r: Repair) => r.lines.reduce((a, l) => a + l.amount,
 // Guests don't log in; they get a signed link (/stay/[token]).
 // ═══════════════════════════════════════════════════════════
 
-export type Role = "owner" | "tenant" | "crew" | "manager";
+export type Role = "owner" | "crew" | "manager";
 
 export type Person = {
   id: string;
@@ -160,13 +160,12 @@ export type Person = {
 
 export const PEOPLE: Person[] = [
   { id: "jane", name: "Jane Pelham", first: "jane", initials: "JP", role: "owner", property: "bayview", blurb: "Owner · 12 Bayview Road" },
-  { id: "tess", name: "Tess Moreno", first: "tess", initials: "TM", role: "tenant", property: "heritage", blurb: "Tenant · 27 Heritage Drive" },
   { id: "kel", name: "Kel Brennan", first: "kel", initials: "KB", role: "crew", kind: "cleaner", blurb: "Cleaner · turnovers and checks" },
   { id: "dean", name: "Dean Ashby", first: "dean", initials: "DA", role: "crew", kind: "tradie", blurb: "Tradie · Kadina Glass" },
   { id: "court", name: "Court", first: "court", initials: "C", role: "manager", blurb: "Manager · all homes" },
 ];
 
-export const ROLE_LABEL: Record<Role, string> = { owner: "Owner", tenant: "Tenant", crew: "Crew", manager: "Manager" };
+export const ROLE_LABEL: Record<Role, string> = { owner: "Owner", crew: "Crew", manager: "Manager" };
 
 export type Property = { id: string; name: string; town: string; kind: "short-stay" | "long-term"; ownerName: string; sleeps: number; rooms: string[]; code?: string };
 

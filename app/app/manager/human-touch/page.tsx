@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Header } from "@/components/app/Header";
 import { AssignSelect, LevelChip } from "@/components/app/HumanTouchBits";
 import { useAppState } from "@/components/app/useAppState";
-import { INBOX, needsHuman, property } from "@/lib/demo";
+import { INBOX, needsHuman } from "@/lib/demo";
 import { HEALTH_LABEL, MESSAGE_STATS_30D, OWNER_PROFILES, member, nextInteraction, relationshipHealth, type Level } from "@/lib/humanTouch";
 import { counterLines, humanTouch } from "@/lib/humanTouchState";
 
