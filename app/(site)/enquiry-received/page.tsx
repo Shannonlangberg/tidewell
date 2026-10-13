@@ -15,7 +15,7 @@ import { Button, Label, RuleLink } from "@/components/planted/ui";
 
 export const metadata: Metadata = {
   title: "Thank you",
-  description: `Your enquiry has reached ${BRAND.name}.`,
+  description: `Your enquiry has reached ${BRAND.name}`,
   robots: { index: false, follow: false },
 };
 

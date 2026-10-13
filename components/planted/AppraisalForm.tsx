@@ -37,6 +37,7 @@ import {
   TextAreaField,
   TextField,
   useHydrated,
+  useStartedAt,
 } from "./form-fields";
 
 /*
@@ -119,6 +120,7 @@ const NO_ERRORS: FieldErrors = {};
 export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
   const [state, formAction, pending] = useActionState(submitAppraisal, IDLE_STATE);
   const hydrated = useHydrated();
+  const startedAt = useStartedAt();
 
   // Seeded from the action's state so a no-JavaScript re-render after a
   // validation error comes back with everything still typed in.
@@ -128,27 +130,29 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
   const [edited, setEdited] = useState<Record<string, true>>({});
   const [step, setStep] = useState(1);
 
+  /** A request to move focus, counted so that asking twice for the same field
+   *  still moves it. Carried out in an effect, which always runs after the
+   *  render that put the field on screen. */
+  const [focusRequest, setFocusRequest] = useState<{ name: string; n: number } | null>(null);
+
   const legendRefs = useRef<Array<HTMLLegendElement | null>>([]);
-  const jsRef = useRef<HTMLInputElement>(null);
-  const startedRef = useRef<HTMLInputElement>(null);
   const stepMoved = useRef(false);
 
-  // Two things only JavaScript can say: that it is here at all, and when the
-  // person actually arrived at the form. Written straight to the DOM — they are
-  // not rendered state and never need to be.
+  function requestFocus(name: string) {
+    setFocusRequest((prev) => ({ name, n: (prev?.n ?? 0) + 1 }));
+  }
+
   useEffect(() => {
-    if (jsRef.current) jsRef.current.value = "1";
-    if (startedRef.current) startedRef.current.value = String(Date.now());
-  }, []);
+    if (!focusRequest) return;
+    focusField(FORM, focusRequest.name);
+  }, [focusRequest]);
 
   // The server has replied. Put the reader where the answer is.
   useEffect(() => {
     if (state.status !== "invalid" && state.status !== "failed") return;
-    requestAnimationFrame(() => {
-      const target = document.getElementById(SUMMARY_ID) ?? document.getElementById(MESSAGE_ID);
-      target?.focus();
-      target?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
+    const target = document.getElementById(SUMMARY_ID) ?? document.getElementById(MESSAGE_ID);
+    target?.focus();
+    target?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [state]);
 
   // Announce a new step by moving focus to its heading, but never on load.
@@ -182,7 +186,7 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
     if (failed.length > 0) {
       setClientErrors(stepErrors);
       setEdited({});
-      requestAnimationFrame(() => focusField(FORM, failed[0]));
+      requestFocus(failed[0]);
       return;
     }
     setClientErrors(NO_ERRORS);
@@ -198,12 +202,8 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
   /** A jump from the error summary, which may live on another step. */
   function goToField(name: string) {
     const target = STEP_OF[name] ?? step;
-    if (target !== step) {
-      setStep(target);
-      requestAnimationFrame(() => requestAnimationFrame(() => focusField(FORM, name)));
-      return;
-    }
-    focusField(FORM, name);
+    if (target !== step) setStep(target);
+    requestFocus(name);
   }
 
   // The last line of client-side defence. The action validates all of this
@@ -221,9 +221,8 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
     event.preventDefault();
     setClientErrors(all);
     const first = Object.keys(all).sort((a, b) => (STEP_OF[a] ?? 0) - (STEP_OF[b] ?? 0))[0];
-    const target = STEP_OF[first] ?? 1;
-    setStep(target);
-    requestAnimationFrame(() => requestAnimationFrame(() => focusField(FORM, first)));
+    setStep(STEP_OF[first] ?? 1);
+    requestFocus(first);
   }
 
   if (state.status === "sent") {
@@ -262,8 +261,8 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
     >
       <noscript dangerouslySetInnerHTML={{ __html: NO_JS_CSS }} />
 
-      <input type="hidden" name={JS_FIELD} ref={jsRef} defaultValue="" />
-      <input type="hidden" name={TIMESTAMP_FIELD} ref={startedRef} defaultValue="" />
+      <input type="hidden" name={JS_FIELD} value={hydrated ? "1" : ""} readOnly />
+      <input type="hidden" name={TIMESTAMP_FIELD} value={startedAt} readOnly />
       <Honeypot form={FORM} name={HONEYPOT_FIELD} />
 
       <h2 id={`${FORM}-title`} className="sr-only">

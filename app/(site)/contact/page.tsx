@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AREAS, BRAND, CONTACT, telHref } from "@/lib/planted";
 import { Label, Section } from "@/components/planted/ui";
 import { ContactForm } from "@/components/planted/ContactForm";
-import { ENQUIRY_TYPE_BY_PARAM } from "@/lib/enquiries";
+import { ENQUIRY_TYPE_BY_PARAM, turnstileSiteKey } from "@/lib/enquiries";
 
 /*
  * Contact. Every line in the details column is conditional on a real, confirmed
@@ -13,7 +13,7 @@ import { ENQUIRY_TYPE_BY_PARAM } from "@/lib/enquiries";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: `Get in touch with ${BRAND.name}, residential property management on South Australia's Copper Coast. Send an enquiry and we'll come back to you.`,
+  description: `Get in touch with ${BRAND.name} Residential property management on South Australia's Copper Coast: tell us about your property and we'll come back to you.`,
   alternates: { canonical: "/contact" },
 };
 
@@ -28,7 +28,6 @@ export default async function ContactPage({
   const key = (Array.isArray(raw) ? raw[0] : raw)?.toLowerCase().trim();
   const initialEnquiryType = (key && ENQUIRY_TYPE_BY_PARAM[key]) || "";
 
-  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
   const hasDetails = Boolean(CONTACT.email || CONTACT.phone || CONTACT.businessHours || CONTACT.address);
 
   return (
@@ -60,7 +59,7 @@ export default async function ContactPage({
         <div className="shell">
           <div className="grid gap-x-16 gap-y-20 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <ContactForm turnstileSiteKey={turnstileSiteKey} initialEnquiryType={initialEnquiryType} />
+              <ContactForm turnstileSiteKey={turnstileSiteKey()} initialEnquiryType={initialEnquiryType} />
             </div>
 
             <aside className="lg:col-span-4 lg:col-start-9">
@@ -106,7 +105,7 @@ export default async function ContactPage({
               ) : (
                 <div className="prose-measure mt-8 text-ink-muted">
                   <p>
-                    The form is the way to reach {BRAND.name}. It comes directly to us, and
+                    The form is the way to reach {BRAND.name} It comes directly to us, and
                     we&rsquo;ll reply by email or phone, whichever you ask for.
                   </p>
                 </div>

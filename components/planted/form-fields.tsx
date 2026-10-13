@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
 
 /*
  * The field primitives both enquiry forms are built from.
@@ -26,13 +26,29 @@ import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
  */
 
 const noopSubscribe = () => () => {};
+const notYet = () => "";
+const onTheServer = () => false;
+const inTheBrowser = () => true;
 
 export function useHydrated(): boolean {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  );
+  return useSyncExternalStore(noopSubscribe, inTheBrowser, onTheServer);
+}
+
+/**
+ * The moment this form appeared in a browser, as a string for a hidden field,
+ * and empty when there is no JavaScript. The server reads it to throw out
+ * submissions that arrive faster than a person can type.
+ *
+ * It has to come through a snapshot like this rather than a `useState` in an
+ * effect: React resets an uncontrolled input's value on every re-render, so
+ * writing the time straight to the DOM does not survive.
+ */
+export function useStartedAt(): string {
+  const snapshot = useMemo(() => {
+    let value = "";
+    return () => (value ||= String(Date.now()));
+  }, []);
+  return useSyncExternalStore(noopSubscribe, snapshot, notYet);
 }
 
 /* ── ids ─────────────────────────────────────────────────────────────────── */

@@ -425,6 +425,19 @@ export function hasJs(form: FormData): boolean {
 const TURNSTILE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const TIMEOUT_MS = 10_000;
 
+/**
+ * The site key to hand the form — but only when the secret is there to check
+ * the answer with. A widget whose token nobody verifies is theatre, and worse
+ * than nothing: it asks something of every visitor and buys no safety at all.
+ * Server-side only; in a client bundle the secret reads as undefined, so this
+ * would always return null.
+ */
+export function turnstileSiteKey(): string | null {
+  const site = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  return site && secret ? site : null;
+}
+
 /** Verified only when TURNSTILE_SECRET_KEY is set; otherwise skipped entirely. */
 export async function verifyTurnstile(form: FormData): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;

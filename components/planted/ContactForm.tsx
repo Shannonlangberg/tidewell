@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { submitContact } from "@/app/(site)/enquiry-actions";
 import {
@@ -26,6 +26,7 @@ import {
   TextAreaField,
   TextField,
   useHydrated,
+  useStartedAt,
 } from "./form-fields";
 
 /*
@@ -65,6 +66,7 @@ export function ContactForm({
 }) {
   const [state, formAction, pending] = useActionState(submitContact, IDLE_STATE);
   const hydrated = useHydrated();
+  const startedAt = useStartedAt();
 
   const [values, setValues] = useState<Values>(() => ({
     ...EMPTY,
@@ -73,22 +75,25 @@ export function ContactForm({
   }));
   const [clientErrors, setClientErrors] = useState<FieldErrors>(NO_ERRORS);
   const [edited, setEdited] = useState<Record<string, true>>({});
+  /** A request to move focus, counted so that asking twice for the same field
+   *  still moves it. Carried out in an effect, which always runs after the
+   *  render that showed the error. */
+  const [focusRequest, setFocusRequest] = useState<{ name: string; n: number } | null>(null);
 
-  const jsRef = useRef<HTMLInputElement>(null);
-  const startedRef = useRef<HTMLInputElement>(null);
+  function requestFocus(name: string) {
+    setFocusRequest((prev) => ({ name, n: (prev?.n ?? 0) + 1 }));
+  }
 
   useEffect(() => {
-    if (jsRef.current) jsRef.current.value = "1";
-    if (startedRef.current) startedRef.current.value = String(Date.now());
-  }, []);
+    if (!focusRequest) return;
+    focusField(FORM, focusRequest.name);
+  }, [focusRequest]);
 
   useEffect(() => {
     if (state.status !== "invalid" && state.status !== "failed") return;
-    requestAnimationFrame(() => {
-      const target = document.getElementById(SUMMARY_ID) ?? document.getElementById(MESSAGE_ID);
-      target?.focus();
-      target?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
+    const target = document.getElementById(SUMMARY_ID) ?? document.getElementById(MESSAGE_ID);
+    target?.focus();
+    target?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [state]);
 
   const serverErrors = state.status === "invalid" ? state.errors : NO_ERRORS;
@@ -115,7 +120,7 @@ export function ContactForm({
     event.preventDefault();
     setClientErrors(all);
     const first = CONTACT_FIELDS.find((f) => all[f]);
-    if (first) requestAnimationFrame(() => focusField(FORM, first));
+    if (first) requestFocus(first);
   }
 
   if (state.status === "sent") {
@@ -148,8 +153,8 @@ export function ContactForm({
       className="relative"
       aria-labelledby={`${FORM}-title`}
     >
-      <input type="hidden" name={JS_FIELD} ref={jsRef} defaultValue="" />
-      <input type="hidden" name={TIMESTAMP_FIELD} ref={startedRef} defaultValue="" />
+      <input type="hidden" name={JS_FIELD} value={hydrated ? "1" : ""} readOnly />
+      <input type="hidden" name={TIMESTAMP_FIELD} value={startedAt} readOnly />
       <Honeypot form={FORM} name={HONEYPOT_FIELD} />
 
       <h2 id={`${FORM}-title`} className="sr-only">

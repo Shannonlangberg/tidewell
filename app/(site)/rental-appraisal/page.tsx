@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BRAND } from "@/lib/planted";
 import { Label, RuleLink, Section } from "@/components/planted/ui";
 import { IconCare, IconCommunication, IconLocal } from "@/components/planted/Icons";
+import { turnstileSiteKey } from "@/lib/enquiries";
 import { AppraisalForm } from "@/components/planted/AppraisalForm";
 
 /*
@@ -37,8 +38,6 @@ const STEPS = [
 ];
 
 export default function RentalAppraisalPage() {
-  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
-
   return (
     <>
       {/* ── Opening ─────────────────────────────────────────
@@ -70,7 +69,7 @@ export default function RentalAppraisalPage() {
         <div className="shell">
           <div className="grid gap-x-16 gap-y-16 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <AppraisalForm turnstileSiteKey={turnstileSiteKey} />
+              <AppraisalForm turnstileSiteKey={turnstileSiteKey()} />
             </div>
 
             <aside className="lg:col-span-4 lg:col-start-9">

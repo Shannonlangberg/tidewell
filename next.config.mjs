@@ -41,9 +41,16 @@ const nextConfig = {
         source: "/(.*)",
         headers: [{ key: "Content-Security-Policy", value: csp() }],
       },
-      {
-        // Sign-in only: the Turnstile widget (script plus its challenge iframe).
-        source: "/app",
+      ...[
+        // The three routes that may show a Turnstile widget: app sign-in, and the
+        // two public enquiry forms. Each needs the script and its challenge iframe.
+        // Without this the widget is silently blocked, so it must stay in step with
+        // wherever NEXT_PUBLIC_TURNSTILE_SITE_KEY is used.
+        "/app",
+        "/rental-appraisal",
+        "/contact",
+      ].map((source) => ({
+        source,
         headers: [
           {
             key: "Content-Security-Policy",
@@ -54,7 +61,7 @@ const nextConfig = {
             }),
           },
         ],
-      },
+      })),
       {
         // Guest stay page: never cached, never indexed, never leaks its URL (mirrored in netlify.toml).
         source: "/stay/:token*",
