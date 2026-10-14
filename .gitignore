@@ -12,3 +12,6 @@ next-env.d.ts
 
 # Local Supabase env: holds only Cloudflare's published always-pass Turnstile test secret, so it is safe to commit.
 !supabase/.env
+
+# Per-builder build output (NEXT_DIST_DIR=.next-<name>)
+.next-*

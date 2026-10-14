@@ -16,6 +16,9 @@ const SECRET_KEY_ALLOWED = [
   "app/api/ical/[token]/**",
   "app/stay/[token]/page.tsx",
   "app/stay/[token]/actions.ts",
+  // Planted HQ: the Auth admin API only (creating a staff login on invitation). All HQ
+  // data access runs as the signed-in person under row level security, never with this key.
+  "lib/hq/staff-admin.ts",
 ];
 
 const secretImportPatterns = [
@@ -28,7 +31,7 @@ const secretImportPatterns = [
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "design/**", "supabase/**"]),
+  globalIgnores([".next/**", ".next-*/**", "out/**", "build/**", "next-env.d.ts", "design/**", "supabase/**"]),
   {
     files: ["**/*.{js,jsx,mjs,ts,tsx}"],
     rules: {

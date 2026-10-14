@@ -32,6 +32,10 @@ const csp = (extra = {}) => {
 const TURNSTILE = "https://challenges.cloudflare.com";
 
 const nextConfig = {
+  // Parallel work (several dev servers at once) needs separate build output.
+  // Unset in production and on Netlify, where the default .next is required.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+
   // Node-only (fontkit, yoga); must stay out of the Turbopack server bundle.
   serverExternalPackages: ["@react-pdf/renderer"],
 
