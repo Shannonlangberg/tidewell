@@ -153,19 +153,18 @@ Each RPC pins `search_path`, checks the capability itself, writes an audit event
 
 ## 7. Design system
 
-Charcoal-led, warm, calm and precise. Reference: Linear, Notion, Stripe, premium editorial.
+**The source of truth is [docs/brand-design-system.md](brand-design-system.md)** (the official PLANTED. brand system, v1.0), and its tokens are in `app/planted-tokens.css`. Nothing in HQ introduces a colour, radius or typeface that is not in that file.
 
-| Token | Value | Use |
-|---|---|---|
-| charcoal | `#242424` | primary, sidebar, primary buttons |
-| deep | `#191919` | sidebar depth, dark panels |
-| canvas | `#F6F4F0` | page background |
-| soft | `#E9E7E3` | borders, dividers, subtle fills |
-| surface | `#FFFFFF` | panels and tables |
-| muted | `#6B6862` | secondary text on canvas (5.0:1; the suggested `#777571` is only 4.2:1) |
-| clay | `#947B69` | rare accent, never for small text |
+How the brand system applies to HQ (its section 7):
 
-Type: DM Sans for the interface; Cormorant Garamond for page titles only, at modest scale (never in dense tables). Radius 6px on controls, 10px on panels. Borders 1px `soft`; shadows only on drawers and menus. Status is shown by a small dot plus a label, never by colour alone. Desktop: fixed charcoal sidebar. Mobile: bottom tab bar (Dashboard, Growth, Operations, More), a floating quick-add, a purpose-built contact card list rather than a shrunken table.
+- **Soft white** (`--planted-white`) application background. **Charcoal** navigation. **Ivory and stone** surfaces. Hairline borders (`--planted-border`).
+- **DM Sans** for everything interactive and operational: navigation, tables, forms, task lists, statistics and every figure. **Cormorant Garamond only** for the wordmark, the welcome heading, sign-in and empty-state titles. Never a serif in data.
+- **Radius 4px** on buttons and inputs, **6px** on panels and cards. Shadows are very subtle and used only for menus, drawers and the command palette. No floating card grids: separation comes from hairlines and spacing.
+- **Buttons:** primary is charcoal with ivory text and a slightly lighter charcoal hover; secondary is transparent with a charcoal border. Small labels are uppercase with increased letter spacing.
+- **Clay** is used sparingly: a selected-item marker, a small accent. Never for small text (use `--planted-clay-text`).
+- **Status** uses the functional colours defined in the tokens file (the one explicit exception to the neutral palette), always as a dot plus a label, never colour alone.
+- **Contrast:** body-size secondary text uses `--planted-grey-text`, not `--planted-grey` (which is 4.4:1 on soft white). On stone, use charcoal. See the implementation notes in the brand system.
+- **Mobile:** a purpose-built layout with a bottom tab bar, a floating quick add and contact cards rather than a table, not the desktop shrunk down.
 
 ## 8. Phases
 

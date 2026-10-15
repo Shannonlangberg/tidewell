@@ -1,0 +1,1694 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  hq: {
+    Tables: {
+      audit_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          at: string
+          changes: Json
+          entity_id: string | null
+          entity_type: string
+          id: number
+          summary: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          at?: string
+          changes?: Json
+          entity_id?: string | null
+          entity_type: string
+          id?: never
+          summary?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          at?: string
+          changes?: Json
+          entity_id?: string | null
+          entity_type?: string
+          id?: never
+          summary?: string | null
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          categories: Database["hq"]["Enums"]["partner_category"][]
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          email: string | null
+          external_ids: Json
+          full_name: string
+          id: string
+          last_contact_at: string | null
+          location: string | null
+          name_key: string | null
+          needs_verification: boolean
+          next_follow_up_date: string | null
+          notes: string | null
+          org_contact_role: Database["hq"]["Enums"]["org_contact_role"]
+          organisation_id: string | null
+          phone: string | null
+          position: string | null
+          priority: Database["hq"]["Enums"]["priority_level"]
+          relationship_owner_id: string | null
+          relationship_status: Database["hq"]["Enums"]["relationship_status"]
+          service_region: string | null
+          source: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          website: string | null
+        }
+        Insert: {
+          categories?: Database["hq"]["Enums"]["partner_category"][]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          external_ids?: Json
+          full_name: string
+          id?: string
+          last_contact_at?: string | null
+          location?: string | null
+          name_key?: string | null
+          needs_verification?: boolean
+          next_follow_up_date?: string | null
+          notes?: string | null
+          org_contact_role?: Database["hq"]["Enums"]["org_contact_role"]
+          organisation_id?: string | null
+          phone?: string | null
+          position?: string | null
+          priority?: Database["hq"]["Enums"]["priority_level"]
+          relationship_owner_id?: string | null
+          relationship_status?: Database["hq"]["Enums"]["relationship_status"]
+          service_region?: string | null
+          source?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          categories?: Database["hq"]["Enums"]["partner_category"][]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          external_ids?: Json
+          full_name?: string
+          id?: string
+          last_contact_at?: string | null
+          location?: string | null
+          name_key?: string | null
+          needs_verification?: boolean
+          next_follow_up_date?: string | null
+          notes?: string | null
+          org_contact_role?: Database["hq"]["Enums"]["org_contact_role"]
+          organisation_id?: string | null
+          phone?: string | null
+          position?: string | null
+          priority?: Database["hq"]["Enums"]["priority_level"]
+          relationship_owner_id?: string | null
+          relationship_status?: Database["hq"]["Enums"]["relationship_status"]
+          service_region?: string | null
+          source?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "contacts_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_batches: {
+        Row: {
+          applied_at: string
+          applied_by: string | null
+          contacts_created: number
+          duplicates_skipped: number
+          file_name: string | null
+          flagged: number
+          id: string
+          organisations_created: number
+          row_count: number
+          source: string
+        }
+        Insert: {
+          applied_at?: string
+          applied_by?: string | null
+          contacts_created?: number
+          duplicates_skipped?: number
+          file_name?: string | null
+          flagged?: number
+          id?: string
+          organisations_created?: number
+          row_count?: number
+          source: string
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string | null
+          contacts_created?: number
+          duplicates_skipped?: number
+          file_name?: string | null
+          flagged?: number
+          id?: string
+          organisations_created?: number
+          row_count?: number
+          source?: string
+        }
+        Relationships: []
+      }
+      interactions: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          follow_up_date: string | null
+          id: string
+          interaction_type: Database["hq"]["Enums"]["interaction_type"]
+          next_action: string | null
+          occurred_at: string
+          organisation_id: string | null
+          staff_id: string | null
+          summary: string
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          follow_up_date?: string | null
+          id?: string
+          interaction_type: Database["hq"]["Enums"]["interaction_type"]
+          next_action?: string | null
+          occurred_at?: string
+          organisation_id?: string | null
+          staff_id?: string | null
+          summary: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          follow_up_date?: string | null
+          id?: string
+          interaction_type?: Database["hq"]["Enums"]["interaction_type"]
+          next_action?: string | null
+          occurred_at?: string
+          organisation_id?: string | null
+          staff_id?: string | null
+          summary?: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "interactions_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "interactions_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunities: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          display_number: number
+          estimated_annual_value_cents: number | null
+          id: string
+          lost_reason: string | null
+          management_reference: string | null
+          notes: string | null
+          property_address: string | null
+          property_suburb: string | null
+          prospect_email: string | null
+          prospect_name: string
+          prospect_phone: string | null
+          signed_at: string | null
+          stage: Database["hq"]["Enums"]["opportunity_stage"]
+          stage_changed_at: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          display_number?: never
+          estimated_annual_value_cents?: number | null
+          id?: string
+          lost_reason?: string | null
+          management_reference?: string | null
+          notes?: string | null
+          property_address?: string | null
+          property_suburb?: string | null
+          prospect_email?: string | null
+          prospect_name: string
+          prospect_phone?: string | null
+          signed_at?: string | null
+          stage?: Database["hq"]["Enums"]["opportunity_stage"]
+          stage_changed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          display_number?: never
+          estimated_annual_value_cents?: number | null
+          id?: string
+          lost_reason?: string | null
+          management_reference?: string | null
+          notes?: string | null
+          property_address?: string | null
+          property_suburb?: string | null
+          prospect_email?: string | null
+          prospect_name?: string
+          prospect_phone?: string | null
+          signed_at?: string | null
+          stage?: Database["hq"]["Enums"]["opportunity_stage"]
+          stage_changed_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunity_stage_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_stage: Database["hq"]["Enums"]["opportunity_stage"] | null
+          id: number
+          note: string | null
+          opportunity_id: string
+          to_stage: Database["hq"]["Enums"]["opportunity_stage"]
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage?: Database["hq"]["Enums"]["opportunity_stage"] | null
+          id?: never
+          note?: string | null
+          opportunity_id: string
+          to_stage: Database["hq"]["Enums"]["opportunity_stage"]
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage?: Database["hq"]["Enums"]["opportunity_stage"] | null
+          id?: never
+          note?: string | null
+          opportunity_id?: string
+          to_stage?: Database["hq"]["Enums"]["opportunity_stage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organisations: {
+        Row: {
+          categories: Database["hq"]["Enums"]["partner_category"][]
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          email: string | null
+          external_ids: Json
+          id: string
+          location: string | null
+          name: string
+          name_key: string | null
+          needs_verification: boolean
+          notes: string | null
+          phone: string | null
+          relationship_owner_id: string | null
+          service_region: string | null
+          source: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          website: string | null
+        }
+        Insert: {
+          categories: Database["hq"]["Enums"]["partner_category"][]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          external_ids?: Json
+          id?: string
+          location?: string | null
+          name: string
+          name_key?: string | null
+          needs_verification?: boolean
+          notes?: string | null
+          phone?: string | null
+          relationship_owner_id?: string | null
+          service_region?: string | null
+          source?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          categories?: Database["hq"]["Enums"]["partner_category"][]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          external_ids?: Json
+          id?: string
+          location?: string | null
+          name?: string
+          name_key?: string | null
+          needs_verification?: boolean
+          notes?: string | null
+          phone?: string | null
+          relationship_owner_id?: string | null
+          service_region?: string | null
+          source?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisations_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pods: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          region: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          region?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          region?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          direction: Database["hq"]["Enums"]["referral_direction"]
+          id: string
+          is_attributed: boolean
+          notes: string | null
+          opportunity_id: string | null
+          property_address: string | null
+          property_suburb: string | null
+          prospect_email: string | null
+          prospect_name: string | null
+          prospect_phone: string | null
+          receiving_contact_id: string | null
+          receiving_organisation_id: string | null
+          ref_number: number
+          referral_date: string
+          referring_contact_id: string | null
+          referring_organisation_id: string | null
+          sent_outcome: Database["hq"]["Enums"]["sent_referral_outcome"] | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          direction: Database["hq"]["Enums"]["referral_direction"]
+          id?: string
+          is_attributed?: boolean
+          notes?: string | null
+          opportunity_id?: string | null
+          property_address?: string | null
+          property_suburb?: string | null
+          prospect_email?: string | null
+          prospect_name?: string | null
+          prospect_phone?: string | null
+          receiving_contact_id?: string | null
+          receiving_organisation_id?: string | null
+          ref_number?: never
+          referral_date: string
+          referring_contact_id?: string | null
+          referring_organisation_id?: string | null
+          sent_outcome?: Database["hq"]["Enums"]["sent_referral_outcome"] | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          direction?: Database["hq"]["Enums"]["referral_direction"]
+          id?: string
+          is_attributed?: boolean
+          notes?: string | null
+          opportunity_id?: string | null
+          property_address?: string | null
+          property_suburb?: string | null
+          prospect_email?: string | null
+          prospect_name?: string | null
+          prospect_phone?: string | null
+          receiving_contact_id?: string | null
+          receiving_organisation_id?: string | null
+          ref_number?: never
+          referral_date?: string
+          referring_contact_id?: string | null
+          referring_organisation_id?: string | null
+          sent_outcome?: Database["hq"]["Enums"]["sent_referral_outcome"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_organisation_id_fkey"
+            columns: ["receiving_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_organisation_id_fkey"
+            columns: ["receiving_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_organisation_id_fkey"
+            columns: ["receiving_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["referring_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["referring_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["referring_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
+      role_capabilities: {
+        Row: {
+          capability: string
+          role: Database["hq"]["Enums"]["staff_role"]
+        }
+        Insert: {
+          capability: string
+          role: Database["hq"]["Enums"]["staff_role"]
+        }
+        Update: {
+          capability?: string
+          role?: Database["hq"]["Enums"]["staff_role"]
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      staff_profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dashboard_widgets: string[] | null
+          email: string
+          employment_status: Database["hq"]["Enums"]["employment_status"]
+          first_name: string
+          full_name: string
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean
+          pod_id: string | null
+          responsibilities: string | null
+          role: Database["hq"]["Enums"]["staff_role"]
+          start_date: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dashboard_widgets?: string[] | null
+          email: string
+          employment_status?: Database["hq"]["Enums"]["employment_status"]
+          first_name: string
+          full_name: string
+          id: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean
+          pod_id?: string | null
+          responsibilities?: string | null
+          role: Database["hq"]["Enums"]["staff_role"]
+          start_date?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dashboard_widgets?: string[] | null
+          email?: string
+          employment_status?: Database["hq"]["Enums"]["employment_status"]
+          first_name?: string
+          full_name?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean
+          pod_id?: string | null
+          responsibilities?: string | null
+          role?: Database["hq"]["Enums"]["staff_role"]
+          start_date?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profiles_pod_id_fkey"
+            columns: ["pod_id"]
+            isOneToOne: false
+            referencedRelation: "pods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: Database["hq"]["Enums"]["task_priority"]
+          related_contact_id: string | null
+          related_opportunity_id: string | null
+          related_organisation_id: string | null
+          related_referral_id: string | null
+          source: string
+          status: Database["hq"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["hq"]["Enums"]["task_priority"]
+          related_contact_id?: string | null
+          related_opportunity_id?: string | null
+          related_organisation_id?: string | null
+          related_referral_id?: string | null
+          source?: string
+          status?: Database["hq"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["hq"]["Enums"]["task_priority"]
+          related_contact_id?: string | null
+          related_opportunity_id?: string | null
+          related_organisation_id?: string | null
+          related_referral_id?: string | null
+          source?: string
+          status?: Database["hq"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_organisation_id_fkey"
+            columns: ["related_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_organisation_id_fkey"
+            columns: ["related_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_organisation_id_fkey"
+            columns: ["related_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_referral_id_fkey"
+            columns: ["related_referral_id"]
+            isOneToOne: false
+            referencedRelation: "referral_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_referral_id_fkey"
+            columns: ["related_referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      contact_directory: {
+        Row: {
+          categories: Database["hq"]["Enums"]["partner_category"][] | null
+          created_at: string | null
+          email: string | null
+          follow_up_overdue: boolean | null
+          full_name: string | null
+          id: string | null
+          last_contact_at: string | null
+          location: string | null
+          needs_verification: boolean | null
+          next_follow_up_date: string | null
+          notes: string | null
+          org_contact_role: Database["hq"]["Enums"]["org_contact_role"] | null
+          organisation_id: string | null
+          organisation_name: string | null
+          phone: string | null
+          position: string | null
+          priority: Database["hq"]["Enums"]["priority_level"] | null
+          referrals_received: number | null
+          referrals_sent: number | null
+          relationship_owner_id: string | null
+          relationship_owner_name: string | null
+          relationship_status:
+            | Database["hq"]["Enums"]["relationship_status"]
+            | null
+          service_region: string | null
+          source: string | null
+          updated_at: string | null
+          verified_at: string | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "contacts_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organisation_directory: {
+        Row: {
+          categories: Database["hq"]["Enums"]["partner_category"][] | null
+          contact_count: number | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          last_contact_at: string | null
+          location: string | null
+          name: string | null
+          needs_verification: boolean | null
+          next_follow_up_date: string | null
+          notes: string | null
+          phone: string | null
+          primary_contact_id: string | null
+          primary_contact_name: string | null
+          relationship_owner_id: string | null
+          relationship_owner_name: string | null
+          service_region: string | null
+          source: string | null
+          updated_at: string | null
+          verified_at: string | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisations_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overdue_followups: {
+        Row: {
+          contact_id: string | null
+          days_overdue: number | null
+          full_name: string | null
+          last_contact_at: string | null
+          next_follow_up_date: string | null
+          organisation_id: string | null
+          organisation_name: string | null
+          priority: Database["hq"]["Enums"]["priority_level"] | null
+          relationship_owner_id: string | null
+          relationship_owner_name: string | null
+          relationship_status:
+            | Database["hq"]["Enums"]["relationship_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "contacts_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_performance: {
+        Row: {
+          categories: Database["hq"]["Enums"]["partner_category"][] | null
+          conversion: number | null
+          estimated_value_signed_cents: number | null
+          organisation_id: string | null
+          organisation_name: string | null
+          qualified: number | null
+          received: number | null
+          reciprocal: boolean | null
+          sent: number | null
+          signed: number | null
+        }
+        Relationships: []
+      }
+      referral_overview: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_name: string | null
+          created_at: string | null
+          direction: Database["hq"]["Enums"]["referral_direction"] | null
+          estimated_annual_value_cents: number | null
+          id: string | null
+          is_attributed: boolean | null
+          notes: string | null
+          opportunity_assigned_to: string | null
+          opportunity_id: string | null
+          opportunity_number: number | null
+          partner_contact_id: string | null
+          partner_contact_name: string | null
+          partner_organisation_id: string | null
+          partner_organisation_name: string | null
+          property_address: string | null
+          property_suburb: string | null
+          prospect_email: string | null
+          prospect_name: string | null
+          prospect_phone: string | null
+          receiving_contact_id: string | null
+          receiving_organisation_id: string | null
+          ref_label: string | null
+          ref_number: number | null
+          referral_date: string | null
+          referring_contact_id: string | null
+          referring_organisation_id: string | null
+          sent_outcome: Database["hq"]["Enums"]["sent_referral_outcome"] | null
+          signed_at: string | null
+          stage: Database["hq"]["Enums"]["opportunity_stage"] | null
+          stage_changed_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_assigned_to_fkey"
+            columns: ["opportunity_assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_contact_id_fkey"
+            columns: ["receiving_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_organisation_id_fkey"
+            columns: ["receiving_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_organisation_id_fkey"
+            columns: ["receiving_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_receiving_organisation_id_fkey"
+            columns: ["receiving_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["referring_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["referring_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["referring_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["referring_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      add_staff: {
+        Args: {
+          p_email: string
+          p_first_name?: string
+          p_full_name: string
+          p_pod?: string
+          p_responsibilities?: string
+          p_role: Database["hq"]["Enums"]["staff_role"]
+          p_start_date?: string
+          p_timezone?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      apply_partner_import: {
+        Args: { p_file_name?: string; p_rows: Json; p_source: string }
+        Returns: Json
+      }
+      archive_record: {
+        Args: { p_entity: string; p_id: string; p_reason?: string }
+        Returns: Json
+      }
+      bootstrap_first_director: {
+        Args: {
+          p_email: string
+          p_first_name: string
+          p_full_name: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      can: { Args: { p_capability: string }; Returns: boolean }
+      deactivate_staff: {
+        Args: { p_reason?: string; p_staff_id: string }
+        Returns: Json
+      }
+      global_search: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: Json
+      }
+      growth_summary: { Args: { p_since?: string }; Returns: Json }
+      move_opportunity: {
+        Args: {
+          p_lost_reason?: string
+          p_management_reference?: string
+          p_note?: string
+          p_opportunity: string
+          p_signed_at?: string
+          p_stage: Database["hq"]["Enums"]["opportunity_stage"]
+        }
+        Returns: Json
+      }
+      my_access: { Args: never; Returns: Json }
+      preview_partner_import: { Args: { p_rows: Json }; Returns: Json }
+      record_interaction: {
+        Args: {
+          p_contact?: string
+          p_create_task?: boolean
+          p_follow_up_date?: string
+          p_new_status?: Database["hq"]["Enums"]["relationship_status"]
+          p_next_action?: string
+          p_occurred_at?: string
+          p_organisation?: string
+          p_summary?: string
+          p_task_assignee?: string
+          p_type?: Database["hq"]["Enums"]["interaction_type"]
+        }
+        Returns: Json
+      }
+      record_referral: {
+        Args: {
+          p_assigned_to?: string
+          p_direction: Database["hq"]["Enums"]["referral_direction"]
+          p_estimated_value_cents?: number
+          p_existing_opportunity?: string
+          p_notes?: string
+          p_property_address?: string
+          p_property_suburb?: string
+          p_prospect_email?: string
+          p_prospect_name?: string
+          p_prospect_phone?: string
+          p_receiving_contact?: string
+          p_receiving_organisation?: string
+          p_referral_date?: string
+          p_referring_contact?: string
+          p_referring_organisation?: string
+        }
+        Returns: Json
+      }
+      restore_record: {
+        Args: { p_entity: string; p_id: string }
+        Returns: Json
+      }
+      set_attributed_referral: {
+        Args: { p_opportunity: string; p_referral: string }
+        Returns: Json
+      }
+      today: { Args: never; Returns: string }
+      update_staff: {
+        Args: {
+          p_clear_pod?: boolean
+          p_dashboard_widgets?: string[]
+          p_employment_status?: Database["hq"]["Enums"]["employment_status"]
+          p_first_name?: string
+          p_full_name?: string
+          p_is_active?: boolean
+          p_pod?: string
+          p_reset_widgets?: boolean
+          p_responsibilities?: string
+          p_role?: Database["hq"]["Enums"]["staff_role"]
+          p_staff_id: string
+          p_start_date?: string
+          p_timezone?: string
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      employment_status: "active" | "on_leave" | "ended"
+      interaction_type:
+        | "phone_call"
+        | "coffee_meeting"
+        | "office_meeting"
+        | "email"
+        | "message"
+        | "note"
+      opportunity_stage:
+        | "introduction_received"
+        | "contacted"
+        | "qualified"
+        | "appraisal_requested"
+        | "appraisal_completed"
+        | "proposal_sent"
+        | "management_signed"
+        | "lost"
+      org_contact_role: "primary" | "secondary" | "other"
+      partner_category:
+        | "real_estate_sales"
+        | "mortgage_broker"
+        | "conveyancer"
+        | "lawyer"
+        | "accountant"
+        | "bank_lending"
+        | "buyers_agent"
+        | "property_developer"
+        | "builder"
+        | "financial_adviser"
+        | "other"
+      priority_level: "high" | "medium" | "low"
+      referral_direction: "received" | "sent"
+      relationship_status:
+        | "identified"
+        | "contacted"
+        | "meeting_booked"
+        | "met"
+        | "active_relationship"
+        | "referring_partner"
+        | "inactive"
+      sent_referral_outcome:
+        | "sent"
+        | "acknowledged"
+        | "converted"
+        | "no_outcome"
+      staff_role:
+        | "director"
+        | "administrator"
+        | "senior_property_manager"
+        | "property_manager"
+        | "junior_property_manager"
+        | "business_development_manager"
+        | "virtual_assistant"
+        | "read_only"
+      task_priority: "low" | "normal" | "high" | "urgent"
+      task_status:
+        | "to_do"
+        | "in_progress"
+        | "waiting"
+        | "completed"
+        | "cancelled"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  hq: {
+    Enums: {
+      employment_status: ["active", "on_leave", "ended"],
+      interaction_type: [
+        "phone_call",
+        "coffee_meeting",
+        "office_meeting",
+        "email",
+        "message",
+        "note",
+      ],
+      opportunity_stage: [
+        "introduction_received",
+        "contacted",
+        "qualified",
+        "appraisal_requested",
+        "appraisal_completed",
+        "proposal_sent",
+        "management_signed",
+        "lost",
+      ],
+      org_contact_role: ["primary", "secondary", "other"],
+      partner_category: [
+        "real_estate_sales",
+        "mortgage_broker",
+        "conveyancer",
+        "lawyer",
+        "accountant",
+        "bank_lending",
+        "buyers_agent",
+        "property_developer",
+        "builder",
+        "financial_adviser",
+        "other",
+      ],
+      priority_level: ["high", "medium", "low"],
+      referral_direction: ["received", "sent"],
+      relationship_status: [
+        "identified",
+        "contacted",
+        "meeting_booked",
+        "met",
+        "active_relationship",
+        "referring_partner",
+        "inactive",
+      ],
+      sent_referral_outcome: [
+        "sent",
+        "acknowledged",
+        "converted",
+        "no_outcome",
+      ],
+      staff_role: [
+        "director",
+        "administrator",
+        "senior_property_manager",
+        "property_manager",
+        "junior_property_manager",
+        "business_development_manager",
+        "virtual_assistant",
+        "read_only",
+      ],
+      task_priority: ["low", "normal", "high", "urgent"],
+      task_status: [
+        "to_do",
+        "in_progress",
+        "waiting",
+        "completed",
+        "cancelled",
+      ],
+    },
+  },
+} as const
+

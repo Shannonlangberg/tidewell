@@ -1,0 +1,72 @@
+/*
+ * PLANTED. design tokens: the code form of docs/brand-design-system.md.
+ *
+ * Section 13 of the brand system is reproduced exactly. Everything after the
+ * "derived" marker is an implementation decision recorded in that document's
+ * "Implementation notes", mainly so text can meet WCAG AA contrast.
+ *
+ * Plain CSS custom properties, no Tailwind dependency, so any surface can use it.
+ */
+
+:root {
+  /* ── official palette (brand system section 2 and 13) ── */
+  --planted-charcoal: #252525;
+  --planted-ivory: #F5F1EA;
+  --planted-white: #FAF8F4;
+  --planted-stone: #D6CEC3;
+  --planted-taupe: #A89A8B;
+  --planted-clay: #947B69;
+  --planted-black: #171717;
+  --planted-grey: #77736E;
+  --planted-border: #DED8D0;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', Arial, sans-serif;
+
+  --radius-button: 4px;
+  --radius-card: 6px;
+  --radius-input: 4px;
+
+  /* ── derived (implementation notes) ── */
+
+  /* Body-size secondary text. #77736E is 4.43:1 on soft white and about 4.2:1 on ivory,
+     so text uses this one step darker (about 5.0:1 and 4.7:1). */
+  --planted-grey-text: #6F6B66;
+  /* Clay as small text. #947B69 is about 3.6:1 and is for large text and decoration only. */
+  --planted-clay-text: #7A6353;
+  /* Slightly lighter charcoal for the primary button hover (brand system section 6). */
+  --planted-charcoal-hover: #3A3A3A;
+  /* A raised charcoal for selected rows and active navigation on a charcoal ground. */
+  --planted-charcoal-raised: #303030;
+  /* Hairline on a charcoal ground. */
+  --planted-border-dark: #3A3836;
+
+  /* Very subtle elevation, used only for menus, drawers and the command palette. */
+  --shadow-subtle: 0 1px 2px rgba(23, 23, 23, 0.06), 0 8px 24px rgba(23, 23, 23, 0.08);
+
+  /*
+   * Functional status colours: the explicit exception in brand system section 7.
+   * Muted and warm-leaning so they sit with the neutrals. Each has a text colour,
+   * a soft background and a dot colour. Text on its background is at least 4.5:1.
+   * Never the only carrier of meaning: always pair with a dot or icon and a label.
+   */
+  --status-neutral-text: #4A4742;
+  --status-neutral-bg: #ECE8E1;
+  --status-neutral-dot: #8A857D;
+
+  --status-info-text: #2F4A66;
+  --status-info-bg: #E6ECF2;
+  --status-info-dot: #4A6E92;
+
+  --status-success-text: #2E5A44;
+  --status-success-bg: #E4EDE6;
+  --status-success-dot: #3F7A5A;
+
+  --status-warning-text: #7A4F12;
+  --status-warning-bg: #F5EAD3;
+  --status-warning-dot: #B5832A;
+
+  --status-error-text: #8A2F27;
+  --status-error-bg: #F5E1DD;
+  --status-error-dot: #B5483D;
+}
