@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
   const headers = { "Cache-Control": "private, no-store" };
 
   if (next !== null) {
-    return NextResponse.redirect(new URL(signedIn ? next : "/app", request.url), { status: 303, headers });
+    // Signed out: back to whichever sign-in the person was heading for. HQ and the parked
+    // app have separate front doors.
+    const signedOutTo = next.startsWith("/hq") ? "/hq/sign-in" : "/app";
+    return NextResponse.redirect(new URL(signedIn ? next : signedOutTo, request.url), { status: 303, headers });
   }
   return new NextResponse(null, { status: signedIn ? 204 : 401, headers });
 }

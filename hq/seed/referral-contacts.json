@@ -1,0 +1,249 @@
+{
+  "$comment": "Research leads supplied by Planted. They are NOT verified and NOT confirmed relationships. Every row imports as relationship_status = identified with needs_verification = true. No phone, email, website, address or suburb has been added: only the name, organisation, category and region that were supplied. Region comes from the list the person appeared under (Local Copper Coast / Adelaide). Review this file, then use the import screen (dry run first).",
+  "source": "research-leads-2026-10",
+  "defaults": {
+    "relationship_status": "identified",
+    "needs_verification": true
+  },
+  "rows": [
+    {
+      "organisation": "eXp Realty",
+      "full_name": "Tim Hosking",
+      "categories": [
+        "real_estate_sales"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "eXp Realty",
+      "full_name": "Sarb Singh",
+      "categories": [
+        "real_estate_sales"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "a.s lending co.",
+      "full_name": "Amanda Schultz",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Mildwaters Byrth",
+      "full_name": "Anna Przibilla",
+      "categories": [
+        "conveyancer"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Mildwaters Byrth",
+      "full_name": "Candice Light",
+      "categories": [
+        "conveyancer"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Germein Reed",
+      "full_name": "Ros Rawson",
+      "categories": [
+        "conveyancer"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Germein Reed",
+      "full_name": "Doug Reed",
+      "categories": [
+        "lawyer",
+        "conveyancer"
+      ],
+      "service_region": "Copper Coast",
+      "flags": [
+        "Supplied category was \"Legal / Conveyancing\"; both recorded."
+      ]
+    },
+    {
+      "organisation": "BankSA",
+      "full_name": "Troy Scott",
+      "categories": [
+        "bank_lending"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Loan Market",
+      "full_name": "Mark West",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Mildwaters Byrth",
+      "full_name": "Kylie Mildwaters",
+      "categories": [
+        "lawyer"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Mildwaters Byrth",
+      "full_name": "Joel Byrth",
+      "categories": [
+        "lawyer"
+      ],
+      "service_region": "Copper Coast"
+    },
+    {
+      "organisation": "Wardle Co",
+      "full_name": "Brenton Brind",
+      "categories": [
+        "real_estate_sales"
+      ],
+      "service_region": "Copper Coast",
+      "flags": [
+        "Supplied category was \"Real Estate\"; recorded as real estate sales. Confirm his role."
+      ]
+    },
+    {
+      "organisation": "Your Property Strategy",
+      "full_name": "David Ronson",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "Scale Property Advisory",
+      "full_name": "Bois Qodirjonov",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide",
+      "flags": [
+        "Confirm spelling of the name."
+      ]
+    },
+    {
+      "organisation": "Complete Property Strategies",
+      "full_name": "Brian Sayers",
+      "categories": [
+        "buyers_agent",
+        "mortgage_broker"
+      ],
+      "service_region": "Adelaide",
+      "flags": [
+        "Supplied category was \"Buyers Agent / Mortgage Broker\"; both recorded."
+      ]
+    },
+    {
+      "organisation": "Estate of Mind Property",
+      "full_name": "Shane Byrne",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "Core Capital",
+      "full_name": "Cobi Rontaunay",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide",
+      "flags": [
+        "Confirm spelling of the name."
+      ]
+    },
+    {
+      "organisation": "PBA",
+      "full_name": "Stephen Goodwin",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "PBA",
+      "full_name": "Damian Swart",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "You & Me Property Partners",
+      "full_name": "Simon Deering",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "EquityLift",
+      "full_name": "Michael Lillywhite",
+      "categories": [
+        "buyers_agent"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "The Loan Arranger",
+      "full_name": "Scott Marshall",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Adelaide",
+      "flags": [
+        "Possible duplicate of Steve Marshall at the same organisation. Confirm whether they are one person or two before contacting either."
+      ]
+    },
+    {
+      "organisation": "My Brokers Office",
+      "full_name": "Steven Voroniansky",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "Fintegra",
+      "full_name": "Travis Hole",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "Fintegra",
+      "full_name": "Brad Smart",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Adelaide"
+    },
+    {
+      "organisation": "The Loan Arranger",
+      "full_name": "Steve Marshall",
+      "categories": [
+        "mortgage_broker"
+      ],
+      "service_region": "Adelaide",
+      "flags": [
+        "Possible duplicate of Scott Marshall at the same organisation. Confirm whether they are one person or two before contacting either."
+      ]
+    },
+    {
+      "organisation": "AAF Conveyancing",
+      "full_name": "Syed Kazim Hussain Zaidi",
+      "categories": [
+        "conveyancer"
+      ],
+      "service_region": "Adelaide"
+    }
+  ]
+}

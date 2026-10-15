@@ -28,3 +28,10 @@
   for = "/app/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
+
+# Planted HQ: private staff portal. Never indexed, never cached (mirrors next.config.mjs).
+[[headers]]
+  for = "/hq/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "private, no-store"

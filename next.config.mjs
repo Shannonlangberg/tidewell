@@ -32,6 +32,19 @@ const csp = (extra = {}) => {
 const TURNSTILE = "https://challenges.cloudflare.com";
 
 const nextConfig = {
+  // Dev only: lets several builders use their own hostnames (auth.localhost, contacts.localhost, ...)
+  // so their browser cookie jars, and therefore their test sign-ins, do not collide.
+  allowedDevOrigins: ["*.localhost"],
+
+  // Parallel work (several dev servers at once) needs separate build output.
+  // Unset in production and on Netlify, where the default .next is required.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+
+  // The HQ import page reads this bundled seed file at request time. Next only packages files it
+  // can see being imported, so name it for Netlify (without this the "Load the research leads"
+  // button works locally but not once deployed).
+  outputFileTracingIncludes: { "/hq/growth/import": ["./hq/seed/**/*"] },
+
   // Node-only (fontkit, yoga); must stay out of the Turbopack server bundle.
   serverExternalPackages: ["@react-pdf/renderer"],
 
@@ -47,6 +60,7 @@ const nextConfig = {
         // Without this the widget is silently blocked, so it must stay in step with
         // wherever NEXT_PUBLIC_TURNSTILE_SITE_KEY is used.
         "/app",
+        "/hq/sign-in",
         "/rental-appraisal",
         "/contact",
       ].map((source) => ({
@@ -76,6 +90,14 @@ const nextConfig = {
         // also covers crawlers that reach a URL directly (mirrored in netlify.toml).
         source: "/app/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        // Planted HQ: private staff portal. Never indexed, never cached by shared caches.
+        source: "/hq/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
       },
     ];
   },

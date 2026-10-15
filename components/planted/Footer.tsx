@@ -19,6 +19,9 @@ const PAGES = [
 const LEGAL = [
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms & Disclaimer" },
+  // Planted HQ, the private staff portal. Discreet by design: the page is noindex and
+  // requires a staff login.
+  { href: "/hq", label: "Staff login" },
 ];
 
 export function Footer() {

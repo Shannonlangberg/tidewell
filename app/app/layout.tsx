@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
 import { SessionKeeper } from "@/components/SessionKeeper";
+import { parkedTidewellAppEnabled } from "@/lib/parked";
 import "./app.css";
 
 export const metadata: Metadata = {
@@ -25,6 +27,7 @@ export const viewport: Viewport = {
 export const dynamic = "force-dynamic";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  if (!parkedTidewellAppEnabled()) notFound();
   return (
     <AppShell>
       <SessionKeeper />
