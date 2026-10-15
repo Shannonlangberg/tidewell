@@ -7,7 +7,6 @@ import { InlineNote, KeyValueList, SectionLabel } from "@/components/hq/Primitiv
 import { BusinessSettings } from "@/components/hq/features/people/BusinessSettings";
 import { requireStaff } from "@/lib/hq/auth";
 import { DEFAULT_TIMEZONE } from "@/lib/hq/format";
-import { hasCustomLayout } from "@/lib/hq/dashboard-widgets";
 import { AU_TIMEZONES } from "@/lib/hq/timezones";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -20,10 +19,7 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const { staff, db, can } = await requireStaff();
 
-  const [settingsRes, meRes] = await Promise.all([
-    db.from("settings").select("key, value"),
-    db.from("staff_profiles").select("dashboard_widgets").eq("id", staff.id).maybeSingle(),
-  ]);
+  const settingsRes = await db.from("settings").select("key, value");
   if (settingsRes.error) console.error("[hq] reading settings failed:", settingsRes.error.code);
 
   const byKey = new Map((settingsRes.data ?? []).map((s) => [s.key, s.value]));
@@ -32,7 +28,6 @@ export default async function SettingsPage() {
   const rawTz = byKey.get("timezone");
   const businessTimezone = typeof rawTz === "string" ? rawTz : DEFAULT_TIMEZONE;
   const tzLabel = AU_TIMEZONES.find((z) => z.value === businessTimezone)?.label ?? businessTimezone;
-  const customised = hasCustomLayout(meRes.data?.dashboard_widgets);
 
   return (
     <>
@@ -52,17 +47,6 @@ export default async function SettingsPage() {
                     {staff.timezone}{" "}
                     <Link href="/hq/profile" className="hq-muted ml-1 underline underline-offset-2">
                       Change
-                    </Link>
-                  </>
-                ),
-              },
-              {
-                label: "Dashboard",
-                value: (
-                  <>
-                    {customised ? "Your own layout" : "Default for your role"}{" "}
-                    <Link href="/hq" className="hq-muted ml-1 underline underline-offset-2">
-                      Customise
                     </Link>
                   </>
                 ),

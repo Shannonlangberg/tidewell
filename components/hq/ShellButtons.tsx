@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, IconButton } from "./Button";
+import { Button } from "./Button";
 import { Icon } from "./icons";
 import { useShell } from "./ShellProvider";
 
@@ -45,8 +45,12 @@ export function AskPlantedButton({ onDark, size = "md" }: { onDark?: boolean; si
   );
 }
 
-/** Compact search button for the mobile header. */
+/** Labelled search button for the mobile header. */
 export function MobileSearchButton() {
   const { openPalette } = useShell();
-  return <IconButton icon="search" label="Search" variant="secondary" onDark onClick={openPalette} aria-haspopup="dialog" />;
+  return (
+    <Button variant="secondary" onDark size="sm" icon="search" onClick={openPalette} aria-haspopup="dialog">
+      Search
+    </Button>
+  );
 }

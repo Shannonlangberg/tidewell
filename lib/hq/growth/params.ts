@@ -241,9 +241,19 @@ export const PARTNER_LIST_SORT_COLUMNS = {
 export type PartnerListSortKey = keyof typeof PARTNER_LIST_SORT_COLUMNS;
 export const PARTNER_LIST_SORT_KEYS = Object.keys(PARTNER_LIST_SORT_COLUMNS) as PartnerListSortKey[];
 
+/**
+ * The groups the Referral partners page sorts people into, in the order it shows them. They do not
+ * overlap: a partner with a follow-up due today or earlier is "call" whatever else is true; the rest
+ * fall into warm (spoken to within PARTNER_QUIET_DAYS days), quiet (longer ago) or never.
+ */
+export const PARTNER_GROUPS = ["call", "warm", "quiet", "never"] as const;
+export type PartnerGroup = (typeof PARTNER_GROUPS)[number];
+
 export type PartnerListQuery = {
   /** Organisations (the default) or independent contacts, who belong to no organisation. */
   kind: "organisation" | "independent";
+  /** One group on its own (paged), or null for every group on one page. Not a filter. */
+  group: PartnerGroup | null;
   q: string;
   category: string | null;
   status: string | null;
@@ -255,13 +265,17 @@ export type PartnerListQuery = {
   verify: "needs" | null;
   sort: PartnerListSortKey;
   dir: "asc" | "desc";
+  /** Whether the address asked for a sort (?sort=). Otherwise each group keeps its own order. */
+  sorted: boolean;
   page: number;
-  /** Whether any search or filter is applied (the kind, sorting and paging do not count). */
+  /** Whether any search or filter is applied (the kind, group, sorting and paging do not count). */
   filtered: boolean;
 };
 
 export function parsePartnerListParams(sp: RawParams, vocab: { categories: readonly string[]; statuses: readonly string[] }): PartnerListQuery {
   const kind = first(sp.show) === "independent" ? "independent" : "organisation";
+  const groupRaw = first(sp.group);
+  const group = (PARTNER_GROUPS as readonly string[]).includes(groupRaw) ? (groupRaw as PartnerGroup) : null;
   const q = searchTerm(first(sp.q));
   const category = oneOf(first(sp.category), vocab.categories);
   const status = oneOf(first(sp.status), vocab.statuses);
@@ -274,6 +288,7 @@ export function parsePartnerListParams(sp: RawParams, vocab: { categories: reado
   const page = boundedInt(first(sp.page), 1, 1, 100_000);
   return {
     kind,
+    group,
     q,
     category,
     status,
@@ -283,6 +298,7 @@ export function parsePartnerListParams(sp: RawParams, vocab: { categories: reado
     verify,
     sort,
     dir,
+    sorted: (PARTNER_LIST_SORT_KEYS as readonly string[]).includes(first(sp.sort)),
     page,
     filtered: Boolean(q || category || status || owner || quiet || referred || verify),
   };

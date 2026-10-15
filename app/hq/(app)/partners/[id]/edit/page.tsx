@@ -36,7 +36,7 @@ export default async function EditContractorPage({ params }: { params: Params })
   return (
     <>
       <PageHeader
-        breadcrumbs={[{ label: "Partners", href: "/hq/partners" }, { label: "Contractors", href: "/hq/partners" }, { label: c.businessName, href: `/hq/partners/${c.id}` }, { label: "Edit" }]}
+        breadcrumbs={[{ label: "Contractors", href: "/hq/partners" }, { label: c.businessName, href: `/hq/partners/${c.id}` }, { label: "Edit" }]}
         title={`Edit ${c.businessName}`}
         description="Status is not changed here. Approve, suspend or move a contractor from their page."
       />

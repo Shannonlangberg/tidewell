@@ -43,7 +43,7 @@ export async function AwaitingVettingWidget({ ctx }: { ctx: DashCtx }) {
     const [summary, items] = await Promise.all([loadContractorSummary(), loadAwaitingVetting()]);
     return { summary, items };
   });
-  const title = "Contractors awaiting vetting";
+  const title = "Being vetted";
   if (!r.ok) return <WidgetFailed id="contractors-awaiting-vetting" title={title} />;
   const { summary, items } = r.data;
 
@@ -56,7 +56,7 @@ export async function AwaitingVettingWidget({ ctx }: { ctx: DashCtx }) {
             title="No contractors yet"
             action={
               <LinkButton href={HQ_ROUTES.partners} size="sm">
-                Open partners
+                Open contractors
               </LinkButton>
             }
           >
@@ -69,7 +69,7 @@ export async function AwaitingVettingWidget({ ctx }: { ctx: DashCtx }) {
         )
       ) : (
         <>
-          <Rows label="Contractors awaiting vetting">
+          <Rows label="Being vetted">
             {items.map((c) => (
               <li key={c.id} className={rowClass}>
                 <div className="min-w-0">
@@ -173,7 +173,7 @@ export async function ExpiringDocumentsWidget({ ctx, returnTo }: { ctx: DashCtx;
 
 export async function PreferredCoverageWidget({ ctx }: { ctx: DashCtx }) {
   const r = await attempt("contractors-preferred-coverage", () => loadContractorSummary());
-  const title = "Preferred contractor coverage";
+  const title = "Trades covered";
   if (!r.ok) return <WidgetFailed id="contractors-preferred-coverage" title={title} />;
   const s = r.data;
   const covered = coveredTrades(s.coverage);
@@ -190,7 +190,7 @@ export async function PreferredCoverageWidget({ ctx }: { ctx: DashCtx }) {
           title="No contractors yet"
           action={
             <LinkButton href={HQ_ROUTES.partners} size="sm">
-              Open partners
+              Open contractors
             </LinkButton>
           }
         >
@@ -236,7 +236,7 @@ export async function PreferredCoverageWidget({ ctx }: { ctx: DashCtx }) {
 
 export async function RecentContractorActivityWidget({ ctx }: { ctx: DashCtx }) {
   const r = await attempt("contractors-recent-activity", () => loadRecentContractorActivity());
-  const title = "Recent contractor activity";
+  const title = "Latest contractor changes";
   if (!r.ok) return <WidgetFailed id="contractors-recent-activity" title={title} />;
 
   return (
@@ -247,14 +247,14 @@ export async function RecentContractorActivityWidget({ ctx }: { ctx: DashCtx }) 
           title="No activity yet"
           action={
             <LinkButton href={HQ_ROUTES.partners} size="sm">
-              Open partners
+              Open contractors
             </LinkButton>
           }
         >
           Status changes, checklist steps, documents, feedback and logged contacts across your contractors appear here.
         </EmptyState>
       ) : (
-        <Timeline label="Recent contractor activity">
+        <Timeline label="Latest contractor changes">
           {r.data.map((a) => (
             <TimelineItem
               key={a.key}

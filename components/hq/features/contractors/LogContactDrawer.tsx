@@ -185,7 +185,7 @@ function LogSession({
                 name="create_task"
                 idPrefix="log"
                 label="Create a follow-up task"
-                hint="It appears under Operations, due on the follow-up date, linked to this contractor."
+                hint="It appears in Tasks, due on the follow-up date, linked to this contractor."
                 defaultChecked={createTask}
                 onChange={(e) => setCreateTask(e.target.checked)}
                 error={fieldError(state, "create_task")}

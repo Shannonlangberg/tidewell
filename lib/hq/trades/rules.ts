@@ -297,3 +297,57 @@ export function lastUsedText(date: string | null | undefined, today: string): st
   const d = daysAgo(date, today);
   return d === null ? `Last used ${shortDate(date)}` : `Last used ${shortDate(date)} (${agoText(d)})`;
 }
+
+/** "Used 3 days ago", "Used today": the short form for a contractor row. Null when never recorded. */
+export function usedAgoText(date: string | null | undefined, today: string): string | null {
+  if (!date) return null;
+  const d = daysAgo(date, today);
+  return d === null ? `Used ${shortDate(date)}` : `Used ${agoText(d)}`;
+}
+
+// ── the compact Trades list (docs/hq-simple-layouts.md, change 4) ──
+
+const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+/**
+ * A trade's contractors in words, most useful first: "1 preferred, 2 approved, 1 being vetted, 4 prospects".
+ * Suspended and inactive contractors are "not active". Approval is not restated when there is none:
+ * the "No approved contractor" marker (or the sentence above the list) says that once.
+ */
+export function tradeCountsText(counts: TradeCounts): string {
+  if (counts.total === 0) return "No contractors";
+  const other = counts.total - counts.cleared - counts.vetting - counts.prospects;
+  return [
+    counts.preferred > 0 ? `${counts.preferred} preferred` : null,
+    counts.approved > 0 ? `${counts.approved} approved` : null,
+    counts.vetting > 0 ? `${counts.vetting} being vetted` : null,
+    counts.prospects > 0 ? n(counts.prospects, "prospect", "prospects") : null,
+    other > 0 ? `${other} not active` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+export type DetailsShape = {
+  phone: string | null;
+  serviceSuburbs: readonly string[];
+  serviceRegions: readonly string[];
+  insuranceState: string;
+  licenceState: string;
+};
+
+/** What a contractor row is missing, in plain words ("phone", "service areas", "insurance", "licence"). */
+export function missingDetails(c: DetailsShape): string[] {
+  const out: string[] = [];
+  if (!c.phone?.trim()) out.push("phone");
+  if (c.serviceSuburbs.length === 0 && c.serviceRegions.length === 0) out.push("service areas");
+  if (c.insuranceState === "not_recorded") out.push("insurance");
+  if (c.licenceState === "not_recorded") out.push("licence");
+  return out;
+}
+
+/** "phone, insurance and licence" (or "... or licence"). */
+export function listText(items: readonly string[], joiner: "and" | "or" = "and"): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} ${joiner} ${items[items.length - 1]}`;
+}

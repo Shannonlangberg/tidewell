@@ -12,7 +12,7 @@ import { SubmitButton } from "./SubmitButton";
 
 /*
  * The "More" tab on phones: a button in the tab bar that opens a bottom sheet holding
- * every page that does not have its own tab (Partners, People, Insights, Settings, Profile),
+ * every page that does not have its own tab (Contractors, People, Reports, Settings, Profile),
  * the signed-in person, and Sign out. The tab shows the clay marker when the current
  * page lives in this sheet.
  */
@@ -47,12 +47,6 @@ export function MobileMore({
                 <Link href={e.href} className="hq-more__item" aria-current={isCurrent(e) ? "page" : undefined} onClick={() => setOpen(false)}>
                   <Icon name={e.icon} size={20} />
                   <span>{e.label}</span>
-                  {e.phase ? (
-                    <>
-                      {" "}
-                      <span className="hq-more__tag">{e.phase}</span>
-                    </>
-                  ) : null}
                   <Icon name="chevron-right" size={16} className="hq-more__chev" />
                 </Link>
               </li>

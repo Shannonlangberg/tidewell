@@ -91,7 +91,7 @@ export const WIDGETS: readonly WidgetDef[] = [
   },
   {
     id: "opportunities-by-stage",
-    title: "Active opportunities by stage",
+    title: "Pipeline",
     description: "Open referrals and where each one is in the pipeline.",
     kind: "panel",
     requires: "growth.read",
@@ -122,7 +122,7 @@ export const WIDGETS: readonly WidgetDef[] = [
   },
   {
     id: "partner-activity",
-    title: "Partner activity",
+    title: "Latest calls and meetings",
     description: "The latest calls, meetings and emails logged with partners.",
     kind: "panel",
     requires: "growth.read",
@@ -130,7 +130,7 @@ export const WIDGETS: readonly WidgetDef[] = [
   },
   {
     id: "partner-referrals",
-    title: "Referral partners",
+    title: "Partners sending referrals",
     description: "Which partners are sending and receiving referrals, and how many signed.",
     kind: "panel",
     requires: "growth.read",
@@ -146,7 +146,7 @@ export const WIDGETS: readonly WidgetDef[] = [
   },
   {
     id: "contractors-awaiting-vetting",
-    title: "Contractors awaiting vetting",
+    title: "Being vetted",
     description: "Contractors being vetted, and how far through the checklist each one is.",
     kind: "panel",
     requires: "contractors.read",
@@ -162,7 +162,7 @@ export const WIDGETS: readonly WidgetDef[] = [
   },
   {
     id: "contractors-preferred-coverage",
-    title: "Preferred contractor coverage",
+    title: "Trades covered",
     description: "Which trades have an approved contractor, and which have none.",
     kind: "panel",
     requires: "contractors.read",
@@ -170,7 +170,7 @@ export const WIDGETS: readonly WidgetDef[] = [
   },
   {
     id: "contractors-recent-activity",
-    title: "Recent contractor activity",
+    title: "Latest contractor changes",
     description: "The latest status changes, checklist steps, documents, feedback and contacts across contractors.",
     kind: "panel",
     requires: "contractors.read",

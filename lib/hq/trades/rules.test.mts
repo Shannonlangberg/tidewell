@@ -10,15 +10,19 @@ import {
   daysAgo,
   humaniseSlug,
   lastUsedText,
+  listText,
   matchTrade,
+  missingDetails,
   shortDate,
   sortContainerContractors,
   sortTrades,
   tradeLabel,
+  tradeCountsText,
   tradeLookup,
   tradeOptions,
   tradeSlugBase,
   uniqueTradeSlug,
+  usedAgoText,
   type Trade,
 } from "./rules.ts";
 
@@ -177,4 +181,22 @@ test("last used: the date and how long ago, or never recorded", () => {
   assert.equal(agoText(400), "13 months ago");
   assert.equal(agoText(800), "2 years ago");
   assert.equal(agoText(-2), "today", "a future date (should not happen) is never shown as negative");
+});
+
+test("compact trades list: counts in words, used ago, missing details", () => {
+  const S = (...st: string[]) => countContractors(st.map((status) => ({ status })));
+  assert.equal(tradeCountsText(S()), "No contractors");
+  assert.equal(tradeCountsText(S("prospect", "contacted", "prospect")), "3 prospects");
+  assert.equal(tradeCountsText(S("prospect")), "1 prospect");
+  assert.equal(tradeCountsText(S("approved", "preferred", "vetting", "prospect", "suspended", "inactive")), "1 preferred, 1 approved, 1 being vetted, 1 prospect, 2 not active");
+  assert.equal(usedAgoText(null, "2026-10-15"), null);
+  assert.equal(usedAgoText("2026-10-12", "2026-10-15"), "Used 3 days ago");
+  assert.equal(usedAgoText("2026-10-15", "2026-10-15"), "Used today");
+  const base = { phone: null, serviceSuburbs: [], serviceRegions: [], insuranceState: "not_recorded", licenceState: "not_recorded" };
+  assert.deepEqual(missingDetails(base), ["phone", "service areas", "insurance", "licence"]);
+  assert.deepEqual(missingDetails({ ...base, phone: " 08 8825 0000 ", serviceRegions: ["Copper Coast"], insuranceState: "current", licenceState: "expired" }), []);
+  assert.deepEqual(missingDetails({ ...base, phone: "  ", serviceSuburbs: ["Moonta"], insuranceState: "current" }), ["phone", "licence"]);
+  assert.equal(listText(["phone"]), "phone");
+  assert.equal(listText(["phone", "insurance", "licence"]), "phone, insurance and licence");
+  assert.equal(listText(["phone", "licence"], "or"), "phone or licence");
 });

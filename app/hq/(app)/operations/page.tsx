@@ -105,7 +105,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
 
   return (
     <>
-      <PageHeader eyebrow="Operations" title="Tasks" description={def.description} actions={newTask} />
+      <PageHeader title="Tasks" description={def.description} actions={newTask} />
 
       <Tabs label="Task views" items={tabs} />
 

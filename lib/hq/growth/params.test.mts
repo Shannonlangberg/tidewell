@@ -5,6 +5,7 @@ import {
   LIST_PAGE_SIZE,
   ORGANISATION_SORT_COLUMNS,
   PARTNER_LIST_SORT_COLUMNS,
+  PARTNER_GROUPS,
   PARTNER_LIST_SORT_KEYS,
   PARTNER_QUIET_DAYS,
   boundedInt,
@@ -223,6 +224,7 @@ test("referral partners: defaults, with nothing filtered", () => {
   const q = parsePartnerListParams({}, PARTNER_VOCAB);
   assert.deepEqual(q, {
     kind: "organisation",
+    group: null,
     q: "",
     category: null,
     status: null,
@@ -232,9 +234,22 @@ test("referral partners: defaults, with nothing filtered", () => {
     verify: null,
     sort: "name",
     dir: "asc",
+    sorted: false,
     page: 1,
     filtered: false,
   });
+});
+
+test("referral partners: ?group= shows one group and is not a filter; ?sort= is remembered as asked for", () => {
+  assert.deepEqual([...PARTNER_GROUPS], ["call", "warm", "quiet", "never"]);
+  for (const g of PARTNER_GROUPS) {
+    const q = parsePartnerListParams({ group: g }, PARTNER_VOCAB);
+    assert.equal(q.group, g);
+    assert.equal(q.filtered, false);
+  }
+  assert.equal(parsePartnerListParams({ group: "everyone" }, PARTNER_VOCAB).group, null);
+  assert.equal(parsePartnerListParams({ sort: "name" }, PARTNER_VOCAB).sorted, true);
+  assert.equal(parsePartnerListParams({ sort: "id;--" }, PARTNER_VOCAB).sorted, false);
 });
 
 test("referral partners: valid filters are kept and counted as filtering", () => {

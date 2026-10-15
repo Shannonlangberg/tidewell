@@ -239,7 +239,7 @@ export function ChoiceDemo() {
           { value: "b", label: "Sample option B" },
         ]}
       />
-      <Checkbox name="create-task" label="Create a follow-up task" hint="It will appear under Operations." defaultChecked />
+      <Checkbox name="create-task" label="Create a follow-up task" hint="It will appear in Tasks." defaultChecked />
       <Checkbox name="disabled-box" label="A disabled checkbox" disabled />
     </div>
   );

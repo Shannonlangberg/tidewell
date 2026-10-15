@@ -1,4 +1,5 @@
-import { HQ_BASE, type Capability } from "@/lib/hq/constants";
+import { HQ_BASE, type Capability, type StaffRole } from "@/lib/hq/constants";
+import { isPropertyManagerRole } from "@/lib/hq/today";
 import type { IconName } from "./icons";
 
 /*
@@ -31,6 +32,9 @@ export const HQ_ROUTES = {
   operations: `${HQ_BASE}/operations`,
   taskNew: `${HQ_BASE}/operations/tasks/new`,
   people: `${HQ_BASE}/people`,
+  /** Figures and trends: referral figures, partner performance, contractor coverage. */
+  reports: `${HQ_BASE}/reports`,
+  /** Old address of Reports; redirects there. */
   insights: `${HQ_BASE}/insights`,
   settings: `${HQ_BASE}/settings`,
   profile: `${HQ_BASE}/profile`,
@@ -64,51 +68,58 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "partners" | "operations" | "people" | "insights" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "partners" | "operations" | "people" | "reports" | "settings" | "profile";
 
 /**
- * One navigation entry.
+ * One navigation entry. Labels are the words a property manager or BDM would use; the routes
+ * behind them have not changed (Tasks is still /hq/operations, Contractors is /hq/partners).
  *
- * - `status: "built"` is live in this phase. `"planned"` still shows, quietly tagged
- *   ("Phase 2"), so the shape of HQ is visible and the page it links to can say so.
  * - `requires` hides the entry entirely when the signed-in person lacks that
  *   capability. Hiding is a courtesy: the database (RLS) is the actual control.
- * - `mobile` says where it sits below 1024px: a bottom tab, or inside the More sheet.
+ * - `mobile` says where it sits below 1024px by default: a bottom tab, or inside the More
+ *   sheet. mobileTabs() picks the tabs for the person's role.
  */
 export type NavItem = {
   key: NavKey;
   label: string;
   href: string;
   icon: IconName;
-  status: "built" | "planned";
-  /** The phase a planned module arrives in, shown as a quiet tag. */
-  phase?: 2 | 3 | 4 | 5;
   requires?: Capability;
   mobile: "tab" | "more";
 };
 
 export const PRIMARY_NAV: readonly NavItem[] = [
-  { key: "dashboard", label: "Dashboard", href: HQ_ROUTES.dashboard, icon: "dashboard", status: "built", mobile: "tab" },
-  { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", status: "built", requires: "growth.read", mobile: "tab" },
-  { key: "partners", label: "Partners", href: HQ_ROUTES.partners, icon: "partners", status: "built", requires: "contractors.read", mobile: "more" },
-  { key: "operations", label: "Operations", href: HQ_ROUTES.operations, icon: "operations", status: "built", mobile: "tab" },
-  { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", status: "built", requires: "people.read", mobile: "more" },
-  { key: "insights", label: "Insights", href: HQ_ROUTES.insights, icon: "insights", status: "planned", phase: 4, mobile: "more" },
+  { key: "dashboard", label: "Today", href: HQ_ROUTES.dashboard, icon: "dashboard", mobile: "tab" },
+  { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", requires: "growth.read", mobile: "tab" },
+  { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", mobile: "tab" },
+  { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", mobile: "more" },
+  { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
+  { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */
 export const ACCOUNT_NAV: readonly NavItem[] = [
-  { key: "settings", label: "Settings", href: HQ_ROUTES.settings, icon: "settings", status: "built", mobile: "more" },
-  { key: "profile", label: "Profile", href: HQ_ROUTES.profile, icon: "user", status: "built", mobile: "more" },
+  { key: "settings", label: "Settings", href: HQ_ROUTES.settings, icon: "settings", mobile: "more" },
+  { key: "profile", label: "Profile", href: HQ_ROUTES.profile, icon: "user", mobile: "more" },
 ];
 
 export function visibleNav(items: readonly NavItem[], capabilities: readonly string[]): NavItem[] {
   return items.filter((item) => !item.requires || capabilities.includes(item.requires));
 }
 
-/** "Phase 2" for a planned module, otherwise null. */
-export function phaseLabel(item: Pick<NavItem, "status" | "phase">): string | null {
-  return item.status === "planned" && item.phase ? `Phase ${item.phase}` : null;
+/**
+ * The bottom tabs on a phone (three, then More): Today, Growth, Tasks for most people; Today,
+ * Tasks, Contractors for property managers, whose day is tasks and contractors. A page the person
+ * cannot see is skipped and the next visible page takes its place. Sidebar order is kept.
+ */
+export function mobileTabs(visible: readonly NavItem[], role: StaffRole): NavItem[] {
+  const wanted: NavKey[] = isPropertyManagerRole(role) ? ["dashboard", "operations", "partners"] : ["dashboard", "growth", "operations"];
+  const picked = new Set(wanted.filter((k) => visible.some((i) => i.key === k)));
+  for (const i of visible) {
+    if (picked.size >= 3) break;
+    picked.add(i.key);
+  }
+  return visible.filter((i) => picked.has(i.key));
 }
 
 /**
@@ -133,12 +144,11 @@ export type NavEntry = {
   label: string;
   href: string;
   icon: IconName;
-  phase: string | null;
   current: boolean;
 };
 
 export function toEntries(items: readonly NavItem[], active: NavKey | null): NavEntry[] {
-  return items.map((i) => ({ key: i.key, label: i.label, href: i.href, icon: i.icon, phase: phaseLabel(i), current: i.key === active }));
+  return items.map((i) => ({ key: i.key, label: i.label, href: i.href, icon: i.icon, current: i.key === active }));
 }
 
 // ── quick add ────────────────────────────────────────────────

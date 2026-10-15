@@ -5,27 +5,28 @@ import { first } from "@/lib/hq/contractors/params";
 import { toContractor, type Contractor } from "@/lib/hq/contractors/types";
 import { todayInZone } from "@/lib/hq/growth/dates";
 import { loadTrades } from "@/lib/hq/trades/queries";
-import { CONTAINER_SORTS, buildTradeContainers, type ContainerSort } from "@/lib/hq/trades/rules";
-import { EmptyState, ErrorState, HQ_ROUTES, LinkButton, PageHeader, Tabs, buildHref } from "@/components/hq";
+import { CONTAINER_SORTS, buildTradeContainers, listText, missingDetails, type ContainerSort } from "@/lib/hq/trades/rules";
+import { EmptyState, ErrorState, HQ_ROUTES, LinkButton, PageHeader, buildHref } from "@/components/hq";
 import { PartnersSections } from "@/components/hq/features/contractors/PartnersSections";
-import { TradeContainer } from "@/components/hq/features/trades/TradeContainer";
+import { OpenFromHash } from "@/components/hq/features/trades/OpenFromHash";
+import { EmptyTrades, TradeRow } from "@/components/hq/features/trades/TradeList";
 import { TradesEditor, type EditorTrade } from "@/components/hq/features/trades/TradesEditor";
 
 export const metadata: Metadata = { title: "Trades" };
 
 const PATH = HQ_ROUTES.partnerTrades;
 
-const SORT_LABEL: Record<ContainerSort, string> = { status: "Status", name: "Name", last_used: "Last used" };
-
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 /*
- * The Trades view of the Partners module: one container per trade (industry), in the owner's order,
- * each with its contractors, counts, coverage and when it was last used. The list of trades is the
+ * The Trades view of the Partners module, as a compact list (docs/hq-simple-layouts.md, change 4):
+ * one row per trade that has contractors, in the owner's order, opening to its contractors; the
+ * trades nobody is in yet fold into one "No contractors yet (n)" row. The list of trades is the
  * owner's (hq.trades): with contractors.write, "Edit trades" opens the editor on this page.
  *
- * URL state: ?sort=status|name|last_used (the order inside every container), ?edit=1 (the editor;
- * ignored without contractors.write). Everything is read as the signed-in person (RLS).
+ * URL state: ?edit=1 (the editor; ignored without contractors.write); ?sort=status|name|last_used
+ * (the order inside each trade, status by default); #trade-<slug> opens that trade. Everything is
+ * read as the signed-in person (RLS).
  */
 export default async function TradesPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
@@ -45,13 +46,9 @@ export default async function TradesPage({ searchParams }: { searchParams: Searc
 
   const header = (
     <PageHeader
-      eyebrow="Partners"
+      eyebrow="Contractors"
       title="Trades"
-      description={
-        canWrite
-          ? "Every trade Planted uses contractors for, with who is in it and whether anyone is approved. The list of trades is yours to change: add, rename, reorder or archive them."
-          : "Every trade Planted uses contractors for, with who is in it and whether anyone is approved."
-      }
+      description="Who to call for each trade."
       actions={
         canWrite ? (
           <>
@@ -84,16 +81,41 @@ export default async function TradesPage({ searchParams }: { searchParams: Searc
   const contractors = (list.data ?? []).map(toContractor).filter((c): c is Contractor => c !== null);
   const containers = buildTradeContainers(trades.data, contractors, sort);
   const activeCount = trades.data.filter((t) => t.isActive).length;
-  const uncovered = containers.filter((c) => c.trade?.isActive && c.counts.cleared === 0 && c.trade.slug !== "other");
+  const filled = containers.filter((c) => c.counts.total > 0);
+  const empty = containers.filter((c) => c.counts.total === 0 && c.trade).map((c) => c.trade!);
+  const activeFilled = filled.filter((c) => c.trade?.isActive);
+  const covered = activeFilled.filter((c) => c.counts.cleared > 0).length;
+  // Principle 2: a gap every trade shares is said once (the sentence), not as a marker on each row.
+  const markUncovered = covered > 0;
+  // Details nobody has recorded are said once above the list; rows only flag what else is missing.
+  const sharedMissing = new Set<string>(contractors.length > 0 ? missingDetails(contractors[0]) : []);
+  for (const c of contractors.slice(1)) {
+    const m = new Set(missingDetails(c));
+    for (const x of sharedMissing) if (!m.has(x)) sharedMissing.delete(x);
+  }
   const inUse = new Map<string, number>();
   for (const c of contractors) for (const s of new Set(c.categories)) inUse.set(s, (inUse.get(s) ?? 0) + 1);
   const editorTrades: EditorTrade[] = trades.data.map((t) => ({ ...t, inUse: inUse.get(t.slug) ?? 0 }));
   const returnTo = buildHref(PATH, { sort: sort === "status" ? undefined : sort });
 
+  const coverSentence =
+    activeFilled.length === 0
+      ? "No trade has a contractor yet."
+      : `${activeFilled.length} of ${activeCount} ${activeCount === 1 ? "trade has" : "trades have"} contractors. ${
+          covered === 0
+            ? "None has an approved contractor yet."
+            : covered === activeFilled.length
+              ? "Every one has an approved contractor."
+              : `${covered} ${covered === 1 ? "has" : "have"} an approved contractor.`
+        }`;
+  const missingSentence =
+    sharedMissing.size > 0 && contractors.length > 1 ? `No contractor has ${listText([...sharedMissing].map((m) => (m === "phone" ? "a phone number" : m)), "or")} recorded yet.` : null;
+
   return (
     <>
       {header}
       <PartnersSections current="trades" />
+      <OpenFromHash />
 
       {editing ? <TradesEditor trades={editorTrades} canApprove={canApprove} /> : null}
 
@@ -111,35 +133,18 @@ export default async function TradesPage({ searchParams }: { searchParams: Searc
           {canWrite ? "Add the trades Planted uses contractors for, such as Plumbers or Electricians." : "Nobody has added a trade yet. Someone who manages contractors can add them."}
         </EmptyState>
       ) : (
-        <>
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-            <p className="text-[14px] text-grey-text">
-              {activeCount === 1 ? "1 trade" : `${activeCount} trades`}
-              {uncovered.length > 0 ? (
-                <>
-                  {" · "}
-                  <span className="font-medium text-charcoal">
-                    {uncovered.length === 1 ? "1 has" : `${uncovered.length} have`} no approved contractor
-                  </span>
-                </>
-              ) : (
-                " · every trade has an approved contractor"
-              )}
-              {". "}
-              Last used dates are recorded by staff: HQ is not connected to Ailo.
-            </p>
-            <Tabs
-              label="Order contractors by"
-              className="mt-0"
-              items={CONTAINER_SORTS.map((s) => ({ label: SORT_LABEL[s], href: buildHref(PATH, sp, { sort: s === "status" ? null : s }), current: s === sort }))}
-            />
-          </div>
-          <div className="grid items-start gap-6 lg:grid-cols-2">
-            {containers.map((c) => (
-              <TradeContainer key={c.trade?.id ?? "unknown"} container={c} today={today} canWrite={canWrite} returnTo={returnTo} />
+        <section aria-label="Trades" className="hq-trades">
+          <p className="hq-trades__lede">
+            {coverSentence}
+            {missingSentence ? <span className="hq-trades__lede-sub">{missingSentence}</span> : null}
+          </p>
+          <div className="hq-trades__list">
+            {filled.map((c) => (
+              <TradeRow key={c.trade?.id ?? "unknown"} container={c} markUncovered={markUncovered} sharedMissing={sharedMissing} today={today} canWrite={canWrite} returnTo={returnTo} />
             ))}
+            <EmptyTrades trades={empty} canWrite={canWrite} />
           </div>
-        </>
+        </section>
       )}
     </>
   );

@@ -52,7 +52,7 @@ function RecordJobDialog({ contractorId, businessName, lastJobDate, today, retur
       <input type="hidden" name="id" value={contractorId} />
       {returnTo ? <input type="hidden" name="return_to" value={returnTo} /> : null}
       <p>
-        Sets when Planted last used them. It is recorded by staff: HQ is not connected to Ailo, so it only knows about jobs someone records here.
+        Sets when Planted last used them. HQ only knows about jobs someone records here.
         <span className="mt-1 block text-[13px] text-grey-text">Now: {lastUsedText(lastJobDate, today)}.</span>
       </p>
       <DateInput
