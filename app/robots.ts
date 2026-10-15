@@ -7,6 +7,7 @@ import { CONTACT } from "@/lib/planted";
  * The marketing pages are open to crawlers. Everything that is not a public
  * marketing page is closed:
  *   /app               the parked Tidewell product app — behind sign-in
+ *   /hq                Planted HQ, the private staff portal — behind sign-in
  *   /stay              guest stay links, which are unguessable tokens
  *   /api/              route handlers, not pages
  *   /enquiry-received  only meaningful immediately after a form submission
@@ -39,7 +40,7 @@ export default function robots(): MetadataRoute.Robots {
         // Prefix matches: "/app" also covers "/app/owner" and friends. Any future
         // public route whose path begins with one of these would be caught too,
         // so check this list before naming a page /app… or /stay….
-        disallow: ["/app", "/stay", "/api/", "/enquiry-received"],
+        disallow: ["/app", "/hq", "/stay", "/api/", "/enquiry-received"],
       },
     ],
     sitemap: `${origin}/sitemap.xml`,

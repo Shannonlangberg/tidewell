@@ -51,6 +51,7 @@ const nextConfig = {
         // Without this the widget is silently blocked, so it must stay in step with
         // wherever NEXT_PUBLIC_TURNSTILE_SITE_KEY is used.
         "/app",
+        "/hq/sign-in",
         "/rental-appraisal",
         "/contact",
       ].map((source) => ({
@@ -80,6 +81,14 @@ const nextConfig = {
         // also covers crawlers that reach a URL directly (mirrored in netlify.toml).
         source: "/app/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        // Planted HQ: private staff portal. Never indexed, never cached by shared caches.
+        source: "/hq/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
       },
     ];
   },
