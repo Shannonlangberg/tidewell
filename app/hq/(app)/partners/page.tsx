@@ -106,7 +106,7 @@ export default async function ContractorDirectoryPage({ searchParams }: { search
   return (
     <>
       <PageHeader
-        eyebrow="Partners"
+        eyebrow="Contractors"
         title="Contractors"
         description="The maintenance contractors Planted may send to a property, and the paperwork that clears them. Nobody is approved until a person has checked them and said so."
         actions={

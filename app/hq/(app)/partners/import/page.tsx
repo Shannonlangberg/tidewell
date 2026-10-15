@@ -36,7 +36,7 @@ export default async function ImportContractorsPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[{ label: "Partners", href: "/hq/partners" }, { label: "Contractors", href: "/hq/partners" }, { label: "Import" }]}
+        breadcrumbs={[{ label: "Contractors", href: "/hq/partners" }, { label: "Import" }]}
         title="Import contractors"
         description="Bring in a list of contractors. You review exactly what would happen to every row before anything is added, and anyone already in HQ is skipped. Everyone imported is a prospect who needs verifying: an import never approves anyone."
       />

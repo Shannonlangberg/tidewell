@@ -17,7 +17,7 @@ export default async function NewContractorPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const { db, staff } = await requireStaff("contractors.write");
   const [staffList, trades] = await Promise.all([staffOptions(db), loadTrades(db)]);
-  const crumbs = [{ label: "Partners", href: "/hq/partners" }, { label: "Contractors", href: "/hq/partners" }, { label: "Add contractor" }];
+  const crumbs = [{ label: "Contractors", href: "/hq/partners" }, { label: "Add contractor" }];
 
   if (!trades.ok) {
     return (

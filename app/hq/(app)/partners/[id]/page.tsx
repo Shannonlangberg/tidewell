@@ -37,7 +37,7 @@ export default async function ContractorPage({ params, searchParams }: { params:
   const { db, staff, can } = await requireStaff("contractors.read", false, buildHref(`${BASE}/${isUuid(id) ? id : ""}`, sp));
   if (!isUuid(id)) notFound();
 
-  const crumbs = [{ label: "Partners", href: BASE }, { label: "Contractors", href: BASE }];
+  const crumbs = [{ label: "Contractors", href: BASE }];
   const found = await getContractor(db, id);
   if (!found.ok) {
     return (

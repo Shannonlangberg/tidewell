@@ -224,13 +224,13 @@ async function WhoToCall({ ctx }: { ctx: DashCtx }) {
 
 async function OpportunitiesByStage({ ctx }: { ctx: DashCtx }) {
   const r = await attempt("opportunities-by-stage", () => loadOpenStageCounts());
-  if (!r.ok) return <WidgetFailed id="opportunities-by-stage" title="Active opportunities by stage" />;
+  if (!r.ok) return <WidgetFailed id="opportunities-by-stage" title="Pipeline" />;
   const counts = r.data;
   const total = OPEN_STAGES.reduce((sum, s) => sum + counts[s as OpenStage], 0);
   const biggest = Math.max(1, ...OPEN_STAGES.map((s) => counts[s as OpenStage]));
 
   return (
-    <WidgetPanel id="opportunities-by-stage" title="Active opportunities by stage" meta={total > 0 ? `${total} open` : undefined}>
+    <WidgetPanel id="opportunities-by-stage" title="Pipeline" meta={total > 0 ? `${total} open` : undefined}>
       {total === 0 ? (
         <EmptyState
           compact
@@ -335,7 +335,7 @@ async function MyTasks({ ctx, returnTo }: { ctx: DashCtx; returnTo: string }) {
               </LinkButton>
             ) : (
               <LinkButton href={HQ_ROUTES.operations} size="sm">
-                Open Operations
+                Open tasks
               </LinkButton>
             )
           }
@@ -376,7 +376,7 @@ async function TeamTasks({ ctx }: { ctx: DashCtx }) {
           title="Nothing due across the team"
           action={
             <LinkButton href={HQ_ROUTES.operations} size="sm">
-              Open Operations
+              Open tasks
             </LinkButton>
           }
         >
@@ -417,10 +417,10 @@ const INTERACTION_ICON: Record<InteractionType, IconName> = {
 
 async function PartnerActivity({ ctx }: { ctx: DashCtx }) {
   const r = await attempt("partner-activity", () => loadRecentInteractions());
-  if (!r.ok) return <WidgetFailed id="partner-activity" title="Partner activity" />;
+  if (!r.ok) return <WidgetFailed id="partner-activity" title="Latest calls and meetings" />;
 
   return (
-    <WidgetPanel id="partner-activity" title="Partner activity" meta={r.data.length > 0 ? "Latest" : undefined}>
+    <WidgetPanel id="partner-activity" title="Latest calls and meetings" meta={r.data.length > 0 ? "Latest" : undefined}>
       {r.data.length === 0 ? (
         <EmptyState compact title="Nothing logged yet">
           Calls, coffees and emails you record against a partner build the relationship timeline here.
@@ -462,10 +462,10 @@ async function PartnerActivity({ ctx }: { ctx: DashCtx }) {
 
 async function PartnerReferrals({ ctx }: { ctx: DashCtx }) {
   const r = await attempt("partner-referrals", () => loadTopPartners());
-  if (!r.ok) return <WidgetFailed id="partner-referrals" title="Referral partners" />;
+  if (!r.ok) return <WidgetFailed id="partner-referrals" title="Partners sending referrals" />;
 
   return (
-    <WidgetPanel id="partner-referrals" title="Referral partners" meta={r.data.length > 0 ? "Most referrals first" : undefined}>
+    <WidgetPanel id="partner-referrals" title="Partners sending referrals" meta={r.data.length > 0 ? "Most referrals first" : undefined}>
       {r.data.length === 0 ? (
         <EmptyState
           compact

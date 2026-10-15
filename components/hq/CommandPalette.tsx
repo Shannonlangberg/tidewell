@@ -121,7 +121,7 @@ function PaletteBody({ onClose, searchAction, nav, quickActions }: Omit<CommandP
       if (nav.length > 0) {
         out.push({
           label: "Go to",
-          items: nav.map((n) => ({ id: `nav-${n.key}`, href: n.href, title: n.label, subtitle: n.phase, icon: n.icon, group: "Go to" })),
+          items: nav.map((n) => ({ id: `nav-${n.key}`, href: n.href, title: n.label, icon: n.icon, group: "Go to" })),
         });
       }
       return out;

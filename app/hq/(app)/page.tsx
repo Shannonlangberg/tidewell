@@ -1,85 +1,143 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import Link from "next/link";
 import { LinkButton } from "@/components/hq/Button";
-import { EmptyState } from "@/components/hq/EmptyState";
 import { HQ_ROUTES } from "@/components/hq/nav";
 import { PageHeader } from "@/components/hq/PageHeader";
-import { InlineNote, SectionLabel } from "@/components/hq/Primitives";
-import { Tabs } from "@/components/hq/Tabs";
+import { InlineNote } from "@/components/hq/Primitives";
 import { buildHref } from "@/components/hq/url";
-import { CustomiseDashboard } from "@/components/hq/features/dashboard/CustomiseDashboard";
-import type { DashCtx } from "@/components/hq/features/dashboard/data";
-import { PanelSkeleton, StatsBand, StatsSkeleton, renderPanel } from "@/components/hq/features/dashboard/widgets";
+import { attempt } from "@/components/hq/features/dashboard/widget-chrome";
+import { loadCallToday, loadContractorsToday, loadGoneQuiet, loadNewReferrals, loadTasksToday } from "@/components/hq/features/today/data";
+import {
+  CallToday,
+  FAILED_LINE,
+  GoneQuiet,
+  NewReferrals,
+  NotUsedLately,
+  Paperwork,
+  QuietLine,
+  TasksToday,
+  UncoveredTrades,
+} from "@/components/hq/features/today/sections";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
-import { availableWidgets, hasCustomLayout, resolveWidgets, widgetDef } from "@/lib/hq/dashboard-widgets";
 import { todayIn } from "@/lib/hq/format";
 import { longDateIn, welcomeTitle } from "@/lib/hq/greeting";
-import { DEFAULT_PERIOD, PERIODS, PERIOD_SHORT_LABEL, parsePeriod, periodStart } from "@/lib/hq/periods";
+import { todayFigures, todayPlan, type TodayView } from "@/lib/hq/today";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Today" };
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 /*
- * The dashboard: role-aware, real data only. Which widgets appear comes from the registry in
- * lib/hq/dashboard-widgets.ts: the person's own choice (staff_profiles.dashboard_widgets) or
- * the default for their role, limited to what their capabilities allow. The figures sit in one
- * band across the top; every other widget is a panel that loads on its own inside Suspense, so
- * a slow or failing widget never holds up or breaks the rest of the page.
+ * Today: the home screen. It answers "what should I do now?" for the person signed in.
+ *
+ *  - Growth (growth.read): follow-ups to call today, partners gone quiet, new referrals.
+ *  - Operations (tasks or contractors.read): your tasks overdue and due today, paperwork expiring,
+ *    trades with no approved contractor, approved contractors not used lately.
+ *
+ * Which sections appear comes from capabilities; only their ORDER comes from the role (property
+ * managers see operations first). Every loader runs as the person, so row level security decides
+ * what comes back. Empty sections collapse to one line. The reporting figures live on Reports.
  *
  * requireStaff() here is the page's own gate: the (app) layout is only the first one.
  */
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<SP> }) {
+export default async function TodayPage({ searchParams }: { searchParams: Promise<SP> }) {
   const { staff, db, can } = await requireStaff();
   const sp = await searchParams;
+  const plan = todayPlan(staff.role, staff.capabilities);
 
-  const [todayResult, layoutResult] = await Promise.all([
-    db.rpc("today"),
-    db.from("staff_profiles").select("dashboard_widgets").eq("id", staff.id).maybeSingle(),
-  ]);
+  const todayResult = await db.rpc("today");
   if (todayResult.error) console.error("[hq] today() failed:", todayResult.error.code);
-  if (layoutResult.error) console.error("[hq] reading the dashboard layout failed:", layoutResult.error.code);
-
   // Dates in the business timezone (the same day the database uses for "overdue"); moments in the person's own.
   const today = typeof todayResult.data === "string" ? todayResult.data : todayIn(staff.timezone);
-  const saved = layoutResult.data?.dashboard_widgets ?? null;
 
-  const widgets = resolveWidgets({ role: staff.role, capabilities: staff.capabilities, saved });
-  const statIds = widgets.filter((id) => widgetDef(id).kind === "stat");
-  const panelIds = widgets.filter((id) => widgetDef(id).kind === "panel");
+  const skip = Promise.resolve(null);
+  const [calls, quiet, referrals, tasks, contractors] = await Promise.all([
+    plan.growth ? attempt("today: call", () => loadCallToday(db, today)) : skip,
+    plan.growth ? attempt("today: gone quiet", () => loadGoneQuiet(db)) : skip,
+    plan.growth ? attempt("today: new referrals", () => loadNewReferrals(db, today)) : skip,
+    plan.tasks ? attempt("today: tasks", () => loadTasksToday(db, { staffId: staff.id, today, team: plan.seesTeamTasks })) : skip,
+    plan.contractors ? attempt("today: contractors", () => loadContractorsToday(db, today)) : skip,
+  ]);
 
-  const period = parsePeriod(sp.period);
-  const since = periodStart(period, today);
-  const ctx: DashCtx = { staffId: staff.id, timezone: staff.timezone, today, capabilities: staff.capabilities };
-
-  // Where "Complete" and friends come back to: this page as it is now, without any one-off toast parameters.
-  const quiet = { toast: null, toast_tone: null, denied: null } as const;
-  const returnTo = buildHref(HQ_BASE, sp, quiet);
+  const quietParams = { toast: null, toast_tone: null, denied: null } as const;
+  const returnTo = buildHref(HQ_BASE, sp, quietParams);
   const denied = Boolean(one(sp.denied));
+
+  const figures = todayFigures({
+    call: calls?.ok ? calls.data.total : null,
+    tasksOverdue: tasks?.ok ? tasks.data.overdue : null,
+    tasksToday: tasks?.ok ? tasks.data.dueToday : null,
+    expiring: contractors?.ok ? contractors.data.expiringTotal : null,
+    referrals: referrals?.ok ? referrals.data.total : null,
+  });
+
+  const growth = (
+    <>
+      {calls ? (
+        calls.ok ? (
+          <CallToday {...calls.data} today={today} timezone={staff.timezone} canWrite={plan.canLogCalls} returnTo={returnTo} />
+        ) : (
+          <QuietLine id="call-today">Follow-ups: {FAILED_LINE}</QuietLine>
+        )
+      ) : null}
+      {referrals?.ok ? <NewReferrals {...referrals.data} /> : null}
+      {quiet ? quiet.ok ? <GoneQuiet {...quiet.data} canWrite={plan.canLogCalls} /> : <QuietLine id="gone-quiet">Partners: {FAILED_LINE}</QuietLine> : null}
+    </>
+  );
+
+  const canRemind = can("contractors.write") && can("tasks.write");
+  const operations = (
+    <>
+      {tasks ? (
+        tasks.ok ? (
+          <TasksToday {...tasks.data} today={today} canComplete={plan.canCompleteTasks} returnTo={returnTo} />
+        ) : (
+          <QuietLine id="tasks-today">Tasks: {FAILED_LINE}</QuietLine>
+        )
+      ) : null}
+      {contractors ? (
+        contractors.ok ? (
+          <>
+            <Paperwork data={contractors.data} today={today} canRemind={canRemind} returnTo={returnTo} />
+            <UncoveredTrades data={contractors.data} canWrite={can("contractors.write")} />
+            <NotUsedLately data={contractors.data} today={today} />
+          </>
+        ) : (
+          <QuietLine id="paperwork">Contractors: {FAILED_LINE}</QuietLine>
+        )
+      ) : null}
+    </>
+  );
+
+  const VIEW_LABEL: Record<TodayView, string> = { growth: "Referral partners", operations: "Tasks and contractors" };
+  const both = plan.views.length > 1;
+  const first = plan.views[0];
+  const primaryAction =
+    first === "growth" && can("growth.write") ? (
+      <LinkButton href={HQ_ROUTES.referralNew} variant="primary" icon="plus">
+        Record a referral
+      </LinkButton>
+    ) : first === "operations" && can("tasks.write") ? (
+      <LinkButton href={HQ_ROUTES.taskNew} variant="primary" icon="plus">
+        New task
+      </LinkButton>
+    ) : null;
 
   return (
     <>
-      <PageHeader
-        variant="welcome"
-        eyebrow={longDateIn(staff.timezone)}
-        title={welcomeTitle(staff.firstName, staff.timezone)}
-        actions={
-          <>
-            <CustomiseDashboard
-              options={availableWidgets(staff.capabilities).map((w) => ({ id: w.id, title: w.title, description: w.description }))}
-              selected={widgets}
-              customised={hasCustomLayout(saved)}
-            />
-            {can("growth.write") ? (
-              <LinkButton href={HQ_ROUTES.referralNew} variant="primary">
-                Record a referral
-              </LinkButton>
-            ) : null}
-          </>
-        }
-      />
+      <PageHeader variant="welcome" eyebrow={longDateIn(staff.timezone)} title={welcomeTitle(staff.firstName, staff.timezone)} actions={primaryAction} />
+
+      {figures.length > 0 ? (
+        <ul className="hq-today__figures" aria-label="Today at a glance">
+          {figures.map((f) => (
+            <li key={f.key}>
+              <Link href={f.href}>{f.text}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {denied ? (
         <InlineNote className="mt-6">
@@ -87,40 +145,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </InlineNote>
       ) : null}
 
-      {statIds.length > 0 ? (
-        <section aria-label="At a glance" className="mt-8">
-          {statIds.includes("referrals-summary") ? (
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-              <SectionLabel>Referral figures</SectionLabel>
-              <Tabs
-                label="Period for the referral figures"
-                items={PERIODS.map((p) => ({
-                  label: PERIOD_SHORT_LABEL[p],
-                  href: buildHref(HQ_BASE, sp, { ...quiet, period: p === DEFAULT_PERIOD ? null : p }),
-                  current: p === period,
-                }))}
-              />
+      {plan.views.length === 0 ? (
+        <QuietLine>Nothing needs you today.</QuietLine>
+      ) : (
+        <div className="hq-today" data-cols={both ? "2" : "1"}>
+          {plan.views.map((v) => (
+            <div key={v} className="hq-today__view" aria-label={both ? VIEW_LABEL[v] : undefined} role={both ? "region" : undefined}>
+              {both ? <p className="hq-label hq-today__viewlabel">{VIEW_LABEL[v]}</p> : null}
+              {v === "growth" ? growth : operations}
             </div>
-          ) : null}
-          <Suspense fallback={<StatsSkeleton />}>
-            <StatsBand ids={statIds} period={period} since={since} />
-          </Suspense>
-        </section>
-      ) : null}
-
-      {panelIds.length > 0 ? (
-        <div className="mt-8 grid items-start gap-5 lg:grid-cols-2">
-          {panelIds.map((id) => (
-            <Suspense key={id} fallback={<PanelSkeleton id={id} title={widgetDef(id).title} />}>
-              {renderPanel(id, ctx, returnTo)}
-            </Suspense>
           ))}
         </div>
-      ) : null}
+      )}
 
-      {widgets.length === 0 ? (
-        <EmptyState title="Nothing to show yet">Use Customise to choose what your dashboard shows.</EmptyState>
-      ) : null}
+      <p className="hq-today__foot">
+        Figures and trends are in{" "}
+        <Link href={HQ_ROUTES.reports} className="hq-today__inline">
+          Reports
+        </Link>
+        .
+      </p>
     </>
   );
 }

@@ -5,13 +5,16 @@ import type { HqClient, ViewRow } from "../db";
 import { logTag } from "../growth/db-errors";
 import {
   LIST_PAGE_SIZE,
+  PARTNER_GROUPS,
   PARTNER_LIST_SORT_COLUMNS,
   PARTNER_QUIET_DAYS,
   orIlike,
   pageRange,
   parsePartnerListParams,
   partnerNullsFirst,
+  type PartnerGroup,
   type PartnerListQuery,
+  type PartnerListSortKey,
   type RawParams,
 } from "../growth/params";
 import type { Loaded } from "../growth/types";
@@ -33,14 +36,42 @@ const QUIET_CONDITION = `days_since_contact.is.null,days_since_contact.gt.${PART
 
 export type PartnerPage = { rows: ReferralPartner[]; total: number; page: number };
 
-export async function listReferralPartners(db: HqClient, query: PartnerListQuery, ctx: { staffId: string }): Promise<Loaded<PartnerPage>> {
+/**
+ * Each group's own order when the address asks for none: the oldest follow-up first, then the
+ * longest since anyone spoke to them (so a warm partner about to go quiet comes first), then names.
+ */
+const GROUP_ORDER: Record<PartnerGroup, PartnerListSortKey> = { call: "follow_up", warm: "last_contacted", quiet: "last_contacted", never: "name" };
+
+export type PartnerListContext = {
+  staffId: string;
+  /** Today in the reader's time zone (YYYY-MM-DD): a follow-up on or before it is due. */
+  today: string;
+};
+
+export async function listReferralPartners(
+  db: HqClient,
+  query: PartnerListQuery,
+  ctx: PartnerListContext,
+  opts: { group?: PartnerGroup | null; pageSize?: number } = {},
+): Promise<Loaded<PartnerPage>> {
+  const group = opts.group ?? null;
+  const pageSize = opts.pageSize ?? LIST_PAGE_SIZE;
+  const sort = query.sorted || !group ? query.sort : GROUP_ORDER[group];
+  const dir = query.sorted || !group ? query.dir : "asc";
   const run = (page: number) => {
     let q = db.from("referral_partner_overview").select("*", { count: "exact" }).eq("partner_kind", query.kind);
-    // Two either/or groups (search, quiet) must BOTH hold, so they are nested under one and().
-    const search = orIlike(["name", "primary_contact_name"], query.q);
-    const quiet = query.quiet ? QUIET_CONDITION : null;
-    if (search && quiet) q = q.or(`and(or(${search}),or(${quiet}))`);
-    else if (search || quiet) q = q.or((search ?? quiet) as string);
+    // Every either/or condition (search, quiet, "no follow-up due") must hold, so they are nested under one and().
+    const anyOf = [
+      orIlike(["name", "primary_contact_name"], query.q),
+      query.quiet ? QUIET_CONDITION : null,
+      group && group !== "call" ? `next_follow_up_date.is.null,next_follow_up_date.gt.${ctx.today}` : null,
+    ].filter((c): c is string => c !== null);
+    if (anyOf.length === 1) q = q.or(anyOf[0]);
+    else if (anyOf.length > 1) q = q.or(`and(${anyOf.map((c) => `or(${c})`).join(",")})`);
+    if (group === "call") q = q.lte("next_follow_up_date", ctx.today);
+    if (group === "warm") q = q.lte("days_since_contact", PARTNER_QUIET_DAYS);
+    if (group === "quiet") q = q.gt("days_since_contact", PARTNER_QUIET_DAYS);
+    if (group === "never") q = q.is("last_contacted_at", null);
     if (query.category) q = q.contains("categories", [query.category as (typeof PARTNER_CATEGORIES)[number]]);
     if (query.status) q = q.eq("relationship_status", query.status as (typeof RELATIONSHIP_STATUSES)[number]);
     if (query.owner) {
@@ -50,10 +81,10 @@ export async function listReferralPartners(db: HqClient, query: PartnerListQuery
     if (query.referred === "yes") q = q.gt("referrals_received", 0);
     if (query.referred === "no") q = q.eq("referrals_received", 0);
     if (query.verify === "needs") q = q.eq("needs_verification", true);
-    const column = PARTNER_LIST_SORT_COLUMNS[query.sort];
-    q = q.order(column, { ascending: query.dir === "asc", nullsFirst: partnerNullsFirst(query.sort, query.dir) });
+    const column = PARTNER_LIST_SORT_COLUMNS[sort];
+    q = q.order(column, { ascending: dir === "asc", nullsFirst: partnerNullsFirst(sort, dir) });
     if (column !== "name") q = q.order("name");
-    const { from, to } = pageRange(page, LIST_PAGE_SIZE);
+    const { from, to } = pageRange(page, pageSize);
     return q.order("id").range(from, to);
   };
 
@@ -72,6 +103,12 @@ export async function listReferralPartners(db: HqClient, query: PartnerListQuery
   return { ok: true, data: { rows, total: result.count ?? rows.length, page } };
 }
 
+/** Every group at once, each its first `limit` rows and its full count, with the same search and filters. */
+export async function listPartnerGroups(db: HqClient, query: PartnerListQuery, ctx: PartnerListContext, limit: number): Promise<Record<PartnerGroup, Loaded<PartnerPage>>> {
+  const pages = await Promise.all(PARTNER_GROUPS.map((group) => listReferralPartners(db, { ...query, page: 1 }, ctx, { group, pageSize: limit })));
+  return Object.fromEntries(PARTNER_GROUPS.map((g, i) => [g, pages[i]])) as Record<PartnerGroup, Loaded<PartnerPage>>;
+}
+
 export type PartnerSummary = {
   partners: number;
   contactedRecently: number;
@@ -79,20 +116,23 @@ export type PartnerSummary = {
   haveReferred: number;
   referralsReceived: number;
   managementsSigned: number;
+  /** Research leads nobody has checked yet. */
+  needsVerifying: number;
 };
 
 /** The figures across the top of the page, for one kind of partner. Every number is a count of real rows. */
 export async function referralPartnerSummary(db: HqClient, kind: PartnerListQuery["kind"]): Promise<Loaded<PartnerSummary>> {
   const head = () => db.from("referral_partner_overview").select("id", { count: "exact", head: true }).eq("partner_kind", kind);
-  const [all, recent, never, referred, figures] = await Promise.all([
+  const [all, recent, never, referred, unverified, figures] = await Promise.all([
     head(),
     head().lte("days_since_contact", PARTNER_QUIET_DAYS),
     head().is("last_contacted_at", null),
     head().gt("referrals_received", 0),
+    head().eq("needs_verification", true),
     // Only the partners with any referral carry a figure to add up.
     db.from("referral_partner_overview").select("referrals_received, managements_signed").eq("partner_kind", kind).gt("referrals_received", 0).limit(10_000),
   ]);
-  const failed = [all, recent, never, referred, figures].find((r) => r.error);
+  const failed = [all, recent, never, referred, unverified, figures].find((r) => r.error);
   if (failed?.error) {
     console.error("[hq] referralPartnerSummary failed:", logTag(failed.error));
     return { ok: false };
@@ -112,6 +152,7 @@ export async function referralPartnerSummary(db: HqClient, kind: PartnerListQuer
       haveReferred: referred.count ?? 0,
       referralsReceived: received,
       managementsSigned: signed,
+      needsVerifying: unverified.count ?? 0,
     },
   };
 }

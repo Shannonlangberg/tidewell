@@ -8,8 +8,8 @@ import { MobileMore } from "./MobileMore";
 import {
   ACCOUNT_NAV,
   PRIMARY_NAV,
-  phaseLabel,
   toEntries,
+  mobileTabs,
   visibleNav,
   visibleQuickActions,
   type NavItem,
@@ -28,8 +28,8 @@ import { Wordmark } from "./Wordmark";
  *    signed-in person) and a slim soft-white top bar (breadcrumb slot, search, Quick add,
  *    Ask Planted).
  *  - below 1024px: a purpose-built mobile layout, NOT the desktop shrunk: a charcoal header
- *    (wordmark, search, Ask Planted), a bottom tab bar (Dashboard, Growth, Operations,
- *    More) with a clay marker on the current page, a More sheet for everything else, and
+ *    (wordmark, search, Ask Planted), a bottom tab bar (Today, Growth, Tasks, More; for property managers Today,
+ *    Tasks, Contractors, More) with a clay marker on the current page, a More sheet for everything else, and
  *    a floating Quick add button.
  *
  * Contract:
@@ -56,17 +56,10 @@ export type AppShellProps = {
 };
 
 function SidebarLink({ item, active }: { item: NavItem; active?: NavKey | null }) {
-  const phase = phaseLabel(item);
   return (
     <ActiveLink href={item.href} className="hq-nav__item" navKey={item.key} override={active}>
       <Icon name={item.icon} size={18} className="hq-nav__icon" />
       <span>{item.label}</span>
-      {phase ? (
-        <>
-          {" "}
-          <span className="hq-nav__tag">{phase}</span>
-        </>
-      ) : null}
     </ActiveLink>
   );
 }
@@ -80,8 +73,8 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
   const quickActions = visibleQuickActions(caps);
   const roleLabel = ROLE_LABEL[staff.role];
 
-  const tabs = primary.filter((i) => i.mobile === "tab");
-  const more = [...primary.filter((i) => i.mobile === "more"), ...account];
+  const tabs = mobileTabs(primary, staff.role);
+  const more = [...primary.filter((i) => !tabs.includes(i)), ...account];
 
   return (
     <ShellProvider searchAction={searchAction} nav={toEntries(primary, active ?? null)} quickActions={quickActions}>
@@ -148,7 +141,7 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
           <header className="hq-mheader hq-on-dark">
             <Link href="/hq" className="hq-mheader__brand">
               PLANTED.
-              <span className="sr-only"> HQ, dashboard</span>
+              <span className="sr-only"> HQ, today</span>
             </Link>
             <div className="hq-mheader__actions">
               <MobileSearchButton />

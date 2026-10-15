@@ -6,11 +6,9 @@ import { PageHeader } from "@/components/hq/PageHeader";
 import { KeyValueList, SectionLabel } from "@/components/hq/Primitives";
 import { StatusChip } from "@/components/hq/StatusChip";
 import { SubmitButton } from "@/components/hq/SubmitButton";
-import { resetDashboardLayoutAction } from "@/components/hq/features/dashboard/actions";
 import { TimezoneForm } from "@/components/hq/features/people/TimezoneForm";
 import { requireStaff } from "@/lib/hq/auth";
 import { ROLE_LABEL } from "@/lib/hq/constants";
-import { hasCustomLayout, resolveWidgets } from "@/lib/hq/dashboard-widgets";
 import { formatDate } from "@/lib/hq/format";
 import { listGrants } from "@/lib/hq/mcp/oauth-server";
 import { revokeConnectedAppAction } from "../../oauth/actions";
@@ -28,7 +26,7 @@ export default async function ProfilePage() {
 
   const { data: me, error } = await db
     .from("staff_profiles")
-    .select("email, pod_id, start_date, responsibilities, timezone, dashboard_widgets")
+    .select("email, pod_id, start_date, responsibilities, timezone")
     .eq("id", staff.id)
     .maybeSingle();
   if (error) console.error("[hq] reading the profile failed:", error.code);
@@ -36,8 +34,6 @@ export default async function ProfilePage() {
   const podRes = me?.pod_id ? await db.from("pods").select("name").eq("id", me.pod_id).maybeSingle() : null;
   const grants = await listGrants(session.accessToken);
   const mcpUrl = await mcpAddress();
-  const customised = hasCustomLayout(me?.dashboard_widgets);
-  const shown = resolveWidgets({ role: staff.role, capabilities: staff.capabilities, saved: me?.dashboard_widgets ?? null });
 
   return (
     <>
@@ -81,27 +77,6 @@ export default async function ProfilePage() {
             Timezone
           </SectionLabel>
           <TimezoneForm current={me?.timezone ?? staff.timezone} />
-        </section>
-
-        <section aria-labelledby="dash-h" className="max-w-xl">
-          <SectionLabel as="h2" id="dash-h" className="mb-3.5">
-            Dashboard layout
-          </SectionLabel>
-          <p>
-            {customised
-              ? `You have chosen your own layout: ${shown.length} ${shown.length === 1 ? "widget" : "widgets"}.`
-              : "You are using the default layout for your role."}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <LinkButton href="/hq">Customise on the dashboard</LinkButton>
-            {customised ? (
-              <form action={resetDashboardLayoutAction}>
-                <SubmitButton variant="secondary" pendingLabel="Resetting your dashboard">
-                  Use my role&rsquo;s default
-                </SubmitButton>
-              </form>
-            ) : null}
-          </div>
         </section>
 
         <section aria-labelledby="mfa-h" className="max-w-xl">
