@@ -61,7 +61,11 @@ export async function sendCode(_prev: ActionState, formData: FormData): Promise<
   });
 
   if (error) {
-    const unknownAddress = error.status === 422 || error.code === "otp_disabled" || /signups? not allowed/i.test(error.message);
+    // "email_address_not_authorized" is Supabase's built-in sender refusing an address outside the project's
+    // team. Until a custom email sender is connected (docs/hq-setup.md) a director issues codes by hand
+    // (npm run hq:code), so the person still goes on to the code screen. Same outcome as any other address.
+    const unknownAddress =
+      error.status === 422 || error.code === "otp_disabled" || error.code === "email_address_not_authorized" || /signups? not allowed/i.test(error.message);
     if (error.status === 429) {
       return { ...fail("Codes go out once a minute. Wait a minute, then try again."), data: keepValues(formData, ["email"]) };
     }

@@ -70,34 +70,39 @@ npm run build            # the production build Netlify runs
 - **HQ is never indexed** (`robots.txt`, `X-Robots-Tag`, and `Cache-Control: private, no-store`).
 - **AI is not part of Phase 1.** When it arrives it will receive only what a validated tool returns, never raw tables.
 
-## Going live (nothing here has been done)
+## The live project
 
-Do these in order. Nothing in HQ requires production access until you choose to do this.
+HQ runs on its own Supabase project, `planted-hq` (ref `wnejvqyqqfxdjkbmbrvs`), in **Sydney (ap-southeast-2)**, in a new organisation named PLANTED on the free plan. It holds HQ only: the parked Tidewell schema lives in `supabase/parked-tidewell/` and is never applied to it. The database password and keys are kept in `~/.planted-hq/` on the machine that set it up, outside the repository.
 
-1. **Create the Supabase project in the Sydney region (`ap-southeast-2`).** The region cannot be changed later, and HQ holds personal information. Choose the organisation deliberately.
-2. **Apply the migrations:** `supabase link --project-ref <ref>` then `supabase db push`.
-3. **Expose the `hq` schema:** in the project's API settings add `hq` to the exposed schemas. Confirm an anonymous request to it is **denied** (the test suite proves this locally).
-4. **Auth settings** (the dashboard does not read `supabase/config.toml`):
-   - Turn **off** public sign-ups.
-   - Email sign-in with a six-digit code, ten-minute expiry. Copy the subject and body from `supabase/templates/otp.html` into the *Magic link* email template.
-   - Connect your own SMTP (for example Resend). The built-in sender allows only a couple of emails an hour.
-   - Turn on **TOTP** multi-factor.
-   - Add Cloudflare Turnstile keys (the local ones are test keys that always pass).
-   - Enable the **password verification hook** (it refuses password sign-in). It currently lives in the parked Tidewell migrations (see below).
-   - Use **asymmetric JWT signing keys**. In production HQ rejects tokens signed with a shared secret.
-5. **Netlify environment variables:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. Never put the secret key in client code. `netlify.toml` already declares the Next.js plugin, which must stay.
-6. **Create the first director:**
-   ```bash
-   NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SECRET_KEY=<secret> \
-     npm run hq:bootstrap -- --email you@yourdomain --name "Full Name" --confirm
-   ```
-   It refuses to run if any staff already exist. Everyone else is invited from **People → Invite**.
-7. **Load the research leads:** sign in, open **Growth → Import**, choose **Load the research leads file**, review, and confirm. They arrive as "Identified" and "Needs verifying".
-8. **Domain:** `hq.planted.com.au` needs the domain, a Netlify domain alias and a rewrite to `/hq`. Until then HQ lives at `/hq`.
+What was done, and how to repeat it for another project:
+
+1. **Create the project in Sydney** (`supabase projects create planted-hq --org-id <org> --region ap-southeast-2`). The region cannot be changed later.
+2. **Apply the migrations:** `supabase link --project-ref <ref>` then `supabase db push`. Only `supabase/migrations/` (HQ) is applied.
+3. **Auth settings** are pushed from `supabase/config.toml` with `supabase config push`. The `[remotes.production]` blocks at the bottom of that file hold the production differences: site URL, captcha off, one code per minute. Sign-ups are off, the six-digit code is ten minutes, and the API exposes only the `hq` schema. Anonymous requests to `hq` are refused (checked against the live project).
+4. **Netlify environment variables:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (mark it secret). These are read at build time, so **redeploy after changing them**. Never put the secret key in client code. `netlify.toml` declares the Next.js plugin, which must stay.
+5. **First director:** `npm run hq:bootstrap -- --email you@yourdomain --name "Full Name" --confirm` (with the URL and secret key in the environment). It refuses to run if any staff already exist. Everyone else is invited from **People → Invite**.
+6. **Research leads:** sign in, open **Growth → Import**, choose **Load the research leads file**, review, confirm.
+7. **Domain:** `hq.planted.com.au` needs the domain, a Netlify alias and a rewrite to `/hq`. Until then HQ lives at `/hq`.
+
+### Signing in until an email sender is connected
+
+Supabase's built-in email sender cannot send our branded six-digit code on the free plan (it can neither change the template nor send to anyone outside the project team). Until a custom SMTP sender (for example Resend, with a verified domain) is connected:
+
+- The person opens `/hq/sign-in` and enters their address, then goes on to the code screen.
+- A director with the project's secret key runs `npm run hq:code -- --email <their address> --confirm`. The six-digit code lands on the clipboard of the machine that ran it, and is given to the person. It is valid for ten minutes, works once, only for active HQ staff, and the person still has to pass multi-factor sign-in.
+
+To connect a sender: add an `[remotes.production.auth.email.smtp]` block to `supabase/config.toml` (host, port, user, `pass = "env(SMTP_PASS)"`, sender), put the password in the environment, run `supabase config push`, and the branded template in `supabase/templates/otp.html` is installed in the same push. Raise `[remotes.production.auth.rate_limit] email_sent` at the same time. Verify a sending domain before inviting anyone other than the account owner, because most providers only deliver to the owner's own address until then.
+
+### What the free Supabase plan does not give you
+
+- **No automatic backups or point-in-time recovery.** HQ will hold personal information; move the project to Pro before relying on it for real records.
+- **No session time limits** (Pro and above). The base config asks for a 30-day limit and a 14-day inactivity limit; production overrides them to "none" so the push succeeds. Remove the override on Pro.
+- **No password-refusal hook** (Team and Enterprise). Nobody is given a password and sign-up is off, and HQ returns nothing until multi-factor sign-in is complete, so a password route has nothing to unlock.
+- **Projects pause after a week of inactivity.**
+- **No Cloudflare Turnstile yet.** Captcha is off in production until real keys exist (the local test secret accepts anything). Add the site key to Netlify as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, put the secret in `supabase/config.toml`'s production override, and turn it on.
 
 ## Known limitations and open decisions
 
-- **The parked Tidewell schema ships alongside.** HQ's database objects are in their own schemas and depend on nothing in Tidewell's tables, **except** the password-refusal hook, which lives in a Tidewell migration. If you retire Tidewell, move that hook into an HQ migration first. A fresh hosted project for HQ alone is the cleaner option.
 - **`update_staff` cannot clear a field.** A null argument means "leave unchanged", so responsibilities and start date can be changed but not blanked.
 - **`management_reference` can only be set at signing.** Add it later through a new database function if wanted.
 - **`growth_summary.referrals_received` counts further claims too.** A prospect claimed by two partners counts as two received, so conversion is signed divided by two. The overview says so.
@@ -111,4 +116,4 @@ Do these in order. Nothing in HQ requires production access until you choose to 
 
 Verified: the database from scratch (772 passing tests, including the double-count proof and the import), unit tests, types, lint, a production build, every Server Action replayed as forged requests by read-only and junior personas, MFA on and off, the sign-in flow end to end, layouts at 375, 768 and 1280 widths.
 
-Not verified: behaviour on a real hosted Supabase project and on Netlify; Safari and Firefox; a screen reader (axe-core was used on the design system); the Resend or SMS paths; a real unique-primary race; the effect of a 429 rate-limit from Supabase.
+Not verified: the full sign-in and multi-factor flow on the live project; Safari and Firefox; a screen reader (axe-core was used on the design system); the Resend or SMS paths; a real unique-primary race; the effect of a 429 rate-limit from Supabase.

@@ -431,3 +431,13 @@ additional_redirect_urls = ["https://tidewellcc.netlify.app/**"]
 [remotes.production.auth.captcha]
 enabled = false
 secret = ""
+
+# Supabase's free plan cannot set session limits (Pro and above). "0s" matches what the free plan holds, so the
+# push sends no change. On Pro, delete these two lines and the base 720h / 336h limits apply.
+[remotes.production.auth.sessions]
+timebox = "0s"
+inactivity_timeout = "0s"
+
+# A code at most once a minute in production (the base file's 1s is for quick local testing).
+[remotes.production.auth.email]
+max_frequency = "1m0s"
