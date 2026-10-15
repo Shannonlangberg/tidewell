@@ -13,6 +13,8 @@ import type { IconName } from "./icons";
 export const HQ_ROUTES = {
   dashboard: HQ_BASE,
   growth: `${HQ_BASE}/growth`,
+  /** Referral partners (agencies, brokers, advisers who refer to us). NOT the contractor "Partners" module below. */
+  referralPartners: `${HQ_BASE}/growth/partners`,
   contacts: `${HQ_BASE}/growth/contacts`,
   contactNew: `${HQ_BASE}/growth/contacts/new`,
   /** Opens the "log a call" flow on the contacts page (the contacts builder reads `?log=call`). */

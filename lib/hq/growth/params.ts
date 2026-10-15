@@ -222,6 +222,80 @@ export function parseOrganisationListParams(sp: RawParams, vocab: { categories: 
   return { q, category, region, owner, verify, sort, dir, page, filtered: Boolean(q || category || region || owner || verify) };
 }
 
+// ── referral partners ────────────────────────────────────────
+
+/** "Not contacted in 30 days": the quiet threshold the Referral partners page and the dashboard share. */
+export const PARTNER_QUIET_DAYS = 30;
+
+/** URL sort key -> column in hq.referral_partner_overview. The ONLY columns the Referral partners list sorts by. */
+export const PARTNER_LIST_SORT_COLUMNS = {
+  name: "name",
+  status: "relationship_status",
+  owner: "relationship_owner_name",
+  last_contacted: "last_contacted_at",
+  follow_up: "next_follow_up_date",
+  referrals: "referrals_received",
+  signed: "managements_signed",
+  last_referral: "last_referral_date",
+} as const;
+export type PartnerListSortKey = keyof typeof PARTNER_LIST_SORT_COLUMNS;
+export const PARTNER_LIST_SORT_KEYS = Object.keys(PARTNER_LIST_SORT_COLUMNS) as PartnerListSortKey[];
+
+export type PartnerListQuery = {
+  /** Organisations (the default) or independent contacts, who belong to no organisation. */
+  kind: "organisation" | "independent";
+  q: string;
+  category: string | null;
+  status: string | null;
+  owner: OwnerFilter | null;
+  /** Not contacted in PARTNER_QUIET_DAYS days, or never. */
+  quiet: boolean;
+  /** "yes" = has referred to us at least once; "no" = never has. */
+  referred: "yes" | "no" | null;
+  verify: "needs" | null;
+  sort: PartnerListSortKey;
+  dir: "asc" | "desc";
+  page: number;
+  /** Whether any search or filter is applied (the kind, sorting and paging do not count). */
+  filtered: boolean;
+};
+
+export function parsePartnerListParams(sp: RawParams, vocab: { categories: readonly string[]; statuses: readonly string[] }): PartnerListQuery {
+  const kind = first(sp.show) === "independent" ? "independent" : "organisation";
+  const q = searchTerm(first(sp.q));
+  const category = oneOf(first(sp.category), vocab.categories);
+  const status = oneOf(first(sp.status), vocab.statuses);
+  const owner = parseOwner(first(sp.owner));
+  const quiet = first(sp.quiet) === String(PARTNER_QUIET_DAYS);
+  const referredRaw = first(sp.referred);
+  const referred = referredRaw === "yes" || referredRaw === "no" ? referredRaw : null;
+  const verify = first(sp.verify) === "needs" ? "needs" : null;
+  const { sort, dir } = parseSort(first(sp.sort), first(sp.dir), PARTNER_LIST_SORT_KEYS, "name");
+  const page = boundedInt(first(sp.page), 1, 1, 100_000);
+  return {
+    kind,
+    q,
+    category,
+    status,
+    owner,
+    quiet,
+    referred,
+    verify,
+    sort,
+    dir,
+    page,
+    filtered: Boolean(q || category || status || owner || quiet || referred || verify),
+  };
+}
+
+/**
+ * Where partners with no value go when sorted by a column. "Never contacted" is the longest gap of
+ * all, so it comes FIRST when sorting by last contacted oldest-first; everywhere else blanks go last.
+ */
+export function partnerNullsFirst(sort: PartnerListSortKey, dir: "asc" | "desc"): boolean {
+  return sort === "last_contacted" && dir === "asc";
+}
+
 // ── the ?log= parameter ──────────────────────────────────────
 
 const LOG_TYPES = ["phone_call", "coffee_meeting", "office_meeting", "email", "message", "note"] as const;

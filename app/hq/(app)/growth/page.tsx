@@ -20,6 +20,7 @@ import {
   Stat,
   StatBand,
   Tabs,
+  HQ_ROUTES,
   buildHref,
   type SortState,
 } from "@/components/hq";
@@ -87,6 +88,7 @@ export default async function GrowthOverviewPage({ searchParams }: { searchParam
         description="Referrals from your partners, how they move to a signed management, and who sends you the most. Every figure comes from the referrals recorded in HQ."
         actions={
           <>
+            <LinkButton href={HQ_ROUTES.referralPartners}>Referral partners</LinkButton>
             <LinkButton href="/hq/growth/pipeline">Pipeline</LinkButton>
             {recordAction}
           </>
@@ -167,7 +169,11 @@ export default async function GrowthOverviewPage({ searchParams }: { searchParam
         <InlineNote className="mt-3 max-w-3xl">
           Received and sent count every introduction. Qualified means the prospect reached the Qualified stage at some point. Signed counts each management once, credited to the
           partner who first introduced the prospect, even if other partners also claimed them. Conversion is signed divided by received. These figures cover all time, whatever
-          period is chosen above, and only partners that are organisations.
+          period is chosen above, and only partners that are organisations. The{" "}
+          <Link className="underline underline-offset-4" href={HQ_ROUTES.referralPartners}>
+            Referral partners
+          </Link>{" "}
+          page shows the same figures beside when you last spoke to each partner.
         </InlineNote>
 
         <FilterBar
@@ -272,6 +278,11 @@ export default async function GrowthOverviewPage({ searchParams }: { searchParam
         <GrowthLinks
           label="Growth sections"
           links={[
+            {
+              href: HQ_ROUTES.referralPartners,
+              title: "Referral partners",
+              description: "Every partner at a glance: when you last spoke, the next follow-up, and what each has referred.",
+            },
             { href: "/hq/growth/contacts", title: "Contacts", description: "The people at your referral partners, and the calls and meetings you have had." },
             { href: "/hq/growth/organisations", title: "Organisations", description: "The agencies, brokers and firms those people work for." },
             { href: REFERRALS, title: "Referrals", description: "Every introduction, received and sent." },
@@ -279,7 +290,7 @@ export default async function GrowthOverviewPage({ searchParams }: { searchParam
             ...(canImport ? [{ href: "/hq/growth/import", title: "Import", description: "Add a list of research leads, checked before anything is saved." }] : []),
           ]}
         />
-        {s ? <QuietPartnersNote count={s.contactsNotContacted30d} href={NOT_CONTACTED_HREF} /> : null}
+        {s ? <QuietPartnersNote count={s.contactsNotContacted30d} href={NOT_CONTACTED_HREF} partnersHref={`${HQ_ROUTES.referralPartners}?quiet=30`} /> : null}
       </section>
     </>
   );

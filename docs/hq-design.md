@@ -49,6 +49,7 @@ Primary navigation: Dashboard, Growth, Partners, Operations, People, Insights. P
 | `/hq` | Dashboard (role-aware widgets) | Built |
 | `/hq/sign-in`, `/hq/verify`, `/hq/mfa` | Authentication | Built |
 | `/hq/growth` | Growth overview and partner performance | Built |
+| `/hq/growth/partners` | Referral partners: last contacted, next follow-up, referrals per partner (not the contractor Partners module) | Built |
 | `/hq/growth/contacts`, `/hq/growth/contacts/[id]` | Contacts and relationship profile | Built |
 | `/hq/growth/organisations`, `/hq/growth/organisations/[id]` | Organisations | Built |
 | `/hq/growth/referrals`, `/hq/growth/referrals/[id]` | Referral register and detail | Built |
@@ -99,7 +100,7 @@ Conventions: `id uuid primary key default gen_random_uuid()`, `created_at`/`upda
 
 ### Views (all `security_invoker = true`, so RLS applies to the reader)
 
-`contact_directory`, `organisation_directory`, `referral_overview` (flattens direction, partner, prospect, stage), `partner_performance` (per organisation: received, sent, qualified, signed, conversion, estimated value of signed, reciprocal flag; **qualified means "ever reached qualified", read from stage history**), `overdue_followups`.
+`contact_directory`, `organisation_directory`, `referral_overview` (flattens direction, partner, prospect, stage), `partner_performance` (per organisation: received, sent, qualified, signed, conversion, estimated value of signed, reciprocal flag; **qualified means "ever reached qualified", read from stage history**), `overdue_followups`. Added later: `referral_partner_overview` (0122): one row per live organisation plus one per independent contact (no organisation), with last contacted (contacts and organisation-level interactions), next open follow-up, most advanced status, and referral figures read from `partner_performance` (independents by the same rules, so every referral and signing is counted once).
 
 ### Capabilities
 

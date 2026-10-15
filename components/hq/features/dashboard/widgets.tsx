@@ -498,6 +498,13 @@ async function PartnerReferrals({ ctx }: { ctx: DashCtx }) {
           ))}
         </Rows>
       )}
+      {r.data.length > 0 ? (
+        <p className="mt-3 border-t border-line pt-3 text-[13px]">
+          <Link href={HQ_ROUTES.referralPartners} className="hq-muted underline underline-offset-2">
+            All referral partners
+          </Link>
+        </p>
+      ) : null}
     </WidgetPanel>
   );
 }
@@ -553,6 +560,11 @@ async function StalePartners({ ctx }: { ctx: DashCtx }) {
             })}
           </Rows>
           <MoreLink shown={items.length} total={total} href={HQ_ROUTES.contacts} noun="contact" />
+          <p className="mt-3 border-t border-line pt-3 text-[13px]">
+            <Link href={`${HQ_ROUTES.referralPartners}?quiet=30`} className="hq-muted underline underline-offset-2">
+              See which referral partners have gone quiet
+            </Link>
+          </p>
         </>
       )}
     </WidgetPanel>

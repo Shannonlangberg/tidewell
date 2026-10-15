@@ -21,7 +21,7 @@ language sql as $$
        + (select count(*) from hq.referrals) + (select count(*) from hq.tasks) + (select count(*) from hq.audit_events)
        + (select count(*) from hq.import_batches) + (select count(*) from hq.contact_directory) + (select count(*) from hq.organisation_directory)
        + (select count(*) from hq.referral_overview) + (select count(*) from hq.partner_performance) + (select count(*) from hq.overdue_followups)
-       + (select count(*) from hq.ai_requests)
+       + (select count(*) from hq.ai_requests) + (select count(*) from hq.referral_partner_overview)
 $$;
 
 -- ------------------------------------------------------------ a signed-in person with no HQ profile
@@ -138,7 +138,7 @@ select is((select count(*) from hq.organisations) + (select count(*) from hq.con
         + (select count(*) from hq.opportunities) + (select count(*) from hq.interactions), 0::bigint,
   'junior: cannot read organisations, contacts, referrals, opportunities or interactions');
 select is((select count(*) from hq.contact_directory) + (select count(*) from hq.organisation_directory) + (select count(*) from hq.referral_overview)
-        + (select count(*) from hq.partner_performance) + (select count(*) from hq.overdue_followups), 0::bigint, 'junior: the directory views are empty');
+        + (select count(*) from hq.partner_performance) + (select count(*) from hq.overdue_followups) + (select count(*) from hq.referral_partner_overview), 0::bigint, 'junior: the directory views are empty');
 select is(hq.global_search('alpha', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": [], "contractors": []}'::jsonb, 'junior: global_search finds no partners');
 select is((select count(*) from hq.audit_events), 0::bigint, 'junior: cannot read the audit log');
 select throws_ok($$insert into hq.organisations (name, categories) values ('Junior Co', '{other}')$$, '42501', null, 'junior cannot create an organisation');

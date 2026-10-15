@@ -1908,6 +1908,40 @@ export type Database = {
           },
         ]
       }
+      referral_partner_overview: {
+        Row: {
+          categories: Database["hq"]["Enums"]["partner_category"][] | null
+          contact_count: number | null
+          contact_id: string | null
+          conversion: number | null
+          days_since_contact: number | null
+          estimated_value_signed_cents: number | null
+          follow_up_overdue: boolean | null
+          id: string | null
+          last_contacted_at: string | null
+          last_referral_date: string | null
+          managements_signed: number | null
+          name: string | null
+          needs_verification: boolean | null
+          next_follow_up_date: string | null
+          organisation_id: string | null
+          partner_kind: string | null
+          primary_contact_email: string | null
+          primary_contact_id: string | null
+          primary_contact_name: string | null
+          primary_contact_phone: string | null
+          reciprocal: boolean | null
+          referrals_qualified: number | null
+          referrals_received: number | null
+          referrals_sent: number | null
+          relationship_owner_id: string | null
+          relationship_owner_name: string | null
+          relationship_status:
+            | Database["hq"]["Enums"]["relationship_status"]
+            | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_contractor_document: {
