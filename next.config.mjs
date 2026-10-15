@@ -77,6 +77,32 @@ const nextConfig = {
         ],
       })),
       {
+        // The connected-app consent page posts to its decision route, which answers with a 303 to
+        // the app's registered return address (ChatGPT, Claude, or a desktop app on this machine).
+        // Browsers apply form-action to that redirect, so this one page allows https and loopback
+        // http as form targets. The route itself re-checks the address before redirecting.
+        source: "/hq/oauth/consent",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: csp({ "form-action": ["'self'", "https:", "http://localhost:*", "http://127.0.0.1:*", "http://[::1]:*"] }),
+          },
+        ],
+      },
+      {
+        // Planted HQ's MCP endpoint and its OAuth metadata: API responses carrying HQ data
+        // (or describing how to get it). Never cached anywhere, never indexed (mirrored in netlify.toml).
+        source: "/mcp",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
+        source: "/.well-known/oauth-protected-resource/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
         // Guest stay page: never cached, never indexed, never leaks its URL (mirrored in netlify.toml).
         source: "/stay/:token*",
         headers: [

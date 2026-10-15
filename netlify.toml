@@ -35,3 +35,21 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "private, no-store"
+
+# Planted HQ's MCP endpoint (docs/hq-mcp.md): API responses with HQ data. Never cached, never
+# indexed (mirrors next.config.mjs; the route also sets these itself).
+[[headers]]
+  for = "/mcp"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/.well-known/oauth-protected-resource/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/.well-known/oauth-protected-resource"
+  [headers.values]
+    Cache-Control = "no-store"

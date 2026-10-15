@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
   if (next !== null) {
     // Signed out: back to whichever sign-in the person was heading for. HQ and the parked
     // app have separate front doors.
-    const signedOutTo = next.startsWith("/hq") ? "/hq/sign-in" : "/app";
+    // HQ sign-in keeps `next` (it re-checks it with safeNextPath), so a person sent to sign in
+    // from a deep link (for example the connected-app consent page) comes back to it.
+    const signedOutTo = next.startsWith("/hq") ? `/hq/sign-in?next=${encodeURIComponent(next)}` : "/app";
     return NextResponse.redirect(new URL(signedIn ? next : signedOutTo, request.url), { status: 303, headers });
   }
   return new NextResponse(null, { status: signedIn ? 204 : 401, headers });

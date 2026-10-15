@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { LinkButton } from "@/components/hq/Button";
 import { PageHeader } from "@/components/hq/PageHeader";
@@ -11,6 +12,8 @@ import { requireStaff } from "@/lib/hq/auth";
 import { ROLE_LABEL } from "@/lib/hq/constants";
 import { hasCustomLayout, resolveWidgets } from "@/lib/hq/dashboard-widgets";
 import { formatDate } from "@/lib/hq/format";
+import { listGrants } from "@/lib/hq/mcp/oauth-server";
+import { revokeConnectedAppAction } from "../../oauth/actions";
 import { signOutAction } from "../../actions";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -21,7 +24,7 @@ export const metadata: Metadata = { title: "Profile" };
  * but not editable here: a director or administrator changes those in People.
  */
 export default async function ProfilePage() {
-  const { staff, db } = await requireStaff();
+  const { staff, db, session, can } = await requireStaff();
 
   const { data: me, error } = await db
     .from("staff_profiles")
@@ -31,6 +34,8 @@ export default async function ProfilePage() {
   if (error) console.error("[hq] reading the profile failed:", error.code);
 
   const podRes = me?.pod_id ? await db.from("pods").select("name").eq("id", me.pod_id).maybeSingle() : null;
+  const grants = await listGrants(session.accessToken);
+  const mcpUrl = await mcpAddress();
   const customised = hasCustomLayout(me?.dashboard_widgets);
   const shown = resolveWidgets({ role: staff.role, capabilities: staff.capabilities, saved: me?.dashboard_widgets ?? null });
 
@@ -115,7 +120,62 @@ export default async function ProfilePage() {
             <LinkButton href="/hq/mfa?next=%2Fhq%2Fprofile">Set up or replace my authenticator</LinkButton>
           </div>
         </section>
+
+        <section aria-labelledby="apps-h" className="max-w-xl">
+          <SectionLabel as="h2" id="apps-h" className="mb-3.5">
+            Connected apps
+          </SectionLabel>
+          <p>
+            {can("ai.use")
+              ? "Apps such as ChatGPT or Claude that you have allowed to use Planted HQ as you. They have exactly your permissions, and every call is logged."
+              : "Your role does not include connecting apps such as ChatGPT or Claude. Any you connected before are listed here so you can disconnect them."}
+          </p>
+          {grants === null ? (
+            <p className="hq-muted mt-4 text-[14px]">Connected apps could not be loaded just now. Try again in a moment.</p>
+          ) : grants.length === 0 ? (
+            <p className="hq-muted mt-4 text-[14px]">No apps are connected.</p>
+          ) : (
+            <ul className="mt-4 grid gap-0 border-t border-line">
+              {grants.map((g) => (
+                <li key={g.client.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-line py-3.5">
+                  <div className="min-w-0">
+                    <p className="font-medium">{g.client.name || "Unnamed app"}</p>
+                    <p className="hq-muted text-[13px]">
+                      {g.grantedAt ? `Allowed ${formatDate(g.grantedAt, staff.timezone)}` : "Allowed"}
+                      {g.client.uri ? <> &middot; <span className="break-all">{g.client.uri}</span></> : null}
+                    </p>
+                  </div>
+                  <form action={revokeConnectedAppAction}>
+                    <input type="hidden" name="client_id" value={g.client.id} />
+                    <SubmitButton variant="secondary" size="sm" pendingLabel="Disconnecting">
+                      Disconnect
+                    </SubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="hq-muted mt-4 text-[13px]">
+            Disconnecting stops the app refreshing its access at once; access it already holds runs out within an hour.
+            {can("ai.use") ? (
+              <>
+                {" "}
+                To connect one, add a custom connector in ChatGPT or Claude with the address <span className="break-all font-medium">{mcpUrl}</span>, then sign in and approve.
+              </>
+            ) : null}
+          </p>
+        </section>
       </div>
     </>
   );
+}
+
+/** The MCP endpoint's address on this site, to show people what to paste into ChatGPT or Claude. */
+async function mcpAddress(): Promise<string> {
+  const configured = process.env.HQ_PUBLIC_ORIGIN;
+  if (configured && /^https?:\/\/[^/]+$/.test(configured)) return `${configured}/mcp`;
+  const host = (await headers()).get("host") ?? "";
+  if (!/^[A-Za-z0-9.\-:[\]]{1,255}$/.test(host)) return "/mcp";
+  const local = /^(localhost|127\.0\.0\.1|\[::1\]|[^:]+\.localhost)(:\d+)?$/.test(host);
+  return `${local ? "http" : "https"}://${host}/mcp`;
 }

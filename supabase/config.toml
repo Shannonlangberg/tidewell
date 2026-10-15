@@ -368,14 +368,14 @@ enabled = false
 # Obtain from https://clerk.com/setup/supabase
 # domain = "example.clerk.accounts.dev"
 
-# OAuth server configuration
+# OAuth 2.1 server: Supabase Auth is the authorization server for the Planted HQ MCP endpoint (/mcp), so
+# ChatGPT and Claude can connect as a member of staff (docs/hq-mcp.md, docs/hq-setup.md). The consent page is
+# HQ's own (site_url + this path). Dynamic registration is on because both apps register themselves (RFC 7591);
+# a registered client still gets nothing until a signed-in member of staff with ai.use approves it.
 [auth.oauth_server]
-# Enable OAuth server functionality
-enabled = false
-# Path for OAuth consent flow UI
-authorization_url_path = "/oauth/consent"
-# Allow dynamic client registration
-allow_dynamic_registration = false
+enabled = true
+authorization_url_path = "/hq/oauth/consent"
+allow_dynamic_registration = true
 
 [edge_runtime]
 enabled = true
@@ -437,6 +437,15 @@ secret = ""
 [remotes.production.auth.sessions]
 timebox = "0s"
 inactivity_timeout = "0s"
+
+# The MCP connection (docs/hq-mcp.md): same settings as local; the consent page resolves against the production
+# site_url above. NOT YET APPLIED to the hosted project: `supabase config push` (or the dashboard, Authentication >
+# OAuth Server) applies it. The hosted project should sign with an asymmetric JWT key (ES256/RS256): /mcp refuses
+# shared-secret (HS256) tokens in production.
+[remotes.production.auth.oauth_server]
+enabled = true
+authorization_url_path = "/hq/oauth/consent"
+allow_dynamic_registration = true
 
 # A code at most once a minute in production (the base file's 1s is for quick local testing).
 [remotes.production.auth.email]
