@@ -75,7 +75,10 @@ export type ContractorImportFile = {
 export type ContractorImportParse = { ok: true; file: ContractorImportFile } | { ok: false; error: string };
 
 export type ImportVocab = {
+  /** The trade slugs a row may use (the ACTIVE trades in hq.trades). */
   categories: readonly string[];
+  /** Optional: a trade label (lower case) -> its slug, so a file may say "Plumbers" as well as "plumbing". */
+  labels?: ReadonlyMap<string, string>;
   /** Returns a plain-language problem for an ABN, or null when it is acceptable. */
   abnProblem: (abn: string) => string | null;
   /** Whitespace stripped, as the database does. */
@@ -250,8 +253,9 @@ export function normaliseContractorRow(raw: RawRecord, line: number, vocab: Impo
 
   const cats: string[] = [];
   for (const c of readList(raw.categories, "Trades", problems)) {
-    const s = slug(c);
-    if (!vocab.categories.includes(s)) problems.push(`Unknown trade "${c.slice(0, 40)}".`);
+    const bySlug = slug(c);
+    const s = vocab.categories.includes(bySlug) ? bySlug : (vocab.labels?.get(c.replace(/\s+/g, " ").trim().toLowerCase()) ?? bySlug);
+    if (!vocab.categories.includes(s)) problems.push(`Unknown trade "${c.slice(0, 40)}". Use a trade name or slug from the Trades page.`);
     else if (!cats.includes(s)) cats.push(s);
   }
   if (cats.length === 0 && !problems.some((p) => p.startsWith("Trades") || p.startsWith("Unknown trade"))) problems.push("Choose at least one trade.");

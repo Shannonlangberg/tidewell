@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CONTRACTOR_CATEGORY_LABEL } from "@/lib/hq/constants";
 import { requireStaff } from "@/lib/hq/auth";
 import { getContractor, openTasksForContractor, previewApproval } from "@/lib/hq/contractors/queries";
 import { statusActions } from "@/lib/hq/contractors/status";
@@ -18,6 +17,7 @@ import { ContractorDetails } from "@/components/hq/features/contractors/Contract
 import { ContractorTasks } from "@/components/hq/features/contractors/ContractorTasks";
 import { LogContactDrawer } from "@/components/hq/features/contractors/LogContactDrawer";
 import { StatusActions } from "@/components/hq/features/contractors/StatusActions";
+import { RecordJobButton } from "@/components/hq/features/contractors/RecordJob";
 import { DocumentsSection } from "@/components/hq/features/contractor-sections/DocumentsSection";
 import { PerformanceSection } from "@/components/hq/features/contractor-sections/PerformanceSection";
 import { TimelineSection } from "@/components/hq/features/contractor-sections/TimelineSection";
@@ -65,7 +65,7 @@ export default async function ContractorPage({ params, searchParams }: { params:
 
   const taskHref = newTaskHref({ contractor: c.id, title: `Follow up with ${c.businessName}`, returnTo: `${BASE}/${c.id}` });
   const logHref = (type: string) => buildHref(`${BASE}/${id}`, sp, { log: type });
-  const trades = c.categories.map((t) => CONTRACTOR_CATEGORY_LABEL[t]).join(", ");
+  const trades = c.tradeLabels.join(", ");
 
   return (
     <>
@@ -105,6 +105,7 @@ export default async function ContractorPage({ params, searchParams }: { params:
             Edit
           </LinkButton>
         ) : null}
+        {canWrite ? <RecordJobButton contractorId={c.id} businessName={c.businessName} lastJobDate={c.lastJobDate} today={today} /> : null}
         <StatusActions contractorId={c.id} businessName={c.businessName} status={c.status} actions={actions} preview={preview && preview.ok ? preview.data : null} />
         {canApprove ? (
           <ArchiveButton

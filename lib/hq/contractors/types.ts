@@ -8,7 +8,7 @@
  */
 
 import type { ViewRow } from "../db";
-import type { ContractorCategory, ContractorExpiryState, ContractorStatus } from "../constants";
+import type { ContractorExpiryState, ContractorStatus } from "../constants";
 
 export type Loaded<T> = { ok: true; data: T } | { ok: false };
 
@@ -27,7 +27,10 @@ export type Contractor = {
   email: string | null;
   website: string | null;
   abn: string | null;
-  categories: ContractorCategory[];
+  /** Trade slugs (hq.trades.slug), in the order chosen. */
+  categories: string[];
+  /** The trades' current labels, in the same order (renamed by the owner on the Trades page). */
+  tradeLabels: string[];
   serviceSuburbs: string[];
   serviceRegions: string[];
   /** null means unknown, which is different from "no". */
@@ -85,7 +88,8 @@ export function toContractor(r: ViewRow<"contractor_directory">): Contractor | n
     email: r.email,
     website: r.website,
     abn: r.abn,
-    categories: (r.categories ?? []) as ContractorCategory[],
+    categories: r.categories ?? [],
+    tradeLabels: r.trade_labels ?? (r.categories ?? []).map((s) => s.replace(/_/g, " ")),
     serviceSuburbs: r.service_suburbs ?? [],
     serviceRegions: r.service_regions ?? [],
     emergencyAvailable: r.emergency_available,

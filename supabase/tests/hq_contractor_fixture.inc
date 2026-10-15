@@ -25,7 +25,7 @@ begin
 end $$;
 
 -- A contractor added by a system write; returns its id and keeps it as fx(p_key).
-create function pg_temp.mk_contractor(p_key text, p_name text, p_categories hq.contractor_category[] default '{other}') returns uuid
+create function pg_temp.mk_contractor(p_key text, p_name text, p_categories text[] default '{other}') returns uuid
 language plpgsql as $$
 declare
   v uuid;

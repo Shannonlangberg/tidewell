@@ -262,10 +262,10 @@ select is((pg_temp.z('sum') ->> 'expired')::int || '|' || (pg_temp.z('sum') ->> 
   'summary: one expired item, on an APPROVED contractor (flagged, status unchanged)');
 select is((select status::text from hq.contractors where id = pg_temp.fx('s1')), 'approved', 'an expired insurance never changes the status by itself');
 select is((select e from jsonb_array_elements(pg_temp.z('sum') -> 'preferred_coverage') e where e ->> 'category' = 'plumbing'),
-  '{"category": "plumbing", "approved": 1, "preferred": 1, "total": 2}'::jsonb, 'coverage: plumbing has one approved and one preferred');
+  '{"category": "plumbing", "label": "Plumbing", "approved": 1, "preferred": 1, "total": 2}'::jsonb, 'coverage: plumbing has one approved and one preferred');
 select is((select e from jsonb_array_elements(pg_temp.z('sum') -> 'preferred_coverage') e where e ->> 'category' = 'electrical'),
-  '{"category": "electrical", "approved": 0, "preferred": 1, "total": 1}'::jsonb, 'coverage: electrical has one preferred');
-select is(jsonb_array_length(pg_temp.z('sum') -> 'preferred_coverage'), 22, 'coverage lists all 22 categories');
+  '{"category": "electrical", "label": "Electrical", "approved": 0, "preferred": 1, "total": 1}'::jsonb, 'coverage: electrical has one preferred');
+select is(jsonb_array_length(pg_temp.z('sum') -> 'preferred_coverage'), 22, 'coverage lists all 22 (active) trades');
 select ok((pg_temp.z('sum') -> 'trades_without_cover') ? 'locksmith' and (pg_temp.z('sum') -> 'trades_without_cover') ? 'painting', 'trades with no approved contractor are named (locksmith, painting ...)');
 select ok(not ((pg_temp.z('sum') -> 'trades_without_cover') ? 'plumbing') and not ((pg_temp.z('sum') -> 'trades_without_cover') ? 'other'), '... not plumbing (covered) and never "other"');
 select is(jsonb_array_length(pg_temp.z('sum') -> 'trades_without_cover'), 19, '19 trades without cover (22 categories, less other, plumbing and electrical)');

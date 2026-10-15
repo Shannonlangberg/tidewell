@@ -9,7 +9,8 @@
  * contractor, verifying or opening documents, changing the ABN, trades or licence / insurance
  * expiry dates (changing an expiry clears its verification), archiving, imports.
  */
-import { CONTRACTOR_CATEGORIES, VETTING_STEP_LABEL } from "../../constants";
+import { VETTING_STEP_LABEL } from "../../constants";
+import { allowedTradeSlugs, lastUsedText } from "../../trades/rules";
 import { abnProblem, stripAbn } from "../../contractors/abn";
 import { readContactForm as readContractorContactForm } from "../../contractors/contact-form";
 import { classifyContractorError } from "../../contractors/db-errors";
@@ -21,9 +22,9 @@ import type { Tables } from "../../db";
 import { FormReader } from "../../forms";
 import { nowLocalInput } from "../../growth/dates";
 import { HQ_PATHS, appendNote, changeLine, clean, editPlaceList, invalidText, result, sameValue } from "./core";
-import { can, day, dbFailure, defineTool, link, logDb, resolveContractor, resolveStaff, respond, today, when, type PgError, type ToolContext } from "./kit";
+import { can, day, dbFailure, defineTool, link, loadToolTrades, logDb, resolveContractor, resolveStaff, respond, today, when, type PgError, type ToolContext } from "./kit";
 import { interactionLabel } from "./records";
-import { logContractorContactShape, recordContractorReviewShape, setVettingStepShape, updateContractorShape } from "./schemas";
+import { logContractorContactShape, recordContractorJobShape, recordContractorReviewShape, setVettingStepShape, updateContractorShape } from "./schemas";
 
 const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
 const NONE = /^(none|clear|remove|-)$/i;
@@ -138,7 +139,9 @@ export const updateContractor = defineTool({
     // The whole contractor form's reader, so the rules are the screen's own. Untouched fields are left out of the
     // form (so a legacy value that the form would now reject never blocks an unrelated change), and out of the update.
     const f = new FormReader(form(values));
-    const v = readContractorFields(f, { categories: CONTRACTOR_CATEGORIES, abnProblem, stripAbn, parseDollars });
+    // The trade list is the owner's (hq.trades); this tool never changes trades, it only lets the current ones through.
+    const trades = await loadToolTrades(ctx);
+    const v = readContractorFields(f, { categories: allowedTradeSlugs(trades, cur.categories ?? []), abnProblem, stripAbn, parseDollars });
     if (!f.ok) {
       const errors = Object.fromEntries(Object.entries(f.errors).filter(([k]) => touched.has(k) || touched.has(RATE_COLUMNS[k as RateField] ?? "")));
       return respond("invalid", invalidText(Object.keys(errors).length ? errors : f.errors));
@@ -361,4 +364,41 @@ export const logContractorContact = defineTool({
   capability: "contractors.write",
   kind: "write",
   handler: async (args, ctx) => logContractorContactFor(ctx, args),
+});
+
+// ── record a job ("last used") ───────────────────────────────
+
+export const recordContractorJob = defineTool({
+  name: "record_contractor_job",
+  title: "Record a job for a contractor",
+  description:
+    "Records that Planted used ONE contractor on a day (their last used date, contractors.last_job_date) through hq.mark_contractor_used, as you: default today in your timezone, never in the future. It never moves the date EARLIER than the one already recorded unless move_back is true because the person confirmed it. HQ is not connected to Ailo, so last used dates are only what staff record. It does not record feedback (use record_contractor_review) and never changes status.",
+  inputSchema: recordContractorJobShape,
+  annotations: WRITE,
+  capability: "contractors.write",
+  kind: "write",
+  handler: async (args, ctx) => {
+    const found = await resolveContractor(ctx, args.contractor, "write");
+    if (!found.ok) return found.result;
+    const t = today(ctx);
+    const jobDate = args.job_date ?? t;
+    if (jobDate > t) return respond("invalid", "Not recorded: the job date can't be in the future.");
+    const { data, error } = await ctx.db.rpc("mark_contractor_used", { p_contractor: found.record.id, p_job_date: jobDate, p_allow_earlier: args.move_back === true });
+    const url = link(ctx, HQ_PATHS.contractor(found.record.id));
+    if (error) {
+      if (error.code === "23514") {
+        logDb("mark_contractor_used", error);
+        return respond("unchanged", `Not recorded: ${day(ctx, jobDate)} is earlier than the last job already recorded for ${clean(found.record.label)}. Ask the person whether to move it back; if they confirm, call again with move_back true. ${url}`, null, { id: found.record.id, url });
+      }
+      return contractorFailure("mark_contractor_used", error);
+    }
+    const out = (data ?? {}) as { last_job_date?: string; previous_last_job_date?: string | null; changed?: boolean };
+    const lines = [
+      `Contractor: ${clean(found.record.label)}`,
+      `Previously: ${lastUsedText(out.previous_last_job_date ?? null, t)}`,
+      `Now: ${lastUsedText(out.last_job_date ?? jobDate, t)}`,
+    ];
+    if (out.changed === false) return respond("unchanged", `Nothing changed: that job date was already recorded. ${url}`, lines, { id: found.record.id, url });
+    return respond("ok", `Recorded a job for 1 contractor: ${url}`, [...lines, "Recorded by you (HQ is not connected to Ailo)."], { id: found.record.id, last_job_date: out.last_job_date ?? jobDate, url });
+  },
 });

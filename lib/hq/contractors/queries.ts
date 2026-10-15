@@ -1,6 +1,6 @@
 import "server-only";
 
-import { CONTRACTOR_CATEGORIES, CONTRACTOR_EXPIRY_STATES, CONTRACTOR_STATUSES, OPEN_TASK_STATUSES, type TaskStatus } from "../constants";
+import { CONTRACTOR_EXPIRY_STATES, CONTRACTOR_STATUSES, OPEN_TASK_STATUSES, type TaskStatus } from "../constants";
 import type { HqClient } from "../db";
 import { logTag } from "./db-errors";
 import {
@@ -28,8 +28,9 @@ import { toContractor, type Contractor, type Loaded } from "./types";
 type Status = (typeof CONTRACTOR_STATUSES)[number];
 type ExpiryState = (typeof CONTRACTOR_EXPIRY_STATES)[number];
 
-export function directoryQuery(sp: RawParams): DirectoryQuery {
-  return parseDirectoryParams(sp, { categories: CONTRACTOR_CATEGORIES, statuses: CONTRACTOR_STATUSES, expiryStates: CONTRACTOR_EXPIRY_STATES });
+/** `tradeSlugs`: every trade slug in hq.trades (archived ones too, so an old link still filters). */
+export function directoryQuery(sp: RawParams, tradeSlugs: readonly string[]): DirectoryQuery {
+  return parseDirectoryParams(sp, { categories: tradeSlugs, statuses: CONTRACTOR_STATUSES, expiryStates: CONTRACTOR_EXPIRY_STATES });
 }
 
 export type DirectoryPage = { rows: Contractor[]; total: number; page: number };
@@ -61,7 +62,7 @@ export async function listContractors(db: HqClient, query: DirectoryQuery): Prom
 
     const search = orIlike(["business_name", "primary_contact_name", "email", "abn"], query.q);
     if (search) q = q.or(search);
-    if (query.trade) q = q.contains("categories", [query.trade as (typeof CONTRACTOR_CATEGORIES)[number]]);
+    if (query.trade) q = q.contains("categories", [query.trade]);
     if (query.suburb) q = q.contains("service_suburb_keys", [placeKey(query.suburb)]);
     if (query.region) q = q.contains("service_region_keys", [placeKey(query.region)]);
     if (query.status === STATUS_FILTER_CLEARED) q = q.in("status", ["approved", "preferred"]);

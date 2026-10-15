@@ -1,8 +1,8 @@
 import "server-only";
 
-import { CONTRACTOR_CATEGORIES } from "../constants";
 import type { Json } from "../database.types";
 import type { HqClient } from "../db";
+import type { Trade } from "../trades/rules";
 import { abnProblem, stripAbn } from "./abn";
 import { logTag } from "./db-errors";
 import {
@@ -29,7 +29,11 @@ import type {
  * Nothing is written until apply, and apply makes every contractor a prospect that needs verifying.
  */
 
-export const VOCAB: ImportVocab = { categories: CONTRACTOR_CATEGORIES, abnProblem, stripAbn };
+/** What a file may say for a trade: the ACTIVE trades (slug, or label in any case), read from hq.trades. */
+export function importVocab(trades: readonly Pick<Trade, "slug" | "label" | "isActive">[]): ImportVocab {
+  const active = trades.filter((t) => t.isActive);
+  return { categories: active.map((t) => t.slug), labels: new Map(active.map((t) => [t.label.replace(/\s+/g, " ").trim().toLowerCase(), t.slug])), abnProblem, stripAbn };
+}
 
 type ValidLine = { line: number; row: ContractorImportRow };
 type InvalidLine = { line: number; label: string; problems: string[] };
@@ -50,7 +54,7 @@ export function toPayload(p: PreparedLines): string {
 }
 
 /** Reads a payload back and runs every row through the parser again. Null for anything that does not hold up. */
-export function fromPayload(payload: string): PreparedLines | null {
+export function fromPayload(payload: string, vocab: ImportVocab): PreparedLines | null {
   if (typeof payload !== "string" || payload.length === 0 || payload.length > IMPORT_MAX_BYTES * 3) return null;
   let data: unknown;
   try {
@@ -70,7 +74,7 @@ export function fromPayload(payload: string): PreparedLines | null {
     const { line, row } = item as { line?: unknown; row?: unknown };
     if (typeof line !== "number" || !Number.isInteger(line) || line < 1 || line > IMPORT_MAX_ROWS * 2 || seen.has(line)) return null;
     if (!row || typeof row !== "object" || Array.isArray(row)) return null;
-    const again = normaliseContractorRow(row as Record<string, unknown>, line, VOCAB);
+    const again = normaliseContractorRow(row as Record<string, unknown>, line, vocab);
     if (!again.row) return null; // a row that was valid is no longer valid: the payload was altered
     seen.add(line);
     valid.push({ line, row: again.row });

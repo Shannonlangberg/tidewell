@@ -204,8 +204,8 @@ select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_s
 select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_search('Hughes') -> 'contractors') e), array['Arbor Works Co'], 'search: by service suburb');
 select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_search('Person Alpha') -> 'contractors') e), array['Test Sparks Co'], 'search: by primary contact');
 select is((select e - 'id' from jsonb_array_elements(hq.global_search('Test Plumbing') -> 'contractors') e limit 1),
-  '{"title": "Test Plumbing Co", "business_name": "Test Plumbing Co", "status": "prospect", "categories": ["plumbing"], "primary_contact_name": null, "subtitle": "plumbing - Moonta, Kadina - prospect"}'::jsonb,
-  'search: a contractor result carries title, business_name, status, categories, primary_contact_name and a subtitle');
+  '{"title": "Test Plumbing Co", "business_name": "Test Plumbing Co", "status": "prospect", "categories": ["plumbing"], "primary_contact_name": null, "subtitle": "Plumbing - Moonta, Kadina - prospect"}'::jsonb,
+  'search: a contractor result carries title, business_name, status, categories, primary_contact_name and a subtitle (trade labels from hq.trades)');
 select is(jsonb_array_length(hq.global_search('pest control', 2) -> 'contractors'), 2, 'search: p_limit caps the contractor list');
 select ok(hq.global_search('ab') ? 'contractors' and hq.global_search('a') ? 'contractors', 'search: the contractors key is always present');
 select pg_temp.unbecome();

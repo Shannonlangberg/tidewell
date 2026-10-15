@@ -6,7 +6,8 @@
  * is named as "without cover" only when the database says so (`trades_without_cover`).
  */
 
-export type CoverageRow = { category: string; approved: number; preferred: number; total: number };
+/** One trade (hq.trades): its slug as `category`, and its current `label` (null if the database did not send one). */
+export type CoverageRow = { category: string; label: string | null; approved: number; preferred: number; total: number };
 
 export type ContractorSummary = {
   asOf: string;
@@ -30,7 +31,7 @@ export function parseContractorSummary(json: unknown): ContractorSummary {
   if (Array.isArray(o.preferred_coverage)) {
     for (const r of o.preferred_coverage) {
       if (isObj(r) && typeof r.category === "string") {
-        coverage.push({ category: r.category, approved: num(r.approved), preferred: num(r.preferred), total: num(r.total) });
+        coverage.push({ category: r.category, label: typeof r.label === "string" && r.label.trim() ? r.label : null, approved: num(r.approved), preferred: num(r.preferred), total: num(r.total) });
       }
     }
   }
@@ -47,7 +48,15 @@ export function parseContractorSummary(json: unknown): ContractorSummary {
   };
 }
 
-/** The trades the coverage widget counts: every category except "other" (the database never lists "other" as uncovered). */
+/** The trades the coverage widget counts: every trade except "other" (the database never lists "other" as uncovered). */
 export function coveredTrades(rows: readonly CoverageRow[]): CoverageRow[] {
   return rows.filter((r) => r.category !== "other" && r.total > 0);
+}
+
+/** A trade's label as the summary gave it, else the slug read as words ("pest_control" -> "Pest control"). */
+export function coverageLabel(rows: readonly CoverageRow[], slug: string): string {
+  const hit = rows.find((r) => r.category === slug)?.label;
+  if (hit) return hit;
+  const t = slug.replace(/_/g, " ").trim();
+  return t ? t[0].toUpperCase() + t.slice(1) : slug;
 }

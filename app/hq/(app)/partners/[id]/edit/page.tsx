@@ -7,6 +7,8 @@ import { getContractor } from "@/lib/hq/contractors/queries";
 import { isUuid } from "@/lib/hq/forms";
 import { todayInZone } from "@/lib/hq/growth/dates";
 import { staffOptions } from "@/lib/hq/queries/options";
+import { loadTrades } from "@/lib/hq/trades/queries";
+import { tradeOptions } from "@/lib/hq/trades/rules";
 import { ErrorState, LinkButton, PageHeader } from "@/components/hq";
 import { ContractorForm } from "@/components/hq/features/contractors/ContractorForm";
 
@@ -19,8 +21,8 @@ export default async function EditContractorPage({ params }: { params: Params })
   const { db, staff } = await requireStaff("contractors.write");
   if (!isUuid(id)) notFound();
 
-  const [found, staffList] = await Promise.all([getContractor(db, id), staffOptions(db)]);
-  if (!found.ok) {
+  const [found, staffList, trades] = await Promise.all([getContractor(db, id), staffOptions(db), loadTrades(db)]);
+  if (!found.ok || !trades.ok) {
     return (
       <>
         <PageHeader title="Edit contractor" />
@@ -42,6 +44,7 @@ export default async function EditContractorPage({ params }: { params: Params })
         staff={staffList}
         cancelHref={`/hq/partners/${c.id}`}
         today={todayInZone(staff.timezone)}
+        tradeOptions={tradeOptions(trades.data, c.categories)}
         initial={{
           id: c.id,
           version: c.updatedAt ?? undefined,

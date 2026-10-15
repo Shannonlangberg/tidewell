@@ -24,7 +24,7 @@ select ok(not has_schema_privilege('service_role', 'hq_private', 'usage'), 'serv
 
 -- ------------------------------------------------------------ RLS enabled, forced, scoped
 select is((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'hq' and c.relkind = 'r'),
-  19::bigint, 'hq has 19 tables (13 Phase 1, 5 Phase 2 contractor tables, 1 Phase 3 ai_requests)');
+  20::bigint, 'hq has 20 tables (13 Phase 1, 5 Phase 2 contractor tables, 1 Phase 3 ai_requests, trades)');
 select is((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
             where n.nspname = 'hq' and c.relkind = 'r' and not (c.relrowsecurity and c.relforcerowsecurity)),
   0::bigint, 'RLS is enabled and forced on every hq table');
@@ -57,7 +57,7 @@ select table_privs_are('hq', 'audit_events', 'authenticated', array['SELECT'], '
 select table_privs_are('hq', 'audit_events', 'service_role', array['SELECT'], 'audit_events: service_role can only select');
 select table_privs_are('hq', 'opportunity_stage_history', 'authenticated', array['SELECT'], 'opportunity_stage_history: authenticated can only select');
 select table_privs_are('hq', 'import_batches', 'authenticated', array['SELECT'], 'import_batches: authenticated can only select');
-select is((select count(*) from unnest(array['referrals', 'opportunities', 'interactions', 'staff_profiles', 'audit_events', 'import_batches', 'opportunity_stage_history', 'role_capabilities', 'ai_requests']) t
+select is((select count(*) from unnest(array['referrals', 'opportunities', 'interactions', 'staff_profiles', 'audit_events', 'import_batches', 'opportunity_stage_history', 'role_capabilities', 'ai_requests', 'trades']) t
             where has_table_privilege('authenticated', 'hq.' || t, 'insert')),
   0::bigint, 'authenticated cannot insert directly into the RPC-only tables');
 select table_privs_are('hq', 'organisations', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'], 'organisations: select, insert, update (no delete, no truncate)');
@@ -84,7 +84,7 @@ select throws_ok('select hq.growth_summary(null)', '42501', null, 'anon cannot c
 select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ function privileges (from pg_proc)
-select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 33::bigint, 'hq holds 32 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3) plus bootstrap_first_director');
+select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 38::bigint, 'hq holds 37 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades) plus bootstrap_first_director');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and (p.proacl is null or exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0))),
   0::bigint, 'no hq or hq_private function is executable by public');
@@ -92,7 +92,7 @@ select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regname
             and has_function_privilege('anon', p.oid, 'execute')),
   0::bigint, 'anon can execute no hq or hq_private function');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('authenticated', p.oid, 'execute')),
-  32::bigint, 'authenticated can execute the 32 RPCs');
+  37::bigint, 'authenticated can execute the 37 RPCs');
 select ok(not has_function_privilege('authenticated', 'hq.bootstrap_first_director(uuid,text,text,text)', 'execute'), 'authenticated cannot execute bootstrap_first_director');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
   1::bigint, 'service_role can execute exactly one hq function');
@@ -104,7 +104,7 @@ select is((select array_agg(p.proname::text order by p.proname) from pg_proc p w
   '... and they are the capability helpers, normalise_name, abn_is_valid and expiry_state');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq_private'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
   1::bigint, 'service_role can execute only normalise_name in hq_private');
-select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 32::bigint, 'every hq function but one is security definer');
+select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 37::bigint, 'every hq function but one is security definer');
 select ok(not (select prosecdef from pg_proc where pronamespace = 'hq'::regnamespace and proname = 'global_search'), 'global_search is security invoker, so RLS decides what it returns');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and not coalesce(p.proconfig::text, '') ~ 'search_path=(pg_catalog|"?pg_catalog, public, extensions)'),

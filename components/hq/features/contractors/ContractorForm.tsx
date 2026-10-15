@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { saveContractor } from "@/app/hq/(app)/partners/actions";
-import { CONTRACTOR_CATEGORIES, CONTRACTOR_CATEGORY_LABEL, type ContractorCategory } from "@/lib/hq/constants";
 import { CONTRACTOR_FORM_LABELS } from "@/lib/hq/contractors/form";
 import { idle } from "@/lib/hq/forms";
 import { retainedList, retainedText, type RetainedValues } from "@/lib/hq/growth/retain";
@@ -35,7 +34,8 @@ export type ContractorFormInitial = {
   email: string;
   website: string;
   abn: string;
-  categories: readonly ContractorCategory[];
+  /** Trade slugs (hq.trades.slug). */
+  categories: readonly string[];
   serviceSuburbs: string;
   serviceRegions: string;
   /** "yes" | "no" | "unknown" */
@@ -86,10 +86,13 @@ export function ContractorForm({
   staff,
   cancelHref,
   today,
+  tradeOptions,
 }: {
   initial: ContractorFormInitial;
   staff: readonly PickerOption[];
   cancelHref: string;
+  /** The trades to choose from (active trades in the owner's order, plus any archived one the contractor already has), read from hq.trades. */
+  tradeOptions: ReadonlyArray<{ value: string; label: string }>;
   /** Today in the person's time zone: a job cannot have happened after it. */
   today: string;
 }) {
@@ -131,7 +134,16 @@ export function ContractorForm({
           inline
           error={fieldError(state, "categories")}
           defaultValue={failed ? retainedList(values, "categories") : initial.categories}
-          options={CONTRACTOR_CATEGORIES.map((c) => ({ value: c, label: CONTRACTOR_CATEGORY_LABEL[c] }))}
+          options={tradeOptions}
+          hint={
+            <>
+              The trades are kept on the{" "}
+              <Link href="/hq/partners/trades" className="underline underline-offset-2">
+                Trades
+              </Link>{" "}
+              page, where they can be added or renamed.
+            </>
+          }
         />
       </section>
 

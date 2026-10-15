@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
 import {
-  CONTRACTOR_CATEGORIES,
   CONTRACTOR_STATUSES,
   INTERACTION_TYPES,
   OPPORTUNITY_STAGES,
@@ -19,7 +18,6 @@ import { GROWTH_PERIODS } from "../../referrals/periods.ts";
 import * as S from "./schemas.ts";
 
 test("the vocabularies written out in schemas.ts match lib/hq/constants.ts and the modules that own them", () => {
-  assert.deepEqual([...S.CONTRACTOR_CATEGORY_VALUES], [...CONTRACTOR_CATEGORIES]);
   assert.deepEqual([...S.CONTRACTOR_STATUS_VALUES], [...CONTRACTOR_STATUSES]);
   assert.deepEqual([...S.PARTNER_CATEGORY_VALUES], [...PARTNER_CATEGORIES]);
   assert.deepEqual([...S.RELATIONSHIP_STATUS_VALUES], [...RELATIONSHIP_STATUSES]);
@@ -55,7 +53,15 @@ test("arguments are checked before anything runs", () => {
   assert.equal(parse(S.createTaskShape, { title: "Call Jo", due_date: "2026-10-15", priority: "urgent" }).success, true);
   assert.equal(parse(S.createTaskShape, { title: "Call Jo", priority: "whenever" }).success, false);
   assert.equal(parse(S.searchContractorsShape, { limit: 26 }).success, false, "lists are capped at 25");
-  assert.equal(parse(S.searchContractorsShape, { trade: "sorcery" }).success, false);
+  // Trades are the owner's list in hq.trades, so any name passes the schema and the tool resolves it (or lists the trades).
+  assert.equal(parse(S.searchContractorsShape, { trade: "electricians" }).success, true);
+  assert.equal(parse(S.searchContractorsShape, { trade: "x" }).success, false, "a trade name has at least 2 characters");
+  assert.equal(parse(S.searchContractorsShape, { trade: "x".repeat(61) }).success, false);
+  assert.equal(parse(S.searchContractorsShape, { not_used_days: 0 }).success, false, "not used in at least 1 day");
+  assert.equal(parse(S.searchContractorsShape, { not_used_days: 90, sort: "last_used" }).success, true);
+  assert.equal(parse(S.searchContractorsShape, { sort: "rating" }).success, false);
+  assert.equal(parse(S.recordContractorJobShape, { contractor: "X", job_date: "12/10/2026" }).success, false, "dates are YYYY-MM-DD");
+  assert.equal(parse(S.recordContractorJobShape, { contractor: "X" }).success, true, "the date defaults to today");
   assert.equal(parse(S.createContactShape, { full_name: "Jo", categories: [] }).success, false, "a contact needs a category");
   assert.equal(parse(S.updateContractorShape, { contractor: "X", hourly_rate: -5 }).success, false, "money is never negative");
   assert.equal(parse(S.recordContractorReviewShape, { contractor: "X", work_quality: 6 }).success, false, "ratings are 1 to 5");

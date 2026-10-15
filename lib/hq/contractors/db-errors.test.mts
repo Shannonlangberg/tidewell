@@ -23,3 +23,9 @@ test("log tags never include the message body", () => {
   assert.equal(logTag({ code: "42501", message: "secret business name" }), "42501");
   assert.equal(logTag(undefined), "unknown");
 });
+
+test("a trade that is unknown or archived (0123) maps to its own kind, and the log names the rule only", () => {
+  const e = { code: "23514", message: "not a current trade: roofing (contractors_trades_known)" };
+  assert.equal(classifyContractorError(e), "trade_not_current");
+  assert.equal(logTag(e), "23514 contractors_trades_known");
+});

@@ -5,8 +5,10 @@ import { DataTable, ResponsiveTable, type Column, type SortState } from "../../D
 import { MobileList, MobileListItem } from "../../MobileList";
 import { HQ_ROUTES } from "../../nav";
 import { NeedsVerifyingChip } from "../contacts/Bits";
-import { ClearedButExpired, ContractorStatusChip, ExpiryCell, RatingCell, ServiceAreas, TradeTags, areasText } from "./Bits";
-import { CONTRACTOR_CATEGORY_LABEL } from "@/lib/hq/constants";
+import { agoText, daysAgo, lastUsedText } from "@/lib/hq/trades/rules";
+import { todayInZone } from "@/lib/hq/growth/dates";
+import { formatDate } from "@/lib/hq/format";
+import { ClearedButExpired, ContractorStatusChip, ExpiryCell, LastUsed, RatingCell, ServiceAreas, TradeTags, areasText } from "./Bits";
 
 /*
  * The contractor directory: a semantic table from 768px up, one card per contractor below that
@@ -28,6 +30,7 @@ export function ContractorsTable({
   timezone: string;
   empty: React.ReactNode;
 }) {
+  const today = todayInZone(timezone);
   const columns: Column<Contractor>[] = [
     {
       key: "name",
@@ -47,7 +50,7 @@ export function ContractorsTable({
         </>
       ),
     },
-    { key: "trades", header: "Trades", hideBelow: "lg", cell: (c) => <TradeTags categories={c.categories} max={2} /> },
+    { key: "trades", header: "Trades", hideBelow: "lg", cell: (c) => <TradeTags labels={c.tradeLabels} max={2} /> },
     { key: "areas", header: "Service areas", hideBelow: "xl", cell: (c) => <ServiceAreas suburbs={c.serviceSuburbs} regions={c.serviceRegions} /> },
     {
       key: "status",
@@ -67,6 +70,21 @@ export function ContractorsTable({
     { key: "licence", header: "Licence", sortable: true, hideBelow: "lg", cell: (c) => <ExpiryCell state={c.licenceState} expiresOn={c.licenceExpiresOn} daysRemaining={c.licenceDaysRemaining} /> },
     { key: "owner", header: "Owner", sortable: true, hideBelow: "xl", cell: (c) => c.ownerName ?? <span className="hq-cell-nil">Unassigned</span> },
     { key: "rating", header: "Rating", sortable: true, hideBelow: "xl", cell: (c) => <RatingCell contractor={c} /> },
+    {
+      key: "used",
+      header: "Last used",
+      sortable: true,
+      hideBelow: "lg",
+      cell: (c) =>
+        c.lastJobDate ? (
+          <>
+            <span className="hq-nums">{formatDate(c.lastJobDate)}</span>
+            <span className="hq-cell-sub">{agoText(daysAgo(c.lastJobDate, today) ?? 0)}</span>
+          </>
+        ) : (
+          <LastUsed date={null} today={today} />
+        ),
+    },
   ];
 
   if (rows.length === 0) return <>{empty}</>;
@@ -78,7 +96,7 @@ export function ContractorsTable({
         <MobileList label="Contractors">
           {rows.map((c) => {
             const ago = agoLabel(c.lastContactedAt, timezone);
-            const trade = c.categories.slice(0, 2).map((t) => CONTRACTOR_CATEGORY_LABEL[t]).join(", ") + (c.categories.length > 2 ? ` +${c.categories.length - 2}` : "");
+            const trade = c.tradeLabels.slice(0, 2).join(", ") + (c.tradeLabels.length > 2 ? ` +${c.tradeLabels.length - 2}` : "");
             const areas = areasText(c.serviceSuburbs, c.serviceRegions, 2);
             return (
               <MobileListItem
@@ -96,7 +114,9 @@ export function ContractorsTable({
                 meta={
                   c.status === "vetting" || c.status === "prospect" || c.status === "contacted"
                     ? `Vetting ${vettingProgressText(c.vettingDoneCount)}`
-                    : c.rating !== null
+                    : c.lastJobDate
+                      ? lastUsedText(c.lastJobDate, today)
+                      : c.rating !== null
                       ? ratingText(c)
                       : ago
                         ? `Contacted ${ago.toLowerCase()}`

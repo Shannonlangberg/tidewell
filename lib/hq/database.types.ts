@@ -469,7 +469,7 @@ export type Database = {
           business_hours: string | null
           business_name: string
           callout_fee_cents: number | null
-          categories: Database["hq"]["Enums"]["contractor_category"][]
+          categories: string[]
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -512,7 +512,7 @@ export type Database = {
           business_hours?: string | null
           business_name: string
           callout_fee_cents?: number | null
-          categories: Database["hq"]["Enums"]["contractor_category"][]
+          categories: string[]
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -555,7 +555,7 @@ export type Database = {
           business_hours?: string | null
           business_name?: string
           callout_fee_cents?: number | null
-          categories?: Database["hq"]["Enums"]["contractor_category"][]
+          categories?: string[]
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -1471,6 +1471,51 @@ export type Database = {
           },
         ]
       }
+      trades: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       contact_directory: {
@@ -1546,7 +1591,7 @@ export type Database = {
           business_hours: string | null
           business_name: string | null
           callout_fee_cents: number | null
-          categories: Database["hq"]["Enums"]["contractor_category"][] | null
+          categories: string[] | null
           created_at: string | null
           document_count: number | null
           email: string | null
@@ -1589,6 +1634,7 @@ export type Database = {
           source: string | null
           status: Database["hq"]["Enums"]["contractor_status"] | null
           status_reason: string | null
+          trade_labels: string[] | null
           updated_at: string | null
           verified_at: string | null
           vetting_done_count: number | null
@@ -2015,6 +2061,10 @@ export type Database = {
       can: { Args: { p_capability: string }; Returns: boolean }
       contractor_summary: { Args: never; Returns: Json }
       create_expiry_tasks: { Args: never; Returns: Json }
+      create_trade: {
+        Args: { p_description?: string; p_label: string }
+        Returns: Json
+      }
       deactivate_staff: {
         Args: { p_reason?: string; p_staff_id: string }
         Returns: Json
@@ -2024,6 +2074,14 @@ export type Database = {
         Returns: Json
       }
       growth_summary: { Args: { p_since?: string }; Returns: Json }
+      mark_contractor_used: {
+        Args: {
+          p_allow_earlier?: boolean
+          p_contractor: string
+          p_job_date?: string
+        }
+        Returns: Json
+      }
       move_opportunity: {
         Args: {
           p_lost_reason?: string
@@ -2033,6 +2091,10 @@ export type Database = {
           p_signed_at?: string
           p_stage: Database["hq"]["Enums"]["opportunity_stage"]
         }
+        Returns: Json
+      }
+      move_trade: {
+        Args: { p_direction: string; p_trade: string }
         Returns: Json
       }
       my_access: { Args: never; Returns: Json }
@@ -2126,6 +2188,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_trade_active: {
+        Args: { p_active: boolean; p_reason?: string; p_trade: string }
+        Returns: Json
+      }
       set_vetting_step: {
         Args: {
           p_contractor: string
@@ -2154,6 +2220,15 @@ export type Database = {
         }
         Returns: Json
       }
+      update_trade: {
+        Args: {
+          p_description?: string
+          p_label?: string
+          p_sort_order?: number
+          p_trade: string
+        }
+        Returns: Json
+      }
       verify_contractor_document: {
         Args: {
           p_apply_to_contractor?: boolean
@@ -2166,29 +2241,6 @@ export type Database = {
       }
     }
     Enums: {
-      contractor_category:
-        | "plumbing"
-        | "electrical"
-        | "general_maintenance"
-        | "handyman"
-        | "carpentry"
-        | "cleaning"
-        | "carpet_cleaning"
-        | "gardening"
-        | "landscaping"
-        | "pest_control"
-        | "locksmith"
-        | "painting"
-        | "roofing"
-        | "guttering"
-        | "air_conditioning"
-        | "appliance_repairs"
-        | "garage_doors"
-        | "glazing"
-        | "tree_services"
-        | "building"
-        | "emergency_restoration"
-        | "other"
       contractor_document_type:
         | "licence"
         | "public_liability_insurance"
@@ -2411,30 +2463,6 @@ export type CompositeTypes<
 export const Constants = {
   hq: {
     Enums: {
-      contractor_category: [
-        "plumbing",
-        "electrical",
-        "general_maintenance",
-        "handyman",
-        "carpentry",
-        "cleaning",
-        "carpet_cleaning",
-        "gardening",
-        "landscaping",
-        "pest_control",
-        "locksmith",
-        "painting",
-        "roofing",
-        "guttering",
-        "air_conditioning",
-        "appliance_repairs",
-        "garage_doors",
-        "glazing",
-        "tree_services",
-        "building",
-        "emergency_restoration",
-        "other",
-      ],
       contractor_document_type: [
         "licence",
         "public_liability_insurance",

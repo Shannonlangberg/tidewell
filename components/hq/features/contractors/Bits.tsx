@@ -1,15 +1,14 @@
 import {
-  CONTRACTOR_CATEGORY_LABEL,
   CONTRACTOR_EXPIRY_STATE_LABEL,
   CONTRACTOR_EXPIRY_STATE_TONE,
   CONTRACTOR_STATUS_LABEL,
   CONTRACTOR_STATUS_TONE,
-  type ContractorCategory,
   type ContractorExpiryState,
   type ContractorStatus,
 } from "@/lib/hq/constants";
 import { formatDate } from "@/lib/hq/format";
 import { clearedButExpired, ratingText, type Contractor } from "@/lib/hq/contractors/types";
+import { lastUsedText } from "@/lib/hq/trades/rules";
 import { StatusChip } from "../../StatusChip";
 
 /*
@@ -25,16 +24,16 @@ export function ContractorStatusChip({ status, className }: { status: Contractor
   );
 }
 
-/** One chip per trade (no dot), the first `max` and then "+n". */
-export function TradeTags({ categories, max }: { categories: readonly ContractorCategory[]; max?: number }) {
-  if (categories.length === 0) return <span className="hq-cell-nil">Not recorded</span>;
-  const shown = max ? categories.slice(0, max) : categories;
-  const rest = categories.length - shown.length;
+/** One chip per trade (no dot, its current label from hq.trades), the first `max` and then "+n". */
+export function TradeTags({ labels, max }: { labels: readonly string[]; max?: number }) {
+  if (labels.length === 0) return <span className="hq-cell-nil">Not recorded</span>;
+  const shown = max ? labels.slice(0, max) : labels;
+  const rest = labels.length - shown.length;
   return (
     <span className="flex flex-wrap gap-1.5">
-      {shown.map((c) => (
-        <StatusChip key={c} plain>
-          {CONTRACTOR_CATEGORY_LABEL[c]}
+      {shown.map((label, i) => (
+        <StatusChip key={`${i}-${label}`} plain>
+          {label}
         </StatusChip>
       ))}
       {rest > 0 ? <StatusChip plain>+{rest}</StatusChip> : null}
@@ -86,4 +85,13 @@ export function ClearedButExpired({ contractor }: { contractor: Pick<Contractor,
   if (!clearedButExpired(contractor)) return null;
   const what = contractor.insuranceState === "expired" && contractor.licenceState === "expired" ? "insurance and licence expired" : contractor.insuranceState === "expired" ? "insurance expired" : "licence expired";
   return <StatusChip tone="error">{`Cleared, but ${what}`}</StatusChip>;
+}
+
+/**
+ * "Last used 12 Oct 2026 (3 days ago)" or "Never recorded". The date is recorded by staff (HQ is not
+ * connected to Ailo), so it is only as current as the last "Record a job".
+ */
+export function LastUsed({ date, today, className }: { date: string | null; today: string; className?: string }) {
+  if (!date) return <span className={className ?? "hq-cell-nil"}>Never recorded</span>;
+  return <span className={className}>{lastUsedText(date, today)}</span>;
 }

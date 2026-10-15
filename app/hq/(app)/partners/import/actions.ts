@@ -7,7 +7,8 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { IMPORT_LIMITS, IMPORT_MAX_BYTES, parseContractorImport } from "@/lib/hq/contractors/import-parse";
-import { VOCAB, applyImport, buildReview, fromPayload, prepare } from "@/lib/hq/contractors/import-review";
+import { applyImport, buildReview, fromPayload, importVocab, prepare } from "@/lib/hq/contractors/import-review";
+import { loadTrades } from "@/lib/hq/trades/queries";
 import type { ContractorImportState } from "@/lib/hq/contractors/import-types";
 import { FormReader, fail } from "@/lib/hq/forms";
 
@@ -66,6 +67,11 @@ export async function importContractorsAction(_prev: ContractorImportState, form
   const intent = f.oneOf("intent", KNOWN_INTENTS, { required: true });
   if (!intent) return fail("That request was not understood.");
 
+  // The trades a file may use are read from hq.trades (active ones), every step, never a fixed list.
+  const trades = await loadTrades(db);
+  if (!trades.ok) return fail("The list of trades could not be loaded. Try again in a moment.");
+  const vocab = importVocab(trades.data);
+
   if (intent === "upload" || intent === "prospects") {
     let text: string;
     let fileName: string;
@@ -90,7 +96,7 @@ export async function importContractorsAction(_prev: ContractorImportState, form
       origin = "file";
     }
 
-    const parsed = parseContractorImport(text, VOCAB);
+    const parsed = parseContractorImport(text, vocab);
     if (!parsed.ok) return fail("That file could not be read.", { file: parsed.error });
 
     const typed = f.text("source", { max: IMPORT_LIMITS.source, label: "The source label" });
@@ -103,7 +109,7 @@ export async function importContractorsAction(_prev: ContractorImportState, form
   }
 
   // ── a later step: the rows come back from the review ──
-  const prepared = fromPayload(String(formData.get("payload") ?? ""));
+  const prepared = fromPayload(String(formData.get("payload") ?? ""), vocab);
   if (!prepared) return fail("That review is out of date. Upload the file again.");
   const fileName = cleanFileName(String(formData.get("file_name") ?? "")) || "import";
   const origin = formData.get("origin") === "prospects" ? "prospects" : "file";

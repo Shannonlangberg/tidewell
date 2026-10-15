@@ -110,7 +110,7 @@ select is((select count(*) from pg_proc p where p.pronamespace = 'hq_private'::r
   0::bigint, 'the guard triggers are NOT security definer (current_user must be the real writer)');
 
 -- ------------------------------------------------------------ enums (section 3, exact)
-select enum_has_labels('hq', 'contractor_category', array['plumbing', 'electrical', 'general_maintenance', 'handyman', 'carpentry', 'cleaning', 'carpet_cleaning', 'gardening', 'landscaping', 'pest_control', 'locksmith', 'painting', 'roofing', 'guttering', 'air_conditioning', 'appliance_repairs', 'garage_doors', 'glazing', 'tree_services', 'building', 'emergency_restoration', 'other']);
+select is((select array_agg(slug order by sort_order, slug) from hq.trades), array['plumbing', 'electrical', 'general_maintenance', 'handyman', 'carpentry', 'cleaning', 'carpet_cleaning', 'gardening', 'landscaping', 'pest_control', 'locksmith', 'painting', 'roofing', 'guttering', 'air_conditioning', 'appliance_repairs', 'garage_doors', 'glazing', 'tree_services', 'building', 'emergency_restoration', 'other'], 'the 22 former contractor_category values are the seeded trades, in the same order (the enum itself is gone)');
 select enum_has_labels('hq', 'contractor_status', array['prospect', 'contacted', 'vetting', 'approved', 'preferred', 'suspended', 'inactive']);
 select enum_has_labels('hq', 'vetting_step', array['identity', 'abn', 'licence', 'insurance', 'service_areas', 'pricing', 'emergency_availability', 'communication', 'review_and_approve']);
 select enum_has_labels('hq', 'vetting_step_status', array['not_started', 'in_progress', 'done', 'not_applicable']);
@@ -135,7 +135,7 @@ select col_hasnt_default('hq', 'contractors', 'emergency_available', 'emergency_
 select is((select count(*) from information_schema.columns where table_schema = 'hq' and table_name = 'contractors'
             and column_name in ('hourly_rate_cents', 'callout_fee_cents', 'after_hours_fee_cents', 'minimum_charge_cents') and is_nullable = 'YES' and column_default is null),
   4::bigint, 'the four money columns are nullable with no default (unknown is not zero)');
-select col_type_is('hq', 'contractors', 'categories', 'hq.contractor_category[]', 'categories is hq.contractor_category[]');
+select col_type_is('hq', 'contractors', 'categories', 'text[]', 'categories is text[] of trade slugs (hq.trades.slug)');
 
 -- ------------------------------------------------------------ indexes
 select is((select count(*) from pg_indexes where schemaname = 'hq'

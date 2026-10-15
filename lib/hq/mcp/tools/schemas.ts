@@ -12,11 +12,6 @@ import { z } from "zod";
 
 // ── vocabulary (pinned to constants.ts by a test) ────────────
 
-export const CONTRACTOR_CATEGORY_VALUES = [
-  "plumbing", "electrical", "general_maintenance", "handyman", "carpentry", "cleaning", "carpet_cleaning", "gardening",
-  "landscaping", "pest_control", "locksmith", "painting", "roofing", "guttering", "air_conditioning", "appliance_repairs",
-  "garage_doors", "glazing", "tree_services", "building", "emergency_restoration", "other",
-] as const;
 export const CONTRACTOR_STATUS_VALUES = ["prospect", "contacted", "vetting", "approved", "preferred", "suspended", "inactive"] as const;
 export const PARTNER_CATEGORY_VALUES = [
   "real_estate_sales", "mortgage_broker", "conveyancer", "lawyer", "accountant", "bank_lending", "buyers_agent",
@@ -69,12 +64,28 @@ export const fetchShape = {
 
 export const searchContractorsShape = {
   query: z.string().trim().max(100).optional().describe("Optional. Words to match in the business name, contact person, trade or suburb."),
-  trade: z.enum(CONTRACTOR_CATEGORY_VALUES).optional().describe("Optional. Only contractors with this trade."),
+  trade: z
+    .string()
+    .trim()
+    .min(2)
+    .max(60)
+    .optional()
+    .describe(
+      "Optional. Only contractors in this trade. Trades are the owner's own list in HQ (it can change): give the trade's name or slug as people say it, for example electricians, Plumbing or pest_control; it is matched loosely, and if nothing or several match, the available trades are listed instead.",
+    ),
   suburb: z.string().trim().max(80).optional().describe("Optional. Only contractors who list this suburb as serviced (exact suburb name, any case)."),
   region: z.string().trim().max(80).optional().describe("Optional. Only contractors who list this service region (exact name, any case)."),
   status: z.enum(CONTRACTOR_STATUS_VALUES).optional().describe("Optional. Only contractors with this status."),
   cleared_only: z.boolean().optional().describe("Optional. true = only approved or preferred contractors (the ones cleared to be sent to a property)."),
   emergency: z.boolean().optional().describe("Optional. true = only contractors recorded as available for emergency call-outs."),
+  not_used_days: z
+    .number()
+    .int()
+    .min(1)
+    .max(3650)
+    .optional()
+    .describe("Optional. Only contractors with no job recorded in the last N days (never recorded counts as not used). Last used dates are recorded by staff; HQ is not connected to Ailo."),
+  sort: z.enum(["name", "last_used"]).optional().describe("Optional. name (default) or last_used (most recently used first, never recorded last)."),
   limit,
 };
 
@@ -264,6 +275,15 @@ export const updateContractorShape = {
     .optional()
     .describe("Optional. Rates to set back to unknown (not recorded)."),
   add_note: z.string().trim().min(1).max(2000).optional().describe("Optional. A note to ADD to the internal notes (dated and attributed; existing notes are kept)."),
+};
+
+export const recordContractorJobShape = {
+  contractor: ref("contractor (business name)"),
+  job_date: optDate("Optional. The day of the job (default today; never in the future)"),
+  move_back: z
+    .boolean()
+    .optional()
+    .describe("Optional. true only when the person confirms moving the last used date EARLIER than the one already recorded (it is refused otherwise)."),
 };
 
 export const recordContractorReviewShape = {

@@ -16,7 +16,7 @@ import { listTasks, teamDirectory } from "./read-team";
 import { contractorReport, dailyBrief, growthReport, weeklyReport } from "./reports";
 import { createTask, updateTask } from "./write-tasks";
 import { createContact, createOrganisation, logInteraction, moveOpportunity, recordReferral, updateContact } from "./write-growth";
-import { logContractorContact, recordContractorReview, setVettingStep, updateContractor } from "./write-contractors";
+import { logContractorContact, recordContractorJob, recordContractorReview, setVettingStep, updateContractor } from "./write-contractors";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -48,6 +48,7 @@ export const TOOLS: ToolDef[] = [
   createOrganisation,
   updateContractor,
   recordContractorReview,
+  recordContractorJob,
   setVettingStep,
   recordReferral,
   moveOpportunity,

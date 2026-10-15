@@ -279,6 +279,32 @@ try {
   const badRate = await call(director, "update_contractor", { contractor: conId, callout_fee: 12.345 });
   check("update_contractor refuses a rate with more than two decimal places", outcome(badRate) === "invalid", badRate.text);
 
+  // Trades are the owner's list (hq.trades): a name people say is matched loosely; nothing matching lists the trades.
+  // (The trade may have been renamed locally, for example to "Plumbers": then the match is exact and no note is given.)
+  const plumbers = await call(director, "search_contractors", { trade: "plumbers" });
+  check("search_contractors: \"plumbers\" finds the plumbing trade (loose match, said in a note, or its exact label)", outcome(plumbers) === "ok" && (/as the trade .*\(plumbing\)/.test(plumbers.text) || /trade Plumbers/.test(plumbers.text)), plumbers.text.slice(0, 300));
+  const wizard = await call(director, "search_contractors", { trade: "wizardry" });
+  check("search_contractors: an unknown trade lists the available trades and finds nobody", outcome(wizard) === "not_found" && /Plumbing \(plumbing\)/.test(wizard.text), wizard.text.slice(0, 300));
+  const handy = await call(director, "search_contractors", { trade: "Handyman", query: RUN });
+  check("search_contractors by trade label finds the test contractor", outcome(handy) === "ok" && handy.text.includes(conId), handy.text.slice(0, 300));
+
+  // Record a job (last used): forward, the same day again, never backwards unless confirmed.
+  mark = await auditMark();
+  const job1 = await call(director, "record_contractor_job", { contractor: conId, job_date: plusDays(-3) });
+  audit = await auditSince(mark, director.staff.id);
+  check("record_contractor_job records the last used date", outcome(job1) === "ok" && /3 days ago/.test(job1.text), job1.text);
+  check("  ...audited as one record_use on the contractor", audit.length === 1 && audit[0].action === "record_use" && audit[0].entity_id === conId, auditText(audit));
+  const jobBack = await call(director, "record_contractor_job", { contractor: conId, job_date: plusDays(-10) });
+  const usedNow = await director.db.from("contractors").select("last_job_date").eq("id", conId).single();
+  check("record_contractor_job will not move the date back without move_back", outcome(jobBack) === "unchanged" && usedNow.data?.last_job_date === plusDays(-3), jobBack.text);
+  const jobFuture = await call(director, "record_contractor_job", { contractor: conId, job_date: plusDays(1) });
+  check("record_contractor_job refuses a future date", outcome(jobFuture) === "invalid", jobFuture.text);
+  const notUsed = await call(director, "search_contractors", { query: RUN, not_used_days: 2 });
+  const notUsedLong = await call(director, "search_contractors", { query: RUN, not_used_days: 30 });
+  check("search_contractors not_used_days: used 3 days ago counts as not used in 2 days, but used within 30", notUsed.text.includes(conId) && outcome(notUsedLong) === "empty", `${notUsed.text.slice(0, 200)}\n${notUsedLong.text.slice(0, 200)}`);
+  const got = await call(director, "get_contractor", { contractor: conId });
+  check("get_contractor shows the trade label and last used", /Trades: Handyman/.test(got.text) && /Last used .*3 days ago/.test(got.text), got.text.slice(0, 600));
+
   mark = await auditMark();
   const vs = await call(director, "set_vetting_step", { contractor: conId, step: "identity", status: "done", note: "Spoke to the owner" });
   audit = await auditSince(mark, director.staff.id);
@@ -312,6 +338,7 @@ try {
   const jWrites: Array<[string, Record<string, unknown>]> = [
     ["create_contact", { full_name: `${RUN} Junior forged`, categories: ["lawyer"] }],
     ["update_contractor", { contractor: conId, phone: "0499 999 999" }],
+    ["record_contractor_job", { contractor: conId }],
     ["set_vetting_step", { contractor: conId, step: "abn", status: "done" }],
     ["record_contractor_review", { contractor: conId, work_quality: 1 }],
     ["log_contractor_contact", { contractor: conId, type: "note", summary: "forged" }],
@@ -359,6 +386,7 @@ try {
     ["record_referral", { direction: "sent", partner_organisation: orgId, prospect_name: "forged" }],
     ["create_organisation", { name: `${RUN} RO org`, categories: ["lawyer"] }],
     ["update_contractor", { contractor: conId, phone: "0411 000 000" }],
+    ["record_contractor_job", { contractor: conId }],
   ];
   for (const [name, args] of roWrites) {
     mark = await auditMark();

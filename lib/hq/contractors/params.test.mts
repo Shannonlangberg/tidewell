@@ -52,5 +52,15 @@ test("search helpers match the partner lists' twins", () => {
 });
 
 test("every sort key maps to a real directory column name", () => {
-  assert.deepEqual([...DIRECTORY_SORT_KEYS].sort(), ["contacted", "insurance", "licence", "name", "owner", "rating", "status", "vetting"]);
+  assert.deepEqual([...DIRECTORY_SORT_KEYS].sort(), ["contacted", "insurance", "licence", "name", "owner", "rating", "status", "used", "vetting"]);
+});
+
+test("the trade filter accepts exactly the trades the caller loaded (an owner-added trade too)", () => {
+  const custom = { ...vocab, categories: ["plumbing", "solar_and_batteries"] };
+  assert.equal(parseDirectoryParams({ trade: "solar_and_batteries" }, custom).trade, "solar_and_batteries");
+  assert.equal(parseDirectoryParams({ trade: "electrical" }, custom).trade, null, "a trade not in the loaded list is dropped");
+});
+
+test("the directory can be sorted by last used (last_job_date)", () => {
+  assert.equal(parseDirectoryParams({ sort: "used", dir: "desc" }, vocab).sort, "used");
 });
