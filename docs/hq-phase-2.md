@@ -129,3 +129,170 @@ Exactly the names in master brief section 11, grouped as given. Categories are t
 - `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` all pass.
 - Screens checked at 375, 768 and 1280 widths against the brand system, with real screenshots viewed.
 - `docs/hq-setup.md` updated: what Phase 2 adds, the roles table, the storage setup, the limitations (no virus scanning, no scheduled reminders, ABN checksum only and not looked up against the ABR, documents archived not erased).
+
+## 11. As built (database)
+
+This section is the exact contract the UI codes against, together with `lib/hq/database.types.ts` (regenerated with `supabase gen types typescript --local --schema hq`). Migrations `0112` to `0118`; tests `supabase/tests/hq_05_contractors_*.sql` (with `hq_contractor_fixture.inc`).
+
+### 11.1 Capabilities and settings
+
+- Capabilities: `contractors.read`, `contractors.write`, `contractors.documents`, `contractors.approve`, seeded exactly per the section 2 matrix (20 rows). `hq.my_access().capabilities` and `hq.can()` now include them. `lib/hq/constants.ts` `CAPABILITIES` does not list them yet (UI work).
+- Settings (`hq.settings`, whole JSON numbers, validated by the settings trigger): `contractor_min_reviews_for_rating` = `3` (1 to 100), `contractor_expiry_warning_days` = `30` (1 to 365).
+
+### 11.2 Enums (exact, in order)
+
+| Enum | Values |
+|---|---|
+| `hq.contractor_category` | `plumbing, electrical, general_maintenance, handyman, carpentry, cleaning, carpet_cleaning, gardening, landscaping, pest_control, locksmith, painting, roofing, guttering, air_conditioning, appliance_repairs, garage_doors, glazing, tree_services, building, emergency_restoration, other` |
+| `hq.contractor_status` | `prospect, contacted, vetting, approved, preferred, suspended, inactive` |
+| `hq.vetting_step` | `identity, abn, licence, insurance, service_areas, pricing, emergency_availability, communication, review_and_approve` |
+| `hq.vetting_step_status` | `not_started, in_progress, done, not_applicable` |
+| `hq.contractor_document_type` | `licence, public_liability_insurance, workers_compensation, professional_indemnity, abn_confirmation, price_list, agreement, other` |
+| `hq.document_verification` | `pending, verified, rejected` |
+| `hq.tenant_feedback` | `positive, neutral, negative, none_received` |
+
+Interactions with contractors reuse `hq.interaction_type` (`phone_call, coffee_meeting, office_meeting, email, message, note`).
+
+### 11.3 Tables and what the API may write
+
+| Table | Columns (bookkeeping: `created_at, updated_at, created_by, deleted_at, deleted_by` where noted) | API writes (role `authenticated`) |
+|---|---|---|
+| `contractors` | as section 3, plus bookkeeping. `service_suburbs` / `service_regions` are `text[] not null default '{}'`. | **Direct insert and update** (RLS: `contractors.write`; update only of live rows) of exactly these columns: `business_name, primary_contact_name, phone, email, website, abn, categories, service_suburbs, service_regions, emergency_available, business_hours, hourly_rate_cents, callout_fee_cents, after_hours_fee_cents, minimum_charge_cents, invoice_terms, licence_details, licence_expires_on, insurance_details, insurance_expires_on, status, status_reason, relationship_owner_id, internal_notes, last_job_date, source, needs_verification`. Naming any other column (`id`, `approved_*`, `*_verified_at`, `verified_*`, `external_ids`, `deleted_*`) is refused with 42501. |
+| `contractor_vetting_steps` | `contractor_id, step, status, note, completed_by, completed_at, updated_at` (no bookkeeping) | none (use `set_vetting_step`) |
+| `contractor_documents` | `id, contractor_id, document_type, file_name, storage_path, mime_type, size_bytes, uploaded_by, uploaded_at, verification, verified_by, verified_at, verification_note, expires_on, notes` + bookkeeping | update of `notes` only (`contractors.documents`) |
+| `contractor_reviews` | `id, contractor_id, job_date, job_reference, response_time, communication, work_quality, invoice_accuracy, tenant_feedback, rework_required, notes, recorded_by` + bookkeeping (ratings `smallint` 1..5) | update of `job_date, job_reference, response_time, communication, work_quality, invoice_accuracy, tenant_feedback, rework_required, notes` by the recorder (or `contractors.approve`) |
+| `contractor_status_history` | `id bigint, contractor_id, from_status, to_status, changed_by, changed_at, note` | none (append-only, written by trigger) |
+| `tasks` (Phase 1) | adds `related_contractor_id uuid`, `reminder_key text` | `related_contractor_id` writable as any task column. `reminder_key` is ignored on direct writes (kept by the database). |
+| `interactions` (Phase 1) | adds `contractor_id uuid` | unchanged column grants. A contractor interaction names the contractor ONLY (`interactions_contractor_alone`). |
+| `import_batches` (Phase 1) | adds `kind text` (`partner` / `contractor`), `contractors_created integer` | none |
+
+On write the database: strips whitespace from `abn` (so `51 824 753 556` is stored `51824753556`; any other punctuation fails the checksum); trims `service_suburbs` / `service_regions`, collapses inner spaces, drops blanks and case-insensitive repeats (first spelling kept); stamps `created_by`, `updated_at`, `verified_at/by` (clearing `needs_verification`), `deleted_by`, `completed_at/by` (steps), `uploaded_by/at` (documents), `recorded_by` (reviews). Editing `licence_expires_on` or `insurance_expires_on` directly CLEARS the matching `*_verified_at` (a verification attests to the date it saw).
+
+Read access (RLS): every contractor table needs `contractors.read`; archived contractors and archived reviews are visible only to `contractors.approve`; archived documents only to `contractors.documents`; vetting steps, documents, reviews and history only for a contractor the reader can see. Contractor interactions are read with `contractors.read` (partner interactions still need `growth.read`).
+
+Constraint names the UI should map to plain language (SQLSTATE in brackets):
+
+| Constraint / index | When |
+|---|---|
+| `contractors_abn_valid` (23514) | ABN is not 11 digits starting 1-9 that pass the ATO modulus-89 checksum |
+| `contractors_abn_uq` (23505) | another live contractor has that ABN |
+| `contractors_name_key_uq` (23505) | another live contractor has the same name key (`The X Pty Ltd` = `x`) |
+| `contractors_categories_not_empty` (23514) | no category |
+| `contractors_email_shape` (23514) | email is not `a@b` shaped |
+| `contractors_rates_not_negative` (23514) | a negative money value |
+| `contractors_suspended_needs_reason` (23514) | status `suspended` without a `status_reason` |
+| `contractors_business_name_not_blank` (23514) | blank name |
+
+### 11.4 Status rules as enforced (trigger `hq_private.contractor_guard`, every writer including the table owner)
+
+- Insert: status must be `prospect`, `contacted` or `vetting` (else 42501).
+- `approved` / `preferred` are entered ONLY inside `approve_contractor` (else 42501 `only hq.approve_contractor can make a contractor approved`).
+- Leaving `suspended` is possible ONLY inside `reinstate_contractor`, and only to `vetting` (else 42501). This includes `suspended -> inactive`: there is no side door.
+- A direct (API) update may move status among `prospect, contacted, vetting, suspended (with status_reason), inactive`; it may NOT move a contractor out of `approved` / `preferred` (42501: use `set_contractor_status`). A direct status change that does not restate `status_reason` clears it.
+- `approved_at` / `approved_by` exist exactly while status is `approved` / `preferred` (constraint `contractors_approval_iff_cleared`); they are cleared when the contractor leaves, and any other attempt to change them is silently ignored.
+- Leaving `approved` / `preferred` resets step `review_and_approve` to `not_started`. Step `review_and_approve` leaves `not_started` only inside `approve_contractor`.
+- Every creation and status change writes `contractor_status_history` (note = the RPC note, else `status_reason`) and an audit row: action `create`, `status_change`, or the RPC's action (`approve`, `prefer`, `suspend`, `reinstate`).
+- Expiry never changes status.
+
+Recommendation for the UI: change status only through the RPCs (`set_contractor_status`, `approve_contractor`, `reinstate_contractor`, `record_contractor_contact`); never by a direct update.
+
+### 11.5 RPCs (schema `hq`; all `security definer`, `search_path` pinned, execute for `authenticated` only)
+
+Errors: `42501` permission denied (capability, or a guarded transition), `22023` invalid argument, `P0002` not found, `23505` already exists, `23514` a rule refuses it. The message text is safe to show; RPC messages are plain English.
+
+**`set_vetting_step(p_contractor uuid, p_step hq.vetting_step, p_status hq.vetting_step_status, p_note text default null) -> jsonb`** — `contractors.write`. Sets status and note to exactly what is given (a null or blank note CLEARS the note). Idempotent (same status and note: `changed: false`). `not_applicable` needs a note (22023). `p_step = 'review_and_approve'` is refused (22023). Never changes the contractor's status.
+Returns `{contractor_id, step, status, note, completed_at, completed_by, changed, vetting_done_count}`.
+
+**`preview_contractor_approval(p_contractor uuid) -> jsonb`** (added; see deviations) — `contractors.read`. Writes nothing.
+Returns `{contractor_id, status, can_approve boolean, blocked_by: text[], missing_steps: text[], warnings: Warning[]}`; `blocked_by` values: `not_permitted` (caller lacks `contractors.approve`), `suspended`, `inactive`, `checklist_incomplete`. `missing_steps` lists steps 1 to 8 that are neither `done` nor `not_applicable`, in checklist order.
+
+**`approve_contractor(p_contractor uuid, p_make_preferred boolean default false, p_note text default null) -> jsonb`** — `contractors.approve`. Refused: suspended (23514), inactive (23514), blank note (22023), checklist incomplete (23514 `the vetting checklist is not complete`, `detail` = `not done: abn, insurance, ...`). `p_make_preferred` true sets `preferred`, false sets `approved` (so it also moves `preferred` back to `approved`). Same status as now: nothing changes (`changed: false`). Completes `review_and_approve` (note = the approval note), stamps `approved_at/by`.
+Returns `{contractor_id, status, previous_status, changed, warnings: Warning[]}`.
+
+`Warning` = `{code, message}` plus `expires_on` (date) and `days_remaining` (integer) for the expiry codes. Codes, in this order when present:
+
+| code | when |
+|---|---|
+| `insurance_not_verified` | no verified insurance on file: neither the contractor's insurance (`insurance_verified_at` set and `insurance_expires_on >= today`) nor a live `verified` `public_liability_insurance` document with `expires_on >= today` |
+| `insurance_expired` / `insurance_expiring_soon` | the contractor's `insurance_state` |
+| `licence_expired` / `licence_expiring_soon` | the contractor's `licence_state` |
+| `no_service_suburbs` | `service_suburbs` is empty |
+| `rates_unknown` | all four money fields are null |
+
+**`set_contractor_status(p_contractor uuid, p_status hq.contractor_status, p_note text default null) -> jsonb`** — `contractors.write`. Target `approved` / `preferred` refused (42501). From `suspended` refused (42501). `suspended` needs a note (22023). The note becomes `status_reason` (null clears it). Same status: `changed: false`.
+Returns `{contractor_id, status, previous_status, changed}`.
+
+**`reinstate_contractor(p_contractor uuid, p_note text default null) -> jsonb`** — `contractors.approve`. Only from `suspended` (else 22023); always to `vetting`. The note becomes `status_reason`.
+Returns `{contractor_id, status: "vetting", previous_status: "suspended", changed: true}`.
+
+**`add_contractor_document(p_contractor uuid, p_document_type hq.contractor_document_type, p_file_name text, p_storage_path text, p_mime_type text, p_size_bytes bigint, p_expires_on date default null, p_notes text default null) -> jsonb`** — `contractors.documents`. Checks: `p_file_name` 1..255 chars; `p_mime_type` in `application/pdf, image/jpeg, image/png`; `0 < p_size_bytes <= 10485760`; `p_storage_path` matches `^<p_contractor>/<uuid>-[A-Za-z0-9._-]{1,120}$` (lower-case uuids); not already registered (23505); the object exists in bucket `contractor-documents` (P0002 `the uploaded file was not found in storage`); its stored `metadata.size` equals `p_size_bytes` and its stored `metadata.mimetype` equals `p_mime_type` (22023). The uuid in the path becomes the document id. New documents are `pending`.
+Returns `{document_id, contractor_id, storage_path, verification: "pending"}`.
+
+**`verify_contractor_document(p_document uuid, p_verification hq.document_verification, p_expires_on date default null, p_note text default null, p_apply_to_contractor boolean default false) -> jsonb`** — `contractors.documents`. `verified` or `rejected` stamps `verified_by/at` (the reviewer, also for a rejection); `pending` clears them. `rejected` needs a note. A non-null `p_expires_on` records the document's expiry (null leaves it). `p_apply_to_contractor` is allowed only with `verified` and a `licence` or `public_liability_insurance` document (22023 otherwise) and sets `licence_verified_at = hq.today(), licence_expires_on = <document expires_on>` (or the `insurance_*` pair). Never changes status. Unchanged verification, note and date: the document is not rewritten (`changed: false`); the apply still happens if asked.
+Returns `{document_id, contractor_id, verification, expires_on, changed, applied_to_contractor}`.
+
+**`record_contractor_review(p_contractor uuid, p_job_date date default null, p_job_reference text default null, p_response_time integer default null, p_communication integer default null, p_work_quality integer default null, p_invoice_accuracy integer default null, p_tenant_feedback hq.tenant_feedback default null, p_rework_required boolean default null, p_notes text default null) -> jsonb`** — `contractors.write`. Ratings 1..5 or null (22023); at least one rating or a non-blank note (22023); `p_job_date <= hq.today()` (22023). A job date later than `last_job_date` moves it forward.
+Returns `{review_id, contractor_id}`.
+
+**`record_contractor_contact(p_contractor uuid, p_type hq.interaction_type default null, p_occurred_at timestamptz default null, p_summary text default null, p_next_action text default null, p_follow_up_date date default null, p_create_task boolean default false, p_task_assignee uuid default null, p_new_status hq.contractor_status default null) -> jsonb`** — `contractors.write` (+ `tasks.write` when `p_create_task`; the assignee must be active staff, default the caller). Type and summary required; `p_occurred_at` defaults to now and may not be more than an hour ahead. `p_new_status` may be only null or `contacted` (22023 otherwise) and moves ONLY a `prospect` to `contacted`. The task: title = `p_next_action` or `Follow up with <business name>`, due `p_follow_up_date`, `related_contractor_id`, `source = 'interaction'`.
+Returns `{interaction_id, task_id (null if none), contractor_id, status, status_changed}`.
+
+**`contractor_summary() -> jsonb`** — `contractors.read`. Live contractors only.
+Returns `{as_of: date, warning_days: int, total: int, by_status: {prospect, contacted, vetting, approved, preferred, suspended, inactive: int}, awaiting_vetting: int, expiring_soon: int, expired: int, contractors_with_expired_items: int, cleared_with_expired_items: int, preferred_coverage: [{category, approved, preferred, total}] (all 22 categories, enum order), trades_without_cover: text[]}`. `awaiting_vetting` = status `vetting` + status `contacted` with any of steps 1-8 past `not_started`. `expiring_soon` / `expired` count rows of `contractor_expiry_watch`. `cleared_with_expired_items` = approved/preferred contractors with an expired item (flag loudly). `trades_without_cover` = categories with `total = 0`, never `other`.
+
+**`create_expiry_tasks() -> jsonb`** — `contractors.write` and `tasks.write`. One task per `contractor_expiry_watch` row that has no OPEN task (status not completed/cancelled, not archived) with the same `reminder_key` = `contractor-expiry:<contractor id>:<item_key>`. Assignee: the relationship owner if active staff, else the caller. Title `Licence|Insurance|<Document type> document expired|expires <D Mon YYYY>: <business name>`; due = expiry date, or today if expired; priority `high` if expired, `normal` if expiring soon; `source = 'manual'`; `related_contractor_id` set. Idempotent, also under concurrency. Writes one audit row (`expiry_tasks`) when it created anything.
+Returns `{created: int, skipped: int, items: int, task_ids: uuid[]}`.
+
+**`preview_contractor_import(p_rows jsonb) -> jsonb`** and **`apply_contractor_import(p_rows jsonb, p_source text, p_file_name text default null) -> jsonb`** — both `import.run` AND `contractors.write` (directors and administrators). Row: `{business_name (required, <=200), categories (required, non-empty, contractor_category values), primary_contact_name?, phone?, email?, website?, abn?, service_suburbs?: text[], service_regions?: text[], notes?, flags?: text[], confirm_distinct?: boolean, status?: "prospect" only, needs_verification?: true only}`; other keys are ignored. At most 5000 rows. Classification (in order, against live contractors and earlier rows of the same file): `invalid` | `duplicate` (same name key; skipped) | `possible_duplicate` (same ABN, same email (any case), same phone (digits, `+61` read as `0`, 8+ digits), or `similarity(name_key) >= 0.65`; skipped unless `confirm_distinct`) | `new_contractor`. Apply refuses the whole file if any row is invalid (22023, `detail` lists them), runs in one transaction, creates `status = prospect`, `needs_verification = true`, `source = p_source`, only the supplied fields; `notes` and each flag (`Verify: <flag>`) go to `internal_notes`; records `import_batches` (`kind = 'contractor'`) and an `import` audit row.
+Both return `{dry_run: boolean, batch_id?: uuid (apply only), counts: {rows, new_contractor, duplicate, possible_duplicate, invalid, contractors_created, skipped, flagged}, rows: [{row, business_name, classification, action: "create"|"skip", reason, match_contractor_id, match_row, flagged}]}`.
+
+**`global_search(p_query text, p_limit integer default 8) -> jsonb`** (extended, still security invoker). Now ALWAYS returns `{contacts, organisations, referrals, tasks, contractors}`. A contractor hit: `{id, title (= business_name), business_name, status, categories, primary_contact_name, subtitle}` where `subtitle` = `<categories with _ as space> - <first three suburbs>[ +n] - <status>` (empty parts dropped). Matches business name (substring or trigram), primary contact, trade label (`pest` finds `pest_control`) and service suburb. Ranking: prefix matches first, then similarity. `lib/hq/search.ts` / `SearchResults` do not read `contractors` yet (UI work).
+
+**`archive_record(p_entity text, p_id uuid, p_reason text default null)` / `restore_record(p_entity text, p_id uuid)`** (extended): new entities `contractor` (`contractors.approve`), `contractor_document` (`contractors.documents`; the stored file is kept), `contractor_review` (archive: the recorder with `contractors.write`, or `contractors.approve`; restore: `contractors.approve`). Phase 1 entities unchanged.
+
+### 11.6 Views (all `security_invoker`; none reads `audit_events`)
+
+Derived state values: `not_recorded | unverified | current | expiring_soon | expired` with `days = expires_on - hq.today()`: `days < 0` expired; `0 <= days <= W` expiring_soon (W = `contractor_expiry_warning_days`; the expiry date itself is still valid); `days > W` current only when verified, else unverified; no expiry date: `unverified` if details or a verified date exist, else `not_recorded` (never current). The generated types show these as `string`; narrow them in the UI.
+
+**`contractor_directory`** (live contractors): `id, business_name, primary_contact_name, phone, email, website, abn, categories, service_suburbs, service_suburb_keys (lower-case), service_regions, service_region_keys (lower-case), emergency_available, business_hours, hourly_rate_cents, callout_fee_cents, after_hours_fee_cents, minimum_charge_cents, invoice_terms, licence_details, licence_verified_at, licence_expires_on, licence_state, licence_days_remaining, insurance_details, insurance_verified_at, insurance_expires_on, insurance_state, insurance_days_remaining, status, status_reason, approved_at, approved_by, approved_by_name, relationship_owner_id, relationship_owner_name, internal_notes, last_job_date, source, needs_verification, verified_at, created_at, updated_at, vetting_done_count (0-9), review_count, rated_review_count, rating_threshold, rating, rating_response_time, rating_communication, rating_work_quality, rating_invoice_accuracy, document_count, open_task_count, last_contacted_at`.
+`rating` (numeric, 1 decimal) is null unless `rated_review_count >= rating_threshold`; a review's score is the mean of the ratings it carries and `rating` is the mean of those scores; `rating_*` are per-dimension means under the same gate. Notes-only feedback counts in `review_count` but not in `rated_review_count`: show "Not enough feedback yet (`rated_review_count` of `rating_threshold`)". `open_task_count` counts open related tasks THE READER CAN SEE. `last_contacted_at` = latest contractor interaction. Example (the brief): approved plumbers who service Moonta = `status in (approved, preferred)`, `categories cs {plumbing}`, `service_suburb_keys cs {moonta}`.
+
+**`contractor_expiry_watch`**: `contractor_id, business_name, contractor_status, relationship_owner_id, relationship_owner_name, kind ('licence'|'insurance'|'document'), item_key ('licence'|'insurance'|'document:<id>'), document_id, document_type, file_name, expires_on, days_remaining, state ('expired'|'expiring_soon'), verified`. Live contractors that are not `inactive`. Documents: live, not `rejected`, with an expiry date, and not superseded (a newer live non-rejected document of the same type, other than `other`, expiring later hides the older one). A licence or insurance recorded on the contractor AND as a document appears twice (one row each).
+
+**`contractor_timeline`** (newest first; still add `order=occurred_at.desc`): `event_key (unique), contractor_id, business_name, kind, occurred_at, actor_id, actor_name, summary, detail, entity_id, from_status, to_status, step, step_status, document_type, interaction_type`. `kind`: `status_change` (from history; `from_status` null = creation), `vetting_step` (current completion of a done / not_applicable step), `document_uploaded`, `document_verified`, `document_rejected` (`entity_id` = document), `review` (`entity_id` = review), `contact` (`entity_id` = interaction). `summary` is a plain-English one-liner built in SQL; `detail` is the note, verification note, review notes or contact summary.
+
+### 11.7 Storage (verified end to end against the local Storage API)
+
+Bucket `contractor-documents`, created by migration 0114: private, `file_size_limit` 10485760, `allowed_mime_types` `application/pdf, image/jpeg, image/png`. `storage.objects` policies `hq_contractor_documents_select` / `hq_contractor_documents_insert`, both `to authenticated`, both requiring `contractors.documents`, a name matching `<contractor uuid>/<uuid>-[A-Za-z0-9._-]{1,120}` and a contractor the caller can see (insert: a live one). No update or delete policy; nothing for anon.
+
+The flow, as run locally with supabase-js under each person's own session:
+1. Path: `${contractorId}/${crypto.randomUUID()}-${sanitised}` where `sanitised` is 1-120 of `A-Za-z0-9._-` (lower-case uuids).
+2. `storage.from('contractor-documents').createSignedUploadUrl(path)` with the CALLER's session (a person without `contractors.documents` is refused: RLS).
+3. Browser: `uploadToSignedUrl(path, token, file, { contentType: file.type })`. Do NOT use `upsert` (refused: no update policy). The bucket refuses other types and files over 10 MiB. The stored object's `owner` is the person who created the signed URL; `metadata.size` and `metadata.mimetype` are set by Storage.
+4. `rpc('add_contractor_document', {..., p_storage_path: path, p_mime_type: file.type, p_size_bytes: file.size})`.
+5. Download: check the row (RLS), then `createSignedUrl(path, 60)` with the caller's session. Without `contractors.documents` Storage answers "Object not found". The public URL returns 400.
+6. `remove()` returns `[]` and deletes nothing: archive with `archive_record('contractor_document', id)` instead.
+
+### 11.8 Deviations from sections 1 to 10, and why
+
+1. **Added `preview_contractor_approval`.** The warnings must be shown before the person confirms; a read-only preview computes exactly the list `approve_contractor` returns (one private function, `hq_private.contractor_approval_warnings`).
+2. **`approve_contractor` needs a non-blank note, refuses `inactive` as well as `suspended`, and returns more than `{status, warnings}`** (`contractor_id, previous_status, changed`). Approval from `prospect` or `contacted` is allowed once the checklist is complete.
+3. **Leaving `suspended` goes only through `reinstate_contractor`, even to `inactive`.** Otherwise `suspended -> inactive -> vetting` would reinstate without `contractors.approve`.
+4. **`tasks.reminder_key`** (new nullable column with a partial unique index) makes `create_expiry_tasks` idempotent under concurrency. `tasks.source` is unchanged: expiry reminders use `source = 'manual'` and are recognised by `reminder_key is not null`.
+5. **`import_batches.kind` and `contractors_created`** were needed to record a contractor import.
+6. **Contractors are created and edited by direct insert / update** (column grants + guard trigger), not a `create_contractor` RPC (the contract leaves this to the builder).
+7. **Archiving** reuses `archive_record` / `restore_record` with per-entity capabilities (section 11.5); the contract did not name one.
+8. **Expired and expiring_soon do not depend on verification**; "verified but no expiry date" is `unverified` (never current). `insurance_not_verified` means "no verified record with an expiry today or later".
+9. **Rating gate counts rated reviews** (`rated_review_count`), so a notes-only review never unlocks a rating.
+10. **Editing a licence / insurance expiry by hand clears its verified date**; verified dates are written only by `verify_contractor_document`.
+11. **The expiry watch leaves out rejected and superseded documents.**
+12. **`set_vetting_step` refuses `review_and_approve`**, and leaving approved / preferred resets that step: it is `done` exactly while the contractor is cleared.
+13. **An import row with any `status` other than `prospect`, or `needs_verification` other than `true`, is invalid** (an import can never clear anyone).
+14. **`global_search` always returns a `contractors` key**, so five Phase 1 assertions on the exact empty shape were updated. Other Phase 1 assertions that state exact totals (tables, functions, views, capability rows, the per-role `my_access` arrays, three `columns_are`) were updated to the Phase 2 totals; the test count is unchanged (594) and no Phase 1 behaviour test changed.
+
+### 11.9 Limitations (database side)
+
+- No malware scanning; no ABR lookup (checksum only); no scheduled reminders (only the watch and `create_expiry_tasks`).
+- Rejecting or resetting a document that was applied to the contractor does not undo the contractor's verified date; edit the expiry date (which clears it) if needed.
+- `service_role` cannot read the contractor views (they call `hq_private.expiry_state` and `hq.today()`, which only `authenticated` may execute), the same as the Phase 1 views.
+- The Phase 1 pgTAP files `hq_02` and `hq_04` assume a freshly reset database and fail after `npm run hq:seed` (pre-existing; the `hq_05` files pass either way).

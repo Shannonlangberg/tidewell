@@ -4,8 +4,10 @@
  * Creates a handful of clearly fake `.test` staff logins (never real addresses), makes
  * Shannon the first director through the same bootstrap function a real launch uses,
  * adds the rest through the add_staff RPC as that director, creates the Copper Coast
- * pod, switches MFA off for local convenience, and imports the research leads from
- * hq/seed/referral-contacts.json through the duplicate-safe import.
+ * pod, switches MFA off for local convenience, imports the research leads from
+ * hq/seed/referral-contacts.json through the duplicate-safe partner import, and the
+ * maintenance contractor prospects from hq/seed/maintenance-contractors.json through the
+ * duplicate-safe contractor import (as the director: import.run + contractors.write).
  *
  * Idempotent: run it again and nothing is duplicated.
  * Never runs against anything but the local stack. For a real launch use
@@ -98,6 +100,14 @@ async function main() {
   if (imp.error) throw new Error(`apply_partner_import: ${imp.error.message}`);
   const counts = (imp.data as { counts: Record<string, number> }).counts;
   console.log(`Import: ${counts.organisations_created} organisations and ${counts.contacts_created} contacts created, ${counts.skipped} skipped, ${counts.possible_duplicate} possible duplicates reported.`);
+
+  // The maintenance contractor prospects, through the duplicate-safe contractor import. Every row
+  // arrives as a prospect that needs verification; a second run creates nothing (duplicates).
+  const prospects = JSON.parse(readFileSync("hq/seed/maintenance-contractors.json", "utf8")) as { source: string; rows: Record<string, unknown>[] };
+  const cimp = await db.rpc("apply_contractor_import", { p_rows: prospects.rows, p_source: prospects.source, p_file_name: "maintenance-contractors.json" });
+  if (cimp.error) throw new Error(`apply_contractor_import: ${cimp.error.message}`);
+  const ccounts = (cimp.data as { counts: Record<string, number> }).counts;
+  console.log(`Contractor import: ${ccounts.contractors_created} contractors created, ${ccounts.skipped} skipped, ${ccounts.possible_duplicate} possible duplicates reported (${ccounts.rows} rows).`);
 
   console.log("\nLocal HQ logins (fake .test addresses; MFA is off locally):");
   for (const p of PEOPLE) console.log(`  ${p.email.padEnd(24)} ${p.role.padEnd(26)} ${p.full}`);

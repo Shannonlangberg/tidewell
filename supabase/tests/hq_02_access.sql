@@ -28,7 +28,7 @@ select pg_temp.become('outsider');
 select is(hq.my_access(), null::jsonb, 'non-staff: my_access() is null');
 select is(hq.can('growth.read'), false, 'non-staff: can() is false');
 select is(pg_temp.visible_rows(), 0::bigint, 'non-staff: every hq table and view returns zero rows');
-select is(hq.global_search('alpha', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": []}'::jsonb, 'non-staff: global_search finds nothing');
+select is(hq.global_search('alpha', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": [], "contractors": []}'::jsonb, 'non-staff: global_search finds nothing');
 select throws_ok($$insert into hq.organisations (name, categories) values ('Outsider Co', '{other}')$$, '42501', null, 'non-staff cannot insert an organisation');
 select throws_ok($$insert into hq.tasks (title) values ('Outsider task')$$, '42501', null, 'non-staff cannot insert a task');
 select throws_ok($$select hq.record_interaction(null, null, 'note', null, 'x')$$, '42501', null, 'non-staff cannot record_interaction');
@@ -47,33 +47,33 @@ select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ each role's capabilities match the section 4 matrix exactly
 select pg_temp.become('dir');
-select is(pg_temp.caps_my_access(), array['audit.read', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'settings.admin', 'tasks.read_all', 'tasks.write'], 'director: my_access capabilities = all ten');
+select is(pg_temp.caps_my_access(), array['audit.read', 'contractors.approve', 'contractors.documents', 'contractors.read', 'contractors.write', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'settings.admin', 'tasks.read_all', 'tasks.write'], 'director: my_access capabilities = all fourteen (ten Phase 1, four contractors)');
 select is(pg_temp.caps_can(), array['audit.read', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'settings.admin', 'tasks.read_all', 'tasks.write'], 'director: can() = all ten');
 select pg_temp.become('adm');
-select is(pg_temp.caps_my_access(), array['audit.read', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'tasks.read_all', 'tasks.write'], 'administrator: my_access = all except settings.admin');
+select is(pg_temp.caps_my_access(), array['audit.read', 'contractors.approve', 'contractors.documents', 'contractors.read', 'contractors.write', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'tasks.read_all', 'tasks.write'], 'administrator: my_access = all except settings.admin');
 select is(pg_temp.caps_can(), array['audit.read', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'tasks.read_all', 'tasks.write'], 'administrator: can() = all except settings.admin');
 select pg_temp.become('bdm');
-select is(pg_temp.caps_my_access(), array['growth.read', 'growth.write', 'import.run', 'people.read', 'tasks.read_all', 'tasks.write'], 'business_development_manager: my_access');
+select is(pg_temp.caps_my_access(), array['contractors.read', 'growth.read', 'growth.write', 'import.run', 'people.read', 'tasks.read_all', 'tasks.write'], 'business_development_manager: my_access');
 select is(pg_temp.caps_can(), array['growth.read', 'growth.write', 'import.run', 'people.read', 'tasks.read_all', 'tasks.write'], 'business_development_manager: can()');
 select pg_temp.become('spm');
-select is(pg_temp.caps_my_access(), array['growth.read', 'people.read', 'tasks.read_all', 'tasks.write'], 'senior_property_manager: my_access');
+select is(pg_temp.caps_my_access(), array['contractors.documents', 'contractors.read', 'contractors.write', 'growth.read', 'people.read', 'tasks.read_all', 'tasks.write'], 'senior_property_manager: my_access');
 select is(pg_temp.caps_can(), array['growth.read', 'people.read', 'tasks.read_all', 'tasks.write'], 'senior_property_manager: can()');
 select pg_temp.become('pm');
-select is(pg_temp.caps_my_access(), array['growth.read', 'people.read', 'tasks.write'], 'property_manager: my_access');
+select is(pg_temp.caps_my_access(), array['contractors.documents', 'contractors.read', 'contractors.write', 'growth.read', 'people.read', 'tasks.write'], 'property_manager: my_access');
 select is(pg_temp.caps_can(), array['growth.read', 'people.read', 'tasks.write'], 'property_manager: can()');
 select pg_temp.become('jpm');
-select is(pg_temp.caps_my_access(), array['people.read', 'tasks.write'], 'junior_property_manager: my_access');
+select is(pg_temp.caps_my_access(), array['contractors.read', 'people.read', 'tasks.write'], 'junior_property_manager: my_access');
 select is(pg_temp.caps_can(), array['people.read', 'tasks.write'], 'junior_property_manager: can()');
 select pg_temp.become('va');
-select is(pg_temp.caps_my_access(), array['growth.read', 'growth.write', 'people.read', 'tasks.write'], 'virtual_assistant: my_access');
+select is(pg_temp.caps_my_access(), array['contractors.documents', 'contractors.read', 'contractors.write', 'growth.read', 'growth.write', 'people.read', 'tasks.write'], 'virtual_assistant: my_access');
 select is(pg_temp.caps_can(), array['growth.read', 'growth.write', 'people.read', 'tasks.write'], 'virtual_assistant: can()');
 select pg_temp.become('ro');
-select is(pg_temp.caps_my_access(), array['growth.read', 'people.read', 'tasks.read_all'], 'read_only: my_access');
+select is(pg_temp.caps_my_access(), array['contractors.read', 'growth.read', 'people.read', 'tasks.read_all'], 'read_only: my_access');
 select is(pg_temp.caps_can(), array['growth.read', 'people.read', 'tasks.read_all'], 'read_only: can()');
 select pg_temp.unbecome();
 
-select is((select count(*) from hq.role_capabilities), 41::bigint, 'the matrix holds 41 role/capability rows');
-select is((select count(*) from hq.role_capabilities where role = 'director'), 10::bigint, 'director: 10 rows');
+select is((select count(*) from hq.role_capabilities), 61::bigint, 'the matrix holds 61 role/capability rows (41 Phase 1, 20 contractors)');
+select is((select count(*) from hq.role_capabilities where role = 'director'), 14::bigint, 'director: 14 rows');
 select is((select count(*) from hq.role_capabilities where role = 'administrator' and capability = 'settings.admin'), 0::bigint, 'administrator has no settings.admin row');
 
 -- my_access shape
@@ -99,14 +99,14 @@ select is(hq.my_access() ->> 'aal', 'aal1', 'no aal claim at all is treated as a
 select is(pg_temp.visible_rows(), 0::bigint, 'no aal claim: no hq data is readable');
 select pg_temp.become('dir');
 select is(hq.my_access() ->> 'aal', 'aal2', 'aal2: my_access reports aal2');
-select is(array_length(pg_temp.caps_my_access(), 1), 10, 'aal2: the director holds ten capabilities');
+select is(array_length(pg_temp.caps_my_access(), 1), 14, 'aal2: the director holds fourteen capabilities');
 select is((select count(*) from hq.organisations where deleted_at is null), 3::bigint, 'aal2: data is readable');
 select pg_temp.unbecome();
 
 update hq.settings set value = 'false'::jsonb where key = 'require_mfa';
 select pg_temp.become('dir', 'aal1');
 select is(hq.my_access() ->> 'mfa_required', 'false', 'require_mfa=false: mfa_required is false');
-select is(array_length(pg_temp.caps_my_access(), 1), 10, 'require_mfa=false: aal1 holds all capabilities');
+select is(array_length(pg_temp.caps_my_access(), 1), 14, 'require_mfa=false: aal1 holds all capabilities');
 select is((select count(*) from hq.organisations where deleted_at is null), 3::bigint, 'require_mfa=false: aal1 reads data');
 select lives_ok($$insert into hq.organisations (name, categories) values ('Aal1 Allowed Co', '{other}')$$, 'require_mfa=false: aal1 can write');
 select pg_temp.unbecome();
@@ -138,7 +138,7 @@ select is((select count(*) from hq.organisations) + (select count(*) from hq.con
   'junior: cannot read organisations, contacts, referrals, opportunities or interactions');
 select is((select count(*) from hq.contact_directory) + (select count(*) from hq.organisation_directory) + (select count(*) from hq.referral_overview)
         + (select count(*) from hq.partner_performance) + (select count(*) from hq.overdue_followups), 0::bigint, 'junior: the directory views are empty');
-select is(hq.global_search('alpha', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": []}'::jsonb, 'junior: global_search finds no partners');
+select is(hq.global_search('alpha', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": [], "contractors": []}'::jsonb, 'junior: global_search finds no partners');
 select is((select count(*) from hq.audit_events), 0::bigint, 'junior: cannot read the audit log');
 select throws_ok($$insert into hq.organisations (name, categories) values ('Junior Co', '{other}')$$, '42501', null, 'junior cannot create an organisation');
 select throws_ok($$select hq.record_interaction(null, '$$ || pg_temp.fx('alpha') || $$', 'note', null, 'x')$$, '42501', null, 'junior cannot record_interaction');
@@ -147,7 +147,7 @@ select lives_ok($$insert into hq.tasks (title, assigned_to) values ('vis-junior-
 select is((select count(*) from hq.tasks where title = 'vis-junior-own'), 1::bigint, 'junior sees their own task');
 select is((select count(*) from hq.tasks where title = 'vis-dir-for-pm'), 0::bigint, 'junior does not see a task assigned to someone else by someone else');
 select is((select count(*) filter (where id in (select id from fx)) from hq.staff_profiles), 9::bigint, 'junior can read the staff list (people.read)');
-select is((select count(*) from hq.role_capabilities), 41::bigint, 'junior can read the capability matrix');
+select is((select count(*) from hq.role_capabilities), 61::bigint, 'junior can read the capability matrix');
 select pg_temp.unbecome();
 
 -- created_by cannot be spoofed

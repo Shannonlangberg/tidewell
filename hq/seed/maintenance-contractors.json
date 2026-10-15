@@ -1,0 +1,199 @@
+{
+  "$comment": "Maintenance contractor prospects researched for Planted (master brief section 11, as listed in docs/hq-phase-2.md section 9). They are NOT verified and NOT approved. Every row imports as status = prospect with needs_verification = true. Only the business name and the trade group it was listed under have been recorded: no phone, email, ABN, licence, insurance, availability, service area or rate. The category comes only from the group heading (Plumbing, Electrical, General Maintenance, Cleaning, Pest Control, Locksmith); the seven names listed under Other are category other, and no trade has been inferred from a business name. Group membership follows the order of the list. Review this file, then use the import screen (dry run first).",
+  "source": "research-maintenance-2026-10",
+  "defaults": {
+    "status": "prospect",
+    "needs_verification": true
+  },
+  "rows": [
+    {
+      "business_name": "Copper Coast Plumbing",
+      "categories": [
+        "plumbing"
+      ]
+    },
+    {
+      "business_name": "Peninsula Plumbing SA",
+      "categories": [
+        "plumbing"
+      ]
+    },
+    {
+      "business_name": "Bennett & Co Industries",
+      "categories": [
+        "plumbing"
+      ]
+    },
+    {
+      "business_name": "Dean Trevor Todd",
+      "categories": [
+        "plumbing"
+      ],
+      "flags": [
+        "Reads like a person's name rather than a business name. Imported exactly as listed; confirm the trading name before contacting."
+      ]
+    },
+    {
+      "business_name": "Moonta Plumbing",
+      "categories": [
+        "plumbing"
+      ]
+    },
+    {
+      "business_name": "Mildwaters Electrical",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "Electrical NRG Solutions",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "Lamshed Electrical",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "Baden Napier Electrical & Solar",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "AH Electrical & Solar",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "BradZ Electrical",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "WJC Electrical",
+      "categories": [
+        "electrical"
+      ]
+    },
+    {
+      "business_name": "Copper Coast Property Maintenance",
+      "categories": [
+        "general_maintenance"
+      ]
+    },
+    {
+      "business_name": "Challenge Garden & Home Maintenance",
+      "categories": [
+        "general_maintenance"
+      ]
+    },
+    {
+      "business_name": "Bungendore Handyman Service",
+      "categories": [
+        "general_maintenance"
+      ]
+    },
+    {
+      "business_name": "Copper Coast Garden Care",
+      "categories": [
+        "general_maintenance"
+      ]
+    },
+    {
+      "business_name": "TC Constructions",
+      "categories": [
+        "general_maintenance"
+      ]
+    },
+    {
+      "business_name": "Northern York Peninsula Cleaning",
+      "categories": [
+        "cleaning"
+      ]
+    },
+    {
+      "business_name": "Hamiltons Pest & Weed Control",
+      "categories": [
+        "pest_control"
+      ]
+    },
+    {
+      "business_name": "Laidlaw Pest Control",
+      "categories": [
+        "pest_control"
+      ]
+    },
+    {
+      "business_name": "SMS Eco Pest Management",
+      "categories": [
+        "pest_control"
+      ]
+    },
+    {
+      "business_name": "Murray Pest Control Yorke Peninsula",
+      "categories": [
+        "pest_control"
+      ]
+    },
+    {
+      "business_name": "Yorke Peninsula Locksmiths",
+      "categories": [
+        "locksmith"
+      ]
+    },
+    {
+      "business_name": "Leaney The Locksmith",
+      "categories": [
+        "locksmith"
+      ]
+    },
+    {
+      "business_name": "YP Energy Solutions",
+      "categories": [
+        "other"
+      ]
+    },
+    {
+      "business_name": "Kadina Retravision",
+      "categories": [
+        "other"
+      ]
+    },
+    {
+      "business_name": "Inside and Out Painting",
+      "categories": [
+        "other"
+      ]
+    },
+    {
+      "business_name": "Yorkes Home Improvements",
+      "categories": [
+        "other"
+      ]
+    },
+    {
+      "business_name": "Peninsula Tree and Stump",
+      "categories": [
+        "other"
+      ]
+    },
+    {
+      "business_name": "Copper Coast Garage Doors",
+      "categories": [
+        "other"
+      ]
+    },
+    {
+      "business_name": "Roof Replacement and Gutters SA",
+      "categories": [
+        "other"
+      ]
+    }
+  ]
+}
