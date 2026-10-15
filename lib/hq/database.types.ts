@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   hq: {
     Tables: {
+      ai_requests: {
+        Row: {
+          asked_at: string
+          finished_at: string | null
+          id: string
+          input_tokens: number | null
+          output_tokens: number | null
+          question: string
+          staff_id: string
+          status: string
+          tools_used: string[]
+        }
+        Insert: {
+          asked_at?: string
+          finished_at?: string | null
+          id?: string
+          input_tokens?: number | null
+          output_tokens?: number | null
+          question: string
+          staff_id: string
+          status?: string
+          tools_used?: string[]
+        }
+        Update: {
+          asked_at?: string
+          finished_at?: string | null
+          id?: string
+          input_tokens?: number | null
+          output_tokens?: number | null
+          question?: string
+          staff_id?: string
+          status?: string
+          tools_used?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_requests_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           action: string
@@ -1893,6 +1937,18 @@ export type Database = {
         }
         Returns: Json
       }
+      ai_begin_request: { Args: { p_question: string }; Returns: string }
+      ai_finish_request: {
+        Args: {
+          p_id: string
+          p_input_tokens: number
+          p_output_tokens: number
+          p_status: string
+          p_tools: string[]
+        }
+        Returns: undefined
+      }
+      ai_status: { Args: never; Returns: Json }
       apply_contractor_import: {
         Args: { p_file_name?: string; p_rows: Json; p_source: string }
         Returns: Json
