@@ -80,7 +80,7 @@ export function SortHeader({
   const active = sort?.key === sortKey;
   const ariaSort = active ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined;
   return (
-    <th scope="col" aria-sort={ariaSort} className={cx("hq-th", align === "right" && "hq-th--right", className)} style={{ width }}>
+    <th scope="col" aria-sort={ariaSort} className={cx("hq-th", align === "right" && "hq-th--right", className)} style={{ width, minWidth: width }}>
       <Link href={nextSortHref({ sortKey }, sort, hrefForSort)} className="hq-th__sort" data-active={active || undefined}>
         {children}
         <Icon name={active ? (sort!.dir === "asc" ? "arrow-up" : "arrow-down") : "chevron-down"} size={12} className="hq-th__arrow" />
@@ -134,7 +134,7 @@ export function DataTable<T>({ columns, rows, rowKey, caption, sort, hrefForSort
                   {c.header}
                 </SortHeader>
               ) : (
-                <th key={c.key} scope="col" className={cx("hq-th", c.align === "right" && "hq-th--right", hide)} style={{ width: c.width }}>
+                <th key={c.key} scope="col" className={cx("hq-th", c.align === "right" && "hq-th--right", hide)} style={{ width: c.width, minWidth: c.width }}>
                   {c.header}
                 </th>
               );

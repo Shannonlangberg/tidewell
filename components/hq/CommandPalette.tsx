@@ -127,7 +127,7 @@ function PaletteBody({ onClose, searchAction, nav, quickActions }: Omit<CommandP
       return out;
     }
     if (!results) return [];
-    return SEARCH_GROUPS.flatMap((g) => {
+    const found: Group[] = SEARCH_GROUPS.flatMap((g) => {
       const hits = results[g.kind] ?? [];
       if (hits.length === 0) return [];
       return [
@@ -144,6 +144,14 @@ function PaletteBody({ onClose, searchAction, nav, quickActions }: Omit<CommandP
         },
       ];
     });
+    // The palette previews a few of each kind; the last item opens the full results page (/hq/search).
+    if (found.length > 0) {
+      found.push({
+        label: "More",
+        items: [{ id: "see-all", href: `/hq/search?q=${encodeURIComponent(trimmed)}`, title: `See all results for \u201C${trimmed}\u201D`, icon: "search", group: "More" }],
+      });
+    }
+    return found;
   }, [trimmed, results, quickActions, nav]);
 
   const items = useMemo(() => groups.flatMap((g) => g.items), [groups]);
@@ -184,7 +192,11 @@ function PaletteBody({ onClose, searchAction, nav, quickActions }: Omit<CommandP
   if (searching) {
     if (status === "loading") announcement = "Searching";
     else if (status === "error") announcement = "Search is not available right now";
-    else if (status === "done") announcement = items.length === 0 ? "No results" : `${items.length} ${items.length === 1 ? "result" : "results"}`;
+    else if (status === "done") {
+      // The "see all results" link is not a result.
+      const n = items.filter((i) => i.id !== "see-all").length;
+      announcement = n === 0 ? "No results" : `${n} ${n === 1 ? "result" : "results"}`;
+    }
   } else if (items.length) {
     announcement = `${items.length} suggestions`;
   }

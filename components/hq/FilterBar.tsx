@@ -23,6 +23,9 @@ export function FilterBar({
   action,
   label,
   children,
+  more,
+  moreActive,
+  moreLabel = "More filters",
   hidden,
   resetHref,
   active,
@@ -34,6 +37,13 @@ export function FilterBar({
   /** Accessible name of the search landmark. */
   label: string;
   children: ReactNode;
+  /**
+   * Secondary filters, tucked behind a disclosure so the list stays above the fold. It opens by
+   * itself when `moreActive` says one of them is in use, so an applied filter is never hidden.
+   */
+  more?: ReactNode;
+  moreActive?: boolean;
+  moreLabel?: string;
   hidden?: Record<string, string | undefined | null>;
   resetHref?: string;
   /** Whether any filter is currently applied (shows Clear). */
@@ -45,6 +55,12 @@ export function FilterBar({
     <Form action={action} role="search" aria-label={label} className={cx("hq-filterbar", className)}>
       {Object.entries(hidden ?? {}).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
       <div className="hq-filterbar__fields">{children}</div>
+      {more ? (
+        <details className="hq-filterbar__more" open={moreActive || undefined}>
+          <summary className="hq-filterbar__more-summary">{moreLabel}</summary>
+          <div className="hq-filterbar__fields hq-filterbar__fields--more">{more}</div>
+        </details>
+      ) : null}
       <div className="hq-filterbar__actions">
         <button type="submit" className="hq-btn hq-btn--secondary">
           <span className="hq-btn__label">{applyLabel}</span>

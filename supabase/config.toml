@@ -260,7 +260,7 @@ otp_expiry = 600
 
 # The six-digit sign-in code (signInWithOtp renders the magic_link template with {{ .Token }}).
 [auth.email.template.magic_link]
-subject = "Your Tidewell sign-in code"
+subject = "Your PLANTED. sign-in code"
 content_path = "./supabase/templates/otp.html"
 
 # Uncomment to customize notification email template

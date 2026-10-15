@@ -1,0 +1,118 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { LinkButton } from "@/components/hq/Button";
+import { ErrorState } from "@/components/hq/EmptyState";
+import { PageHeader } from "@/components/hq/PageHeader";
+import { InlineNote, KeyValueList, SectionLabel } from "@/components/hq/Primitives";
+import { BusinessSettings } from "@/components/hq/features/people/BusinessSettings";
+import { requireStaff } from "@/lib/hq/auth";
+import { DEFAULT_TIMEZONE } from "@/lib/hq/format";
+import { hasCustomLayout } from "@/lib/hq/dashboard-widgets";
+import { AU_TIMEZONES } from "@/lib/hq/timezones";
+
+export const metadata: Metadata = { title: "Settings" };
+
+/*
+ * Settings. Everyone sees their own, with a way to change each one. People with settings.admin
+ * (directors) also see and change the business settings; everyone else can read them. The
+ * audit log, for people with audit.read, is one link away.
+ */
+export default async function SettingsPage() {
+  const { staff, db, can } = await requireStaff();
+
+  const [settingsRes, meRes] = await Promise.all([
+    db.from("settings").select("key, value"),
+    db.from("staff_profiles").select("dashboard_widgets").eq("id", staff.id).maybeSingle(),
+  ]);
+  if (settingsRes.error) console.error("[hq] reading settings failed:", settingsRes.error.code);
+
+  const byKey = new Map((settingsRes.data ?? []).map((s) => [s.key, s.value]));
+  // Same rule as the database: MFA is required unless the setting is exactly false.
+  const requireMfa = byKey.get("require_mfa") !== false;
+  const rawTz = byKey.get("timezone");
+  const businessTimezone = typeof rawTz === "string" ? rawTz : DEFAULT_TIMEZONE;
+  const tzLabel = AU_TIMEZONES.find((z) => z.value === businessTimezone)?.label ?? businessTimezone;
+  const customised = hasCustomLayout(meRes.data?.dashboard_widgets);
+
+  return (
+    <>
+      <PageHeader title="Settings" description="Your own settings, and the settings that apply to the whole business." />
+
+      <div className="mt-10 grid gap-12">
+        <section aria-labelledby="own-h" className="max-w-xl">
+          <SectionLabel as="h2" id="own-h" className="mb-3.5">
+            Your settings
+          </SectionLabel>
+          <KeyValueList
+            items={[
+              {
+                label: "Timezone",
+                value: (
+                  <>
+                    {staff.timezone}{" "}
+                    <Link href="/hq/profile" className="hq-muted ml-1 underline underline-offset-2">
+                      Change
+                    </Link>
+                  </>
+                ),
+              },
+              {
+                label: "Dashboard",
+                value: (
+                  <>
+                    {customised ? "Your own layout" : "Default for your role"}{" "}
+                    <Link href="/hq" className="hq-muted ml-1 underline underline-offset-2">
+                      Customise
+                    </Link>
+                  </>
+                ),
+              },
+              {
+                label: "Two-step verification",
+                value: (
+                  <>
+                    {staff.mfaRequired ? "Required" : "Not required"}{" "}
+                    <Link href="/hq/mfa?next=%2Fhq%2Fsettings" className="hq-muted ml-1 underline underline-offset-2">
+                      Set up or replace
+                    </Link>
+                  </>
+                ),
+              },
+            ]}
+          />
+        </section>
+
+        <section aria-labelledby="biz-h">
+          <SectionLabel as="h2" id="biz-h" className="mb-3.5">
+            Business settings
+          </SectionLabel>
+          {settingsRes.error ? (
+            <ErrorState />
+          ) : can("settings.admin") ? (
+            <BusinessSettings requireMfa={requireMfa} timezone={businessTimezone} />
+          ) : (
+            <div className="max-w-xl">
+              <KeyValueList
+                items={[
+                  { label: "Two-step verification", value: requireMfa ? "Required for everyone" : "Not required" },
+                  { label: "Business timezone", value: tzLabel },
+                ]}
+              />
+              <InlineNote className="mt-4">These apply to everyone and are changed by a director.</InlineNote>
+            </div>
+          )}
+        </section>
+
+        {can("audit.read") ? (
+          <section aria-labelledby="audit-h" className="max-w-xl">
+            <SectionLabel as="h2" id="audit-h" className="mb-3.5">
+              Audit log
+            </SectionLabel>
+            <p className="mb-4">A record of who changed what in HQ, and when. It cannot be edited or deleted.</p>
+            <LinkButton href="/hq/settings/audit">Open the audit log</LinkButton>
+          </section>
+        ) : null}
+      </div>
+    </>
+  );
+}

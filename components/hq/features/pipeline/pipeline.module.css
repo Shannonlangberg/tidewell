@@ -1,0 +1,219 @@
+/*
+ * The pipeline board. Flat columns divided by hairlines (docs/hq-visual-reference.html), NOT
+ * floating cards: a column is a heading with one charcoal rule under it, and the only boxes are
+ * the prospect cards (ivory, 1px hairline, 6px radius, no shadow).
+ *
+ * Every colour is a --planted-* or --status-* token. From 768px up the columns sit side by side
+ * and scroll sideways inside their own region; below that the board is ONE column at a time,
+ * chosen with the stage selector above it.
+ */
+
+.board {
+  /* The board scrolls sideways inside itself. `position: relative` makes it the containing block for the
+     visually-hidden (position: absolute) text in the headings, so that text is clipped with everything
+     else instead of stretching the whole page sideways. */
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 24px 2px 28px;
+  border-top: 1px solid var(--planted-border);
+  scrollbar-gutter: stable;
+}
+
+.col {
+  flex: 0 0 214px;
+  min-width: 0;
+}
+
+/* A collapsed column (signed, lost) keeps only its heading. */
+.col[data-collapsed="true"] {
+  flex-basis: 168px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--planted-charcoal);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--status-neutral-text);
+}
+
+.toggle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chev {
+  flex: none;
+  transition: transform 0.16s ease;
+}
+.toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+
+.count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--planted-grey-text);
+}
+
+.total {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--planted-grey-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 120px;
+  margin: 0;
+  padding: 12px 0 0;
+  list-style: none;
+}
+
+.col[data-collapsed="true"] .lane,
+.col[data-collapsed="true"] .total {
+  display: none;
+}
+
+.none {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--planted-grey-text);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 13px;
+  background: var(--planted-ivory);
+  border: 1px solid var(--planted-border);
+  border-radius: var(--radius-card);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+/* A signed management is the one card with a darker edge. */
+.card[data-signed="true"] {
+  border-color: var(--planted-charcoal);
+}
+
+.name {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.name a {
+  color: inherit;
+  text-decoration: none;
+}
+.name a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 12.5px;
+  color: var(--planted-grey-text);
+  overflow-wrap: anywhere;
+}
+
+.src {
+  padding-top: 8px;
+  border-top: 1px solid var(--planted-border);
+  font-size: 12.5px;
+  color: var(--planted-grey-text);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 12.5px;
+  color: var(--planted-grey-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.estimate {
+  color: var(--planted-charcoal);
+  font-weight: 500;
+}
+
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── phones: one column at a time, chosen with the stage selector ── */
+
+@media (max-width: 767px) {
+  .board {
+    display: block;
+    overflow: visible;
+    padding: 18px 0 8px;
+    border-top: 0;
+  }
+  .col {
+    display: none;
+  }
+  .col[data-active="true"] {
+    display: block;
+  }
+  /* The collapse is a desktop idea: on a phone the chosen column always shows its cards. */
+  .col[data-collapsed="true"] .lane {
+    display: flex;
+  }
+  .col[data-collapsed="true"] .total {
+    display: block;
+  }
+  .card {
+    padding: 14px;
+    font-size: 14.5px;
+  }
+}

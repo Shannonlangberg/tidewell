@@ -1360,8 +1360,7 @@
     top: 0;
     z-index: 1;
   }
-  .hq-th--right,
-  .hq-td--right {
+  .hq-th--right {
     text-align: right;
   }
   .hq-th__sort {
@@ -1391,6 +1390,11 @@
     vertical-align: middle;
     text-align: left;
     font-weight: 400;
+  }
+  /* Must come AFTER .hq-td: both are one class, so the later rule wins, and the
+     left alignment above was silently overriding right-aligned cells. */
+  .hq-td--right {
+    text-align: right;
   }
   .hq-td--primary {
     font-weight: 600;
@@ -1530,6 +1534,42 @@
     display: flex;
     align-items: center;
     gap: 14px;
+  }
+  .hq-filterbar__more {
+    flex: 1 1 100%;
+    order: 3;
+  }
+  .hq-filterbar__more-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--planted-grey-text);
+    list-style: none;
+  }
+  .hq-filterbar__more-summary::-webkit-details-marker {
+    display: none;
+  }
+  .hq-filterbar__more-summary::after {
+    content: "+";
+    font-size: 16px;
+    line-height: 1;
+  }
+  .hq-filterbar__more[open] > .hq-filterbar__more-summary::after {
+    content: "\2212";
+  }
+  .hq-filterbar__more-summary:hover {
+    color: var(--planted-charcoal);
+  }
+  .hq-filterbar__more-summary:focus-visible {
+    outline: 2px solid var(--planted-clay-text);
+    outline-offset: 2px;
+  }
+  .hq-filterbar__fields--more {
+    padding-top: 6px;
   }
   .hq-filterbar__clear {
     font-size: 13px;

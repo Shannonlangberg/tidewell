@@ -18,6 +18,16 @@ management business, and its product app is deliberately kept here, parked. See
 
 ---
 
+## Planted HQ (staff portal)
+
+The private operating system for the company lives at `/hq`: referral partner CRM, referral tracking and pipeline, tasks, people and a role-aware dashboard. It is separate from the public site and requires a staff login.
+
+- Setup, deployment and security model: [docs/hq-setup.md](docs/hq-setup.md)
+- The plan and the reasoning: [docs/hq-design.md](docs/hq-design.md)
+- The brand, which every screen follows: [docs/brand-design-system.md](docs/brand-design-system.md)
+
+Quick start: `supabase start -x logflare,vector`, `npm run hq:seed`, `npm run dev`, then open `/hq/sign-in`.
+
 ## The stack
 
 | | |
