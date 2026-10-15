@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ROLE_LABEL } from "@/lib/hq/constants";
+import { ActiveLink } from "./ActiveLink";
 import { Avatar } from "./Avatar";
 import { Icon } from "./icons";
 import { MobileMore } from "./MobileMore";
@@ -35,8 +36,9 @@ import { Wordmark } from "./Wordmark";
  *  - `staff` is the verified signed-in person (from requireStaff()). Navigation entries and
  *    quick actions the person lacks the capability for are not rendered. That is a courtesy;
  *    RLS is the control.
- *  - `active` is the NavKey of the current section (use navKeyForPath(pathname) in a
- *    client layout, or pass it per page). null lights nothing.
+ *  - `active` is OPTIONAL. Left out, every link works out whether it is current from the URL
+ *    (ActiveLink), which is what a shared layout needs because it cannot see the path. Pass a
+ *    NavKey to force a section, or null to light nothing.
  *  - `signOutAction` is a Server Action (FormData in) that ends the session and redirects.
  *    The shell posts a <form> to it; it never touches auth itself.
  *  - `searchAction` is a Server Action `(query: string) => Promise<SearchResults>` that
@@ -46,17 +48,17 @@ import { Wordmark } from "./Wordmark";
 
 export type AppShellProps = {
   staff: ShellStaff;
-  active: NavKey | null;
+  active?: NavKey | null;
   children: ReactNode;
   signOutAction: SignOutAction;
   searchAction: SearchAction;
   breadcrumb?: ReactNode;
 };
 
-function SidebarLink({ item, current }: { item: NavItem; current: boolean }) {
+function SidebarLink({ item, active }: { item: NavItem; active?: NavKey | null }) {
   const phase = phaseLabel(item);
   return (
-    <Link href={item.href} className="hq-nav__item" aria-current={current ? "page" : undefined}>
+    <ActiveLink href={item.href} className="hq-nav__item" navKey={item.key} override={active}>
       <Icon name={item.icon} size={18} className="hq-nav__icon" />
       <span>{item.label}</span>
       {phase ? (
@@ -65,7 +67,7 @@ function SidebarLink({ item, current }: { item: NavItem; current: boolean }) {
           <span className="hq-nav__tag">{phase}</span>
         </>
       ) : null}
-    </Link>
+    </ActiveLink>
   );
 }
 
@@ -82,7 +84,7 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
   const more = [...primary.filter((i) => i.mobile === "more"), ...account];
 
   return (
-    <ShellProvider searchAction={searchAction} nav={toEntries(primary, active)} quickActions={quickActions}>
+    <ShellProvider searchAction={searchAction} nav={toEntries(primary, active ?? null)} quickActions={quickActions}>
       <a className="hq-skip" href="#hq-main">
         Skip to content
       </a>
@@ -95,7 +97,7 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
             <ul className="hq-nav">
               {primary.map((item) => (
                 <li key={item.key}>
-                  <SidebarLink item={item} current={item.key === active} />
+                  <SidebarLink item={item} active={active} />
                 </li>
               ))}
             </ul>
@@ -104,7 +106,7 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
                 <hr className="hq-nav__rule" />
                 <ul className="hq-nav">
                   <li>
-                    <SidebarLink item={settings} current={settings.key === active} />
+                    <SidebarLink item={settings} active={active} />
                   </li>
                 </ul>
               </>
@@ -114,10 +116,10 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
           <div className="hq-person">
             <Avatar name={staff.fullName} onDark />
             {profile ? (
-              <Link href={profile.href} className="hq-person__link" aria-current={active === "profile" ? "page" : undefined}>
+              <ActiveLink href={profile.href} className="hq-person__link" navKey="profile" override={active}>
                 <span className="hq-person__name">{staff.fullName}</span> <span className="hq-person__role">{roleLabel}</span>
                 <span className="sr-only">, your profile</span>
-              </Link>
+              </ActiveLink>
             ) : (
               <span className="hq-person__link">
                 <span className="hq-person__name">{staff.fullName}</span>
@@ -163,13 +165,14 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
       {/* ── mobile: bottom tab bar and floating quick add ── */}
       <nav className="hq-tabbar" aria-label="Primary, mobile">
         {tabs.map((item) => (
-          <Link key={item.key} href={item.href} className="hq-tab" aria-current={item.key === active ? "page" : undefined}>
+          <ActiveLink key={item.key} href={item.href} className="hq-tab" navKey={item.key} override={active}>
             <Icon name={item.icon} size={22} />
             <span>{item.label}</span>
-          </Link>
+          </ActiveLink>
         ))}
         <MobileMore
-          entries={toEntries(more, active)}
+          entries={toEntries(more, active ?? null)}
+          active={active}
           person={{ fullName: staff.fullName, roleLabel }}
           signOutAction={signOutAction}
         />

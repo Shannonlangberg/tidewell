@@ -5,7 +5,8 @@ import { useState } from "react";
 import { Avatar } from "./Avatar";
 import { Drawer } from "./Drawer";
 import { Icon } from "./icons";
-import type { NavEntry } from "./nav";
+import { useActiveNavKey } from "./ActiveLink";
+import type { NavEntry, NavKey } from "./nav";
 import type { SignOutAction } from "./types";
 import { SubmitButton } from "./SubmitButton";
 
@@ -20,13 +21,18 @@ export function MobileMore({
   entries,
   person,
   signOutAction,
+  active,
 }: {
   entries: readonly NavEntry[];
+  /** Forces the current section. Left out, it is read from the URL. */
+  active?: NavKey | null;
   person: { fullName: string; roleLabel: string };
   signOutAction: SignOutAction;
 }) {
   const [open, setOpen] = useState(false);
-  const containsCurrent = entries.some((e) => e.current);
+  const current = useActiveNavKey(active);
+  const isCurrent = (e: NavEntry) => e.key === current;
+  const containsCurrent = entries.some(isCurrent);
   return (
     <>
       <button type="button" className="hq-tab" data-active={containsCurrent || undefined} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
@@ -38,7 +44,7 @@ export function MobileMore({
           <ul className="hq-more__list">
             {entries.map((e) => (
               <li key={e.key}>
-                <Link href={e.href} className="hq-more__item" aria-current={e.current ? "page" : undefined} onClick={() => setOpen(false)}>
+                <Link href={e.href} className="hq-more__item" aria-current={isCurrent(e) ? "page" : undefined} onClick={() => setOpen(false)}>
                   <Icon name={e.icon} size={20} />
                   <span>{e.label}</span>
                   {e.phase ? (

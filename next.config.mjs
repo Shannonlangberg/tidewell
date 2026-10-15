@@ -32,6 +32,10 @@ const csp = (extra = {}) => {
 const TURNSTILE = "https://challenges.cloudflare.com";
 
 const nextConfig = {
+  // Dev only: lets several builders use their own hostnames (auth.localhost, contacts.localhost, ...)
+  // so their browser cookie jars, and therefore their test sign-ins, do not collide.
+  allowedDevOrigins: ["*.localhost"],
+
   // Parallel work (several dev servers at once) needs separate build output.
   // Unset in production and on Netlify, where the default .next is required.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
