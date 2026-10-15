@@ -21,6 +21,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   // contacts, organisations or referrals, and a person who is not tasks.read_all finds only their own tasks.
   const { db, can } = await requireStaff(undefined, false, buildHref(PATH, sp));
   const canGrowth = can("growth.read");
+  const canContractors = can("contractors.read");
 
   const state = queryState(q);
   let results: SearchResults = EMPTY_RESULTS;
@@ -41,12 +42,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       <PageHeader
         eyebrow="HQ"
         title="Search"
-        description={canGrowth ? "Find a contact, an organisation, a referral or a task." : "Find a task by its title."}
+        description={canGrowth ? `Find a contact, an organisation, a referral${canContractors ? ", a contractor" : ""} or a task.` : canContractors ? "Find a contractor or a task." : "Find a task by its title."}
       />
 
       <Form action={PATH} role="search" aria-label="Search HQ" className="mt-6 flex max-w-3xl items-end gap-3">
         <div className="min-w-0 flex-1">
-          <SearchInput label="Search HQ" placeholder={canGrowth ? "Name, organisation, referral number or task" : "Task title"} defaultValue={q} />
+          <SearchInput label="Search HQ" placeholder={canGrowth ? "Name, organisation, referral number or task" : canContractors ? "Contractor, trade, suburb or task" : "Task title"} defaultValue={q} />
         </div>
         <Button type="submit" variant="primary">
           Search
@@ -58,7 +59,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           <EmptyState title="Search HQ" compact>
             {canGrowth
               ? "Type a person's name, an organisation, a referral number such as REF-0012, or part of a task title."
-              : "Type part of the title of a task."}
+              : canContractors
+                ? "Type a contractor's name, a trade such as plumbing, a suburb, or part of a task title."
+                : "Type part of the title of a task."}
           </EmptyState>
         ) : state === "too_short" ? (
           <EmptyState title="Keep typing" compact>

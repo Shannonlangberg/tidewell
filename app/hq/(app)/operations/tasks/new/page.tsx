@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireStaff } from "@/lib/hq/auth";
 import { todayIn } from "@/lib/hq/format";
+import { contractorOptions } from "@/lib/hq/contractors/queries";
 import { contactOptions, organisationOptions, staffOptions, type Option } from "@/lib/hq/queries/options";
 import { safeReturnPath } from "@/lib/hq/tasks/return-path";
 import { parseNewTaskQuery } from "@/lib/hq/tasks/rules";
@@ -22,13 +23,15 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
   // The link contract: anything that is not a uuid, a real date or a safe /hq path was already dropped here.
   const prefill = parseNewTaskQuery(sp, safeReturnPath);
   const canLink = can("growth.read");
+  const canLinkContractors = can("contractors.read");
 
-  const [staffList, related, contacts, organisations] = await Promise.all([
+  const [staffList, related, contacts, organisations, contractors] = await Promise.all([
     staffOptions(db),
     // Only records that exist AND that this person can read are kept; the rest are dropped, never linked blindly.
-    prefillRelated(db, prefill, canLink),
+    prefillRelated(db, prefill, canLink, canLinkContractors),
     canLink ? contactOptions(db) : Promise.resolve<Option[]>([]),
     canLink ? organisationOptions(db) : Promise.resolve<Option[]>([]),
+    canLinkContractors ? contractorOptions(db) : Promise.resolve<Option[]>([]),
   ]);
 
   // The pickers are capped, so make sure a prefilled record is always one of the choices.
@@ -41,11 +44,14 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
   if (related.referral) linked.push({ kind: "referral", label: related.referral.label, href: `/hq/growth/referrals/${related.referral.id}` });
   if (related.opportunity) linked.push({ kind: "opportunity", label: related.opportunity.label, href: null });
 
-  const dropped = canLink && [
+  if (related.contractor) linked.push({ kind: "contractor", label: related.contractor.label, href: `/hq/partners/${related.contractor.id}` });
+
+  const dropped = (canLink || canLinkContractors) && [
     [prefill.contact, related.contact],
     [prefill.organisation, related.organisation],
     [prefill.referral, related.referral],
     [prefill.opportunity, related.opportunity],
+    [prefill.contractor, related.contractor],
   ].some(([asked, found]) => asked && !found);
 
   const returnTo = prefill.returnTo;
@@ -75,11 +81,14 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
           organisationId: related.organisation?.id ?? "",
           referralId: related.referral?.id ?? "",
           opportunityId: related.opportunity?.id ?? "",
+          contractorId: related.contractor?.id ?? "",
         }}
         returnTo={returnTo}
         staff={staffList}
         contacts={withSelected(contacts, related.contact, "Linked contact")}
         organisations={withSelected(organisations, related.organisation, "Linked organisation")}
+        contractors={withSelected(contractors, related.contractor, "Linked contractor")}
+        canLinkContractors={canLinkContractors}
         canLink={canLink}
         linked={linked}
         referralLink={related.referral ? { id: related.referral.id, label: related.referral.label } : null}

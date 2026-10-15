@@ -23,7 +23,7 @@ function subtitleFor(kind: SearchKind, subtitle: string | null | undefined): str
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-const NOUN: Record<SearchKind, string> = { contacts: "Contact", organisations: "Organisation", referrals: "Referral", tasks: "Task" };
+const NOUN: Record<SearchKind, string> = { contacts: "Contact", organisations: "Organisation", referrals: "Referral", tasks: "Task", contractors: "Contractor" };
 
 export function SearchResultsView({ results, perGroupLimit }: { results: SearchResults; perGroupLimit: number }) {
   const groups = SEARCH_GROUPS.filter((g) => results[g.kind].length > 0);

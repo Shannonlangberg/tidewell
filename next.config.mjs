@@ -40,10 +40,10 @@ const nextConfig = {
   // Unset in production and on Netlify, where the default .next is required.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
 
-  // The HQ import page reads this bundled seed file at request time. Next only packages files it
-  // can see being imported, so name it for Netlify (without this the "Load the research leads"
+  // The HQ import pages (partners, and contractors under /hq/partners) read a bundled seed file at request time. Next only packages files it
+  // can see being imported, so name it for Netlify (without this the "Load the research leads" / "Load the maintenance prospects file"
   // button works locally but not once deployed).
-  outputFileTracingIncludes: { "/hq/growth/import": ["./hq/seed/**/*"] },
+  outputFileTracingIncludes: { "/hq/growth/import": ["./hq/seed/**/*"], "/hq/partners/import": ["./hq/seed/**/*"] },
 
   // Node-only (fontkit, yoga); must stay out of the Turbopack server bundle.
   serverExternalPackages: ["@react-pdf/renderer"],

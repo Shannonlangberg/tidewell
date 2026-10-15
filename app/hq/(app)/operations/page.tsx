@@ -42,15 +42,16 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
   const canReadAll = can("tasks.read_all");
   const canWrite = can("tasks.write");
   const canGrowth = can("growth.read");
+  const canContractors = can("contractors.read");
 
-  const query = parseTaskListQuery(sp, { canReadAll, canFilterRelated: canGrowth });
+  const query = parseTaskListQuery(sp, { canReadAll, canFilterRelated: canGrowth || canContractors });
   const def = TASK_VIEWS[query.view];
   const today = todayIn(staff.timezone);
   const ctx = { meId: staff.id, today, now: new Date() };
   const views = viewsFor(canReadAll);
 
   const [list, counts, staffList] = await Promise.all([
-    listTasks(db, buildPredicate(query, ctx), { sort: query.sort, dir: query.dir, page: query.page, pageSize: LIST_PAGE_SIZE, canGrowth }),
+    listTasks(db, buildPredicate(query, ctx), { sort: query.sort, dir: query.dir, page: query.page, pageSize: LIST_PAGE_SIZE, canGrowth, canContractors }),
     viewCounts(
       db,
       views.map((v) => v.key),
@@ -142,14 +143,14 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
             options={def.statusChoices.map((s) => ({ value: s, label: TASK_STATUS_LABEL[s] }))}
           />
         ) : null}
-        {canGrowth ? (
+        {canGrowth || canContractors ? (
           <Select
             name="related"
             label="Linked records"
             hideLabel
             placeholder="Any link"
             defaultValue={query.related ?? ""}
-            options={RELATED_FILTERS.map((r) => ({ value: r, label: RELATED_FILTER_LABEL[r] }))}
+            options={RELATED_FILTERS.filter((r) => (r === "contractor" ? canContractors : r === "none" ? true : canGrowth)).map((r) => ({ value: r, label: RELATED_FILTER_LABEL[r] }))}
           />
         ) : null}
       </FilterBar>

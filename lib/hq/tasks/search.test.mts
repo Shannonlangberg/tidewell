@@ -36,7 +36,15 @@ test("parseSearchResults keeps well-formed hits and drops the rest", () => {
 test("parseSearchResults survives garbage", () => {
   for (const v of [null, undefined, 42, "x", [], true]) {
     const r = parseSearchResults(v);
-    assert.deepEqual(r, { contacts: [], organisations: [], referrals: [], tasks: [] });
+    assert.deepEqual(r, { contacts: [], organisations: [], referrals: [], tasks: [], contractors: [] });
     assert.equal(totalHits(r), 0);
   }
+});
+
+test("parseSearchResults reads the contractors group and counts it", () => {
+  const r = parseSearchResults({ contractors: [{ id: "k1", title: "Moonta Plumbing", subtitle: "plumbing - Moonta - approved", status: "approved" }, { title: "no id" }] });
+  assert.deepEqual(r.contractors, [{ id: "k1", title: "Moonta Plumbing", subtitle: "plumbing - Moonta - approved" }]);
+  assert.equal(totalHits(r), 1);
+  // A caller without contractors.read gets no group back at all: it parses as empty.
+  assert.deepEqual(parseSearchResults({ contacts: [] }).contractors, []);
 });

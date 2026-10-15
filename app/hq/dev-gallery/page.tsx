@@ -90,7 +90,7 @@ async function sampleSearch(query: string): Promise<SearchResults> {
   if (q.startsWith("boom")) throw new Error("Sample failure to show the error state");
   const hit = <T extends { title: string; subtitle: string }>(list: T[]) =>
     list.filter((x) => x.title.toLowerCase().includes(q) || x.subtitle.toLowerCase().includes(q));
-  return { contacts: hit(SAMPLE_PEOPLE), organisations: hit(SAMPLE_ORGS), referrals: hit(SAMPLE_REFS), tasks: hit(SAMPLE_TASKS) };
+  return { contacts: hit(SAMPLE_PEOPLE), organisations: hit(SAMPLE_ORGS), referrals: hit(SAMPLE_REFS), tasks: hit(SAMPLE_TASKS), contractors: [] };
 }
 
 async function sampleSubmit() {

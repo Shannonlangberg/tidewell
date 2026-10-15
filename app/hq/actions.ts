@@ -31,7 +31,7 @@ export async function signOutAction(): Promise<void> {
 
 // ── global search ────────────────────────────────────────────
 
-const EMPTY: SearchResults = { contacts: [], organisations: [], referrals: [], tasks: [] };
+const EMPTY: SearchResults = { contacts: [], organisations: [], referrals: [], tasks: [], contractors: [] };
 
 function hits(value: unknown): SearchHit[] {
   if (!Array.isArray(value)) return [];
@@ -67,5 +67,6 @@ export async function searchAction(query: string): Promise<SearchResults> {
     organisations: hits(r.organisations),
     referrals: hits(r.referrals),
     tasks: hits(r.tasks),
+    contractors: hits(r.contractors),
   };
 }

@@ -42,7 +42,7 @@ export default async function TaskPage({ params }: { params: Params }) {
   if (!isUuid(id)) notFound();
 
   const canWrite = can("tasks.write");
-  const found = await getTask(db, id, { canGrowth: can("growth.read") });
+  const found = await getTask(db, id, { canGrowth: can("growth.read"), canContractors: can("contractors.read") });
   if (!found.ok) {
     return (
       <>

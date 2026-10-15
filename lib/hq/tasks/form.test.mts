@@ -81,6 +81,7 @@ test("a created_by field in the post is never read", () => {
   assert.deepEqual(Object.keys(values).sort(), [
     "assignedTo",
     "contactId",
+    "contractorId",
     "description",
     "dueDate",
     "opportunityId",
