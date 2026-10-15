@@ -49,7 +49,9 @@ export type LogInteractionDrawerProps = {
   serverNowLocal: string;
   /** Today in that zone, YYYY-MM-DD: the earliest follow-up date. */
   today: string;
-  returnTo: "contact" | "organisation" | "list";
+  returnTo: "contact" | "organisation" | "list" | "partners";
+  /** With returnTo "partners": the list address (filters and page) to come back to after saving. */
+  returnPath?: string;
 };
 
 const TITLE: Record<InteractionType, string> = {
@@ -112,6 +114,7 @@ function LogSession({
   staffId,
   today,
   returnTo,
+  returnPath,
   open,
   initialType,
   nowLocal,
@@ -144,6 +147,7 @@ function LogSession({
           <FormSummary state={state} labels={LABELS} idPrefix="log" />
 
           <input type="hidden" name="return_to" value={returnTo} />
+          {returnPath ? <input type="hidden" name="return_path" value={returnPath} /> : null}
           {contact ? <input type="hidden" name="contact_id" value={contact.id} /> : null}
           {organisation ? <input type="hidden" name="organisation_id" value={organisation.id} /> : null}
 

@@ -28,13 +28,22 @@ export function GrowthLinks({ links, label }: { links: readonly GrowthLink[]; la
 }
 
 /** "27 contacts not contacted in 30 days" as a line with a link, for the overview. */
-export function QuietPartnersNote({ count, href }: { count: number; href: string }) {
+export function QuietPartnersNote({ count, href, partnersHref }: { count: number; href: string; partnersHref?: string }) {
   return (
     <p className="mt-6 text-[14px]">
       <Link href={href} className="font-medium underline underline-offset-4">
         {plural(count, "partner contact")} not contacted in 30 days
       </Link>
       <span className="hq-muted">. This includes anyone you have never contacted.</span>
+      {partnersHref ? (
+        <>
+          {" "}
+          <Link href={partnersHref} className="underline underline-offset-4">
+            See them by referral partner
+          </Link>
+          <span className="hq-muted">.</span>
+        </>
+      ) : null}
     </p>
   );
 }

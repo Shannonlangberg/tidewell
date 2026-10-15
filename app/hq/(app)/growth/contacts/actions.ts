@@ -20,6 +20,7 @@ import { checkFollowUpDate, todayInZone } from "@/lib/hq/growth/dates";
 import { retainedValues } from "@/lib/hq/growth/retain";
 import { FormReader, fail, succeed, type ActionState } from "@/lib/hq/forms";
 import { withToast } from "@/components/hq/flash";
+import { safeNextPath } from "@/lib/hq/next-path";
 
 /*
  * Server Actions for contacts and interactions.
@@ -40,6 +41,19 @@ import { withToast } from "@/components/hq/flash";
 const CONTACTS = `${HQ_BASE}/growth/contacts`;
 const ORGANISATIONS = `${HQ_BASE}/growth/organisations`;
 const SOURCE_HQ = "Added in HQ";
+const REFERRAL_PARTNERS = `${HQ_BASE}/growth/partners`;
+
+/** Back to the Referral partners list the call was logged from (its filters kept), never anywhere else. */
+function partnersReturnPath(raw: string | null): string {
+  const path = safeNextPath(raw, REFERRAL_PARTNERS);
+  if (path !== REFERRAL_PARTNERS && !path.startsWith(`${REFERRAL_PARTNERS}?`)) return REFERRAL_PARTNERS;
+  const [base, query = ""] = path.split("?", 2);
+  const params = new URLSearchParams(query);
+  params.delete("log");
+  params.delete("partner");
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
 
 const DONE_MESSAGE: Record<InteractionType, string> = {
   phone_call: "Call logged",
@@ -272,13 +286,16 @@ export async function recordInteraction(_prev: ActionState, formData: FormData):
   if (v.contactId) revalidatePath(`${CONTACTS}/${v.contactId}`);
   if (v.organisationId) revalidatePath(`${ORGANISATIONS}/${v.organisationId}`);
   if (result.task_id) revalidatePath(`${HQ_BASE}/operations`);
+  revalidatePath(REFERRAL_PARTNERS);
 
   const back =
     v.returnTo === "contact" && v.contactId
       ? `${CONTACTS}/${v.contactId}`
       : v.returnTo === "organisation" && v.organisationId
         ? `${ORGANISATIONS}/${v.organisationId}`
-        : CONTACTS;
+        : v.returnTo === "partners"
+          ? partnersReturnPath(v.returnPath)
+          : CONTACTS;
   redirect(withToast(back, message));
 }
 

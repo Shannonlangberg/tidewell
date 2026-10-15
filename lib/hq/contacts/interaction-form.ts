@@ -12,7 +12,9 @@ import { checkFollowUpDate, checkOccurredAt, taskNeedsDate, todayInZone, zonedLo
 export type InteractionFormValues = {
   contactId: string | null;
   organisationId: string | null;
-  returnTo: "contact" | "organisation" | "list";
+  returnTo: "contact" | "organisation" | "list" | "partners";
+  /** For returnTo "partners": the list address to go back to (validated by the action). */
+  returnPath: string | null;
   type: InteractionType;
   occurredAt: Date;
   summary: string;
@@ -35,7 +37,9 @@ export function readInteractionForm(
   if (!contactId && !organisationId && !f.errors.contact_id && !f.errors.organisation_id) {
     f.errors.contact_id = "Choose who this was with.";
   }
-  const returnRaw = f.oneOf("return_to", ["contact", "organisation", "list"] as const, { fallback: "list" }) ?? "list";
+  const returnRaw = f.oneOf("return_to", ["contact", "organisation", "list", "partners"] as const, { fallback: "list" }) ?? "list";
+
+  const returnPath = f.text("return_path", { label: "Return path", max: 500 });
 
   const type = f.oneOf("interaction_type", INTERACTION_TYPES, { required: true }) ?? "phone_call";
 
@@ -71,6 +75,6 @@ export function readInteractionForm(
 
   return {
     reader: f,
-    values: { contactId, organisationId, returnTo: returnRaw, type, occurredAt, summary, nextAction, followUpDate, createTask, taskAssignee, newStatus },
+    values: { contactId, organisationId, returnTo: returnRaw, returnPath, type, occurredAt, summary, nextAction, followUpDate, createTask, taskAssignee, newStatus },
   };
 }

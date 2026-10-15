@@ -4,12 +4,17 @@ import {
   CONTACT_SORT_COLUMNS,
   LIST_PAGE_SIZE,
   ORGANISATION_SORT_COLUMNS,
+  PARTNER_LIST_SORT_COLUMNS,
+  PARTNER_LIST_SORT_KEYS,
+  PARTNER_QUIET_DAYS,
   boundedInt,
   first,
   lastPage,
   pageRange,
   parseContactListParams,
   parseOrganisationListParams,
+  parsePartnerListParams,
+  partnerNullsFirst,
   parseOwner,
   normaliseName,
   orIlike,
@@ -208,4 +213,82 @@ test("staleCutoff is N whole days before now, as an ISO timestamp", () => {
   const now = new Date("2026-10-15T02:00:00Z");
   assert.equal(staleCutoff(30, now), "2026-09-15T02:00:00.000Z");
   assert.equal(staleCutoff(14, now), "2026-10-01T02:00:00.000Z");
+});
+
+// ── referral partners ────────────────────────────────────────
+
+const PARTNER_VOCAB = { categories: ["mortgage_broker", "conveyancer"], statuses: ["identified", "met"] };
+
+test("referral partners: defaults, with nothing filtered", () => {
+  const q = parsePartnerListParams({}, PARTNER_VOCAB);
+  assert.deepEqual(q, {
+    kind: "organisation",
+    q: "",
+    category: null,
+    status: null,
+    owner: null,
+    quiet: false,
+    referred: null,
+    verify: null,
+    sort: "name",
+    dir: "asc",
+    page: 1,
+    filtered: false,
+  });
+});
+
+test("referral partners: valid filters are kept and counted as filtering", () => {
+  const q = parsePartnerListParams(
+    { q: "  Moonta  ", category: "conveyancer", status: "met", owner: "me", quiet: "30", referred: "no", verify: "needs", sort: "last_contacted", dir: "desc", page: "3" },
+    PARTNER_VOCAB,
+  );
+  assert.equal(q.q, "Moonta");
+  assert.equal(q.category, "conveyancer");
+  assert.equal(q.status, "met");
+  assert.deepEqual(q.owner, { kind: "me" });
+  assert.equal(q.quiet, true);
+  assert.equal(q.referred, "no");
+  assert.equal(q.verify, "needs");
+  assert.equal(q.sort, "last_contacted");
+  assert.equal(q.dir, "desc");
+  assert.equal(q.page, 3);
+  assert.equal(q.filtered, true);
+  assert.equal(parsePartnerListParams({ referred: "yes" }, PARTNER_VOCAB).referred, "yes");
+  assert.equal(parsePartnerListParams({ referred: "yes" }, PARTNER_VOCAB).filtered, true);
+  assert.equal(parsePartnerListParams({ quiet: "30" }, PARTNER_VOCAB).filtered, true);
+});
+
+test("referral partners: anything outside the allowlists is ignored", () => {
+  const q = parsePartnerListParams(
+    { show: "everyone", q: "a),or(id.gt.0", category: "plumber", status: "best_friend", owner: "drop table", quiet: "7", referred: "maybe", verify: "verified", sort: "id;--", dir: "sideways", page: "2abc" },
+    PARTNER_VOCAB,
+  );
+  assert.equal(q.kind, "organisation");
+  assert.equal(q.q, "a or id.gt.0");
+  assert.equal(q.category, null);
+  assert.equal(q.status, null);
+  assert.equal(q.owner, null);
+  assert.equal(q.quiet, false, "only the 30-day threshold is offered");
+  assert.equal(q.referred, null);
+  assert.equal(q.verify, null);
+  assert.equal(q.sort, "name");
+  assert.equal(q.dir, "asc");
+  assert.equal(q.page, 1);
+});
+
+test("referral partners: show=independent picks the independent contacts; kind, sort and page alone are not filtering", () => {
+  const q = parsePartnerListParams({ show: "independent", sort: "referrals", dir: "desc", page: "2" }, PARTNER_VOCAB);
+  assert.equal(q.kind, "independent");
+  assert.equal(q.sort, "referrals");
+  assert.equal(q.filtered, false);
+  assert.equal(PARTNER_LIST_SORT_COLUMNS.referrals, "referrals_received");
+  assert.equal(PARTNER_LIST_SORT_COLUMNS.last_contacted, "last_contacted_at");
+  assert.ok(PARTNER_LIST_SORT_KEYS.every((k) => /^[a-z_]+$/.test(PARTNER_LIST_SORT_COLUMNS[k])));
+});
+
+test("referral partners: never-contacted sorts first only for last contacted, oldest first", () => {
+  assert.equal(partnerNullsFirst("last_contacted", "asc"), true);
+  assert.equal(partnerNullsFirst("last_contacted", "desc"), false);
+  assert.equal(partnerNullsFirst("follow_up", "asc"), false);
+  assert.equal(PARTNER_QUIET_DAYS, 30);
 });

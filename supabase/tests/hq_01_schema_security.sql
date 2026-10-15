@@ -8,7 +8,7 @@
 begin;
 \ir hq_fixture.inc
 select pg_temp.seed_hq();
-select plan(142);
+select plan(143);
 
 -- ------------------------------------------------------------ extensions and schemas
 select has_extension('extensions', 'pg_trgm', 'pg_trgm is installed in extensions');
@@ -76,7 +76,7 @@ select pg_temp.become_anon();
 select throws_ok(format('select 1 from hq.%I', t), '42501', null, 'anon is denied on hq.' || t)
 from unnest(array['pods', 'staff_profiles', 'role_capabilities', 'settings', 'organisations', 'contacts', 'interactions', 'opportunities',
                   'opportunity_stage_history', 'referrals', 'tasks', 'audit_events', 'import_batches',
-                  'contact_directory', 'organisation_directory', 'referral_overview', 'partner_performance', 'overdue_followups']) t;
+                  'contact_directory', 'organisation_directory', 'referral_overview', 'partner_performance', 'overdue_followups', 'referral_partner_overview']) t;
 select throws_ok('select hq.my_access()', '42501', null, 'anon cannot call my_access');
 select throws_ok('select hq.can(''growth.read'')', '42501', null, 'anon cannot call can');
 select throws_ok('select hq.global_search(''alpha'', 5)', '42501', null, 'anon cannot call global_search');
@@ -119,11 +119,11 @@ select throws_ok('select hq_private.normalise_name(''x'')', '42501', null, 'auth
 select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ views
-select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v'), 8::bigint, 'hq has eight views (five Phase 1, three Phase 2)');
+select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v'), 9::bigint, 'hq has nine views (five Phase 1, three Phase 2, referral_partner_overview)');
 select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v' and c.reloptions @> array['security_invoker=true']),
-  8::bigint, 'every view is security_invoker');
+  9::bigint, 'every view is security_invoker');
 select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v' and has_table_privilege('authenticated', c.oid, 'select')),
-  8::bigint, 'authenticated can select every view');
+  9::bigint, 'authenticated can select every view');
 
 -- ------------------------------------------------------------ append-only: update, delete and truncate raise for every role
 select hq_private.audit_write('test', 'probe', null, 'a probe row', '{}'::jsonb);

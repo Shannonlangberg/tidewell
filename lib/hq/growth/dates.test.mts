@@ -5,10 +5,12 @@ import {
   agoLabel,
   checkFollowUpDate,
   checkOccurredAt,
+  contactRecency,
   daysAgo,
   daysBetween,
   followUpState,
   isCalendarDate,
+  lastContactedLabel,
   nowLocalInput,
   overdueLabel,
   taskNeedsDate,
@@ -122,4 +124,29 @@ test("formatDay shows weekday, day and month, and the year only when it is not t
   assert.equal(formatDay("2026-10-20T00:00:00Z", "2026-10-15"), "Tue 20 Oct");
   assert.equal(formatDay(null, "2026-10-15"), "");
   assert.equal(formatDay("soon", "2026-10-15"), "");
+});
+
+test("lastContactedLabel: Never for no contact, then the agoLabel steps", () => {
+  assert.equal(lastContactedLabel(null), "Never");
+  assert.equal(lastContactedLabel(undefined), "Never");
+  assert.equal(lastContactedLabel(Number.NaN), "Never");
+  assert.equal(lastContactedLabel(0), "Today");
+  assert.equal(lastContactedLabel(-2), "Today", "a clock a little ahead never reads as the future");
+  assert.equal(lastContactedLabel(1), "Yesterday");
+  assert.equal(lastContactedLabel(3), "3 days ago");
+  assert.equal(lastContactedLabel(13), "13 days ago");
+  assert.equal(lastContactedLabel(14), "2 weeks ago");
+  assert.equal(lastContactedLabel(59), "8 weeks ago");
+  assert.equal(lastContactedLabel(60), "2 months ago");
+  assert.equal(lastContactedLabel(364), "12 months ago");
+  assert.equal(lastContactedLabel(365), "1 year ago");
+  assert.equal(lastContactedLabel(800), "2 years ago");
+});
+
+test("contactRecency: never, quiet after 30 days, otherwise recent", () => {
+  assert.equal(contactRecency(null), "never");
+  assert.equal(contactRecency(0), "recent");
+  assert.equal(contactRecency(30), "recent", "30 days is still within the month");
+  assert.equal(contactRecency(31), "quiet");
+  assert.equal(contactRecency(10, 7), "quiet", "the threshold can be changed");
 });

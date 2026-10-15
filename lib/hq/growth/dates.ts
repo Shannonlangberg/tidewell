@@ -174,6 +174,31 @@ export function agoLabel(timestamp: string | Date | null | undefined, timezone: 
   return `${years} ${years === 1 ? "year" : "years"} ago`;
 }
 
+/**
+ * "Last contacted" in words, from a whole number of calendar days (the database's
+ * days_since_contact): null reads "Never". Same steps as agoLabel.
+ */
+export function lastContactedLabel(days: number | null | undefined): string {
+  if (days === null || days === undefined || !Number.isFinite(days)) return "Never";
+  const d = Math.max(0, Math.floor(days));
+  if (d === 0) return "Today";
+  if (d === 1) return "Yesterday";
+  if (d < 14) return `${d} days ago`;
+  if (d < 60) return `${Math.floor(d / 7)} weeks ago`;
+  if (d < 365) return `${Math.floor(d / 30)} months ago`;
+  const years = Math.floor(d / 365);
+  return `${years} ${years === 1 ? "year" : "years"} ago`;
+}
+
+/**
+ * How a "last contacted" should look: "never" and "quiet" (more than `quietDays` days) get a gentle
+ * warning tone; anything sooner reads plainly.
+ */
+export function contactRecency(days: number | null | undefined, quietDays: number = 30): "never" | "quiet" | "recent" {
+  if (days === null || days === undefined || !Number.isFinite(days)) return "never";
+  return days > quietDays ? "quiet" : "recent";
+}
+
 /** Whole calendar days since a timestamp (0 for today), or null. */
 export function daysAgo(timestamp: string | Date | null | undefined, timezone: string, now: Date = new Date()): number | null {
   if (!timestamp) return null;

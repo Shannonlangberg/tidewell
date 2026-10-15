@@ -7,6 +7,7 @@ import { formatDate, formatDateTime } from "@/lib/hq/format";
 import { agoLabel, nowLocalInput, todayInZone } from "@/lib/hq/growth/dates";
 import { getOrganisation, organisationContacts } from "@/lib/hq/organisations/queries";
 import { staffOptions } from "@/lib/hq/queries/options";
+import { getReferralPartner } from "@/lib/hq/referral-partners/queries";
 import { EmptyState, ErrorState, KeyValueList, LinkButton, PageHeader, SectionLabel, StatusChip, buildHref, type KeyValueItem } from "@/components/hq";
 import { ArchiveButton } from "@/components/hq/features/contacts/ArchiveButton";
 import { CategoryTags, NeedsVerifyingChip } from "@/components/hq/features/contacts/Bits";
@@ -15,6 +16,7 @@ import { ReferralsBlock } from "@/components/hq/features/contacts/Panels";
 import { InteractionTimeline } from "@/components/hq/features/contacts/Timeline";
 import { VerifyNotice } from "@/components/hq/features/contacts/Verify";
 import { OrganisationContacts } from "@/components/hq/features/organisations/OrganisationContacts";
+import { PartnerSummaryBlock } from "@/components/hq/features/referral-partners/PartnerSummaryBlock";
 import { archiveOrganisation, verifyOrganisation } from "../actions";
 
 export const metadata: Metadata = { title: "Organisation" };
@@ -47,12 +49,16 @@ export default async function OrganisationPage({ params, searchParams }: { param
   const tz = staff.timezone;
   const today = todayInZone(tz);
 
-  const [contacts, history, referrals, staffList] = await Promise.all([
+  const [contacts, history, referrals, staffList, partner] = await Promise.all([
     organisationContacts(db, id),
     listInteractions(db, { organisationId: id }),
     referralSummary(db, { organisationId: id }),
     canWrite ? staffOptions(db) : Promise.resolve([]),
+    getReferralPartner(db, id),
   ]);
+  // The partner summary carries "last contacted" (contacts AND organisation-level interactions); the
+  // details list only falls back to its own figure when the summary could not be loaded.
+  const hasSummary = partner.ok && partner.data !== null;
 
   const referralHref = `/hq/growth/referrals/new?partner_organisation=${o.id}`;
   const logHref = buildHref(`${BASE}/${id}`, sp, { log: "call" });
@@ -72,7 +78,7 @@ export default async function OrganisationPage({ params, searchParams }: { param
       ) : null,
     },
     { label: "Location", value: o.location },
-    {
+    ...(hasSummary ? [] : [{
       label: "Last interaction",
       empty: "Not contacted yet",
       value: o.lastContactAt ? (
@@ -81,7 +87,7 @@ export default async function OrganisationPage({ params, searchParams }: { param
           <span className="block text-[13px] font-normal text-grey-text">{formatDateTime(o.lastContactAt, tz)}</span>
         </time>
       ) : null,
-    },
+    }]),
     { label: "Source", value: o.source },
     { label: "Verification", value: o.needsVerification ? <NeedsVerifyingChip /> : o.verifiedAt ? `Verified ${formatDate(o.verifiedAt, tz)}` : "No flag" },
     { label: "Added", value: o.createdAt ? formatDate(o.createdAt, tz) : null },
@@ -198,7 +204,8 @@ export default async function OrganisationPage({ params, searchParams }: { param
         </div>
 
         <aside className="grid content-start gap-7" aria-label="Organisation details">
-          <section aria-labelledby="details-h">
+          <PartnerSummaryBlock partner={partner} timezone={tz} today={today} />
+          <section aria-labelledby="details-h" className="border-t border-line pt-5">
             <SectionLabel as="h2" id="details-h" className="mb-3.5">
               Details
             </SectionLabel>
