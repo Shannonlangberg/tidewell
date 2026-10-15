@@ -68,7 +68,7 @@ npm run build            # the production build Netlify runs
 - **Audit.** Changes to the core records write append-only audit events that nobody, including the database owner's triggers, can edit or delete.
 - **No fabricated data.** Imported leads arrive as "Identified" and "Needs verifying" with only the fields supplied. Nothing is invented.
 - **HQ is never indexed** (`robots.txt`, `X-Robots-Tag`, and `Cache-Control: private, no-store`).
-- **AI is not part of Phase 1.** When it arrives it will receive only what a validated tool returns, never raw tables.
+- **AI (Phase 3) is ChatGPT or Claude connected over MCP**, not a model inside HQ. The chat app receives only what a validated tool returns, as the signed-in person, never raw tables. See [Connecting ChatGPT and Claude](#connecting-chatgpt-and-claude-mcp).
 
 ## The live project
 
@@ -100,6 +100,72 @@ To connect a sender: add an `[remotes.production.auth.email.smtp]` block to `sup
 - **No password-refusal hook** (Team and Enterprise). Nobody is given a password and sign-up is off, and HQ returns nothing until multi-factor sign-in is complete, so a password route has nothing to unlock.
 - **Projects pause after a week of inactivity.**
 - **No Cloudflare Turnstile yet.** Captcha is off in production until real keys exist (the local test secret accepts anything). Add the site key to Netlify as `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, put the secret in `supabase/config.toml`'s production override, and turn it on.
+
+## Connecting ChatGPT and Claude (MCP)
+
+HQ is an **MCP server** at **`/mcp`** (`https://tidewellcc.netlify.app/mcp` in production). People chat in ChatGPT or Claude; those apps call HQ's tools, **as the person who connected them, with exactly that person's HQ permissions**. There is no AI model inside HQ and no OpenAI or Anthropic key. Design: [hq-mcp.md](hq-mcp.md).
+
+### How it works
+
+- **Sign-in is OAuth 2.1 through Supabase Auth.** Supabase is the authorization server, `/mcp` is the resource server, and HQ hosts the consent screen at `/hq/oauth/consent`.
+  1. The app calls `/mcp`, gets `401` with `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource/mcp"`.
+  2. That document names the Supabase Auth server (`<project url>/auth/v1`). The app reads its metadata, **registers itself** (dynamic client registration) and sends the person to Supabase's authorize endpoint (PKCE).
+  3. Supabase sends the browser to HQ's consent screen. The person signs in to HQ if they are not already (the normal emailed code and second step), and comes straight back.
+  4. The screen shows the app's name, the address it will return to, and what it can and cannot do. **Approve** or **Cancel**. Only active staff whose role includes `ai.use` see Approve (every role except read-only); anyone else can only cancel.
+  5. The app exchanges the code for a token and calls `/mcp` with it.
+- **Every request is checked at `/mcp`:** the token's signature is verified locally against the project's JWKS (no call to Supabase, no secret key), with issuer, expiry, `aud`/`role` = `authenticated`, and a `client_id` claim. Supabase only puts `client_id` in tokens issued to an OAuth app, so an ordinary HQ browser session token is refused here. Then `hq.my_access()` is asked, **as the person**, whether they are active staff, have completed any second step that is owed, and hold `ai.use`. If not: `403`, no tools.
+- **Each tool runs as the person.** The token is passed to Supabase with the publishable key, so row level security and the database functions decide exactly as they do on screen. The tool list itself is filtered by the person's capabilities.
+- **Stateless:** each POST is answered with one JSON response (no sessions, no streaming). `GET` and `DELETE` on `/mcp` answer `405` once authenticated.
+- **Every tool call is logged** in `hq.ai_requests` through `ai_begin_request` / `ai_finish_request`: who, when, the tool, the outcome, and a summary made of the **tool name and record ids only** plus the app's client id (for example `mcp write update_task task_id=<id> via <client id>`). Names, notes and search words are never written to the log. Writes are also audited by the existing triggers and functions.
+
+### What it can do
+
+The tools are in `lib/hq/mcp/tools/` (one file per group). Read tools: `search` and `fetch` (the two tools ChatGPT's connectors expect), contractors, contacts, organisations, tasks, referrals, the pipeline, who to contact, the team directory (names and roles), and reports (daily brief, growth report, contractor report, weekly report). Small single-record writes: tasks, logging a call/meeting/email/note, contacts, organisations, contractor details, contractor reviews, vetting steps, referrals, and moving an opportunity (never to signed). People refer to records by name; when a name matches more than one record, the tool returns the candidates and asks.
+
+### Deliberately not available through a chat app
+
+Approving, preferring, suspending, reinstating or deactivating a contractor; archiving or deleting anything; document upload or download; imports; people and roles; settings; signing a management; anything that needs `people.admin` or `settings.admin`. These stay deliberate actions in the HQ screens.
+
+### Switching it on (production)
+
+1. **Supabase:** apply the `[remotes.production.auth.oauth_server]` block in `supabase/config.toml` (`supabase config push`, or Authentication > OAuth Server in the dashboard: enable, authorization path `/hq/oauth/consent`, dynamic registration on). The site URL must be `https://tidewellcc.netlify.app` (it is). **Not yet applied to the hosted project.**
+2. **Signing keys:** `/mcp` accepts only asymmetric tokens (ES256/RS256 from the JWKS) in production. Check Authentication > JWT Keys shows an asymmetric current key before connecting anything.
+3. **Second step (read this first):** see the MFA limitation below. With `require_mfa` on, connected apps are refused.
+4. **The on/off switch:** `hq.settings.ai_enabled` is `false` by default, and every tool call is refused ("switched off") until a director sets it to `true`. There is no screen for it yet: run `update hq.settings set value = 'true' where key = 'ai_enabled';` in the Supabase SQL editor (the settings trigger audits it). A director's own session may also make that update (policy `settings.admin`); the e2e script does it that way.
+5. Optional environment variables on Netlify: `HQ_PUBLIC_ORIGIN` (for example `https://tidewellcc.netlify.app`; the origin the metadata advertises, otherwise taken from the request's host) and `HQ_MCP_WRITE_HOURLY_LIMIT` (see Limits).
+
+### Connecting (at the time of writing; menu names change)
+
+- **ChatGPT:** Settings, Connectors (Apps), Advanced, turn on Developer mode; then Create/Add a connector, MCP server URL `https://tidewellcc.netlify.app/mcp`, authentication **OAuth** (dynamic registration, no client id to paste). Sign in to HQ when asked and Approve.
+- **Claude:** Settings, Connectors, Add custom connector, the same URL. Sign in to HQ and Approve.
+
+### Disconnecting
+
+Each person can see and disconnect their own apps on **Profile > Connected apps** in HQ. Disconnecting revokes the grant at Supabase: the app's refresh tokens stop working at once and it must ask again. An access token the app already holds keeps working **until it expires (one hour)**, because `/mcp` verifies tokens locally and cannot see a revocation sooner. To cut someone off immediately, deactivate them in People (their tokens then fail the staff check on the next call), or set `ai_enabled` to `false` for everyone.
+
+### Limits
+
+- **All calls:** `hq.settings.ai_hourly_limit` per person per rolling hour (default 40, 1 to 1000), enforced inside the database by `ai_begin_request`. Chat apps can call several tools per question, so a director may want to raise it. A refused call stores nothing.
+- **Writes:** a lower cap per person per rolling hour, default 15, set with `HQ_MCP_WRITE_HOURLY_LIMIT` (1 to 200). Counted from the person's own logged write calls. A safety bound, not a business figure.
+- Each tool must answer within 8 seconds; results are cut at 20,000 characters (with a note saying so); request bodies over 64 kB are refused; at most 200 argument elements per call.
+- **Netlify's synchronous function limit is short** (10 seconds by default). The endpoint is stateless and every tool is a few small queries, but a cold start plus a slow report could approach it.
+
+### Known limitations of the connection
+
+- **Multi-factor sign-in blocks it today.** Supabase issues OAuth app tokens at `aal1` even when the person approved from a session that had completed the second step (checked locally: consent given at `aal2`, the token says `aal1` with method `oauth_provider/authorization_code`). HQ's database requires an `aal2` session when `require_mfa` is on, and `/mcp` follows it. So **with `require_mfa` on (the production default) every connected app gets `403`**. This needs a decision before going live: for example, the database could accept OAuth-app tokens at `aal1` for the `ai.use` paths (consent itself always happens in a full HQ session), or MFA stays off until Supabase supports it. Nothing has been changed to weaken MFA.
+- **Not exercised from the real ChatGPT or Claude apps.** Everything was tested locally with the official MCP SDK client doing the same discovery, registration, PKCE and token exchange (`scripts/hq/mcp-e2e.mts`). A person must add the connector in each app and try it.
+- The token's audience is `authenticated` (Supabase does not bind tokens to a resource with RFC 8707 `resource`), so `/mcp` relies on the `client_id` claim and issuer to tell OAuth-app tokens from browser sessions. The token is passed on to Supabase (the same project that issued it) so RLS runs as the person.
+- Supabase's OAuth server is in beta; free-plan rate limits on registration and token endpoints apply.
+- No CORS on `/mcp` (ChatGPT and Claude call it server to server); browser-based MCP inspectors cannot call it directly.
+
+### Local testing
+
+```bash
+NEXT_DIST_DIR=.next-m1 HQ_MCP_WRITE_HOURLY_LIMIT=30 npx next dev -p 3350
+node --env-file=.env.local scripts/hq/mcp-e2e.mts http://mcp.localhost:3350
+```
+
+The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && supabase start -x logflare,vector` after changing it). Supabase sends consent to `site_url` + `/hq/oauth/consent`, which locally is port 3210; the test script reads the `authorization_id` from that redirect and opens the consent page on whichever server it is testing.
 
 ## Known limitations and open decisions
 
