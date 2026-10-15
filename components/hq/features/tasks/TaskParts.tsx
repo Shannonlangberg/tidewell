@@ -40,7 +40,7 @@ export function dueMeta(due: string | null, status: TaskStatus, today: string): 
   return rel === "Today" || rel === "Tomorrow" ? rel : `Due ${formatDate(due)}`;
 }
 
-type Kind = "contact" | "organisation" | "referral" | "opportunity";
+type Kind = "contact" | "organisation" | "referral" | "opportunity" | "contractor";
 
 const KIND: Record<Kind, { icon: IconName; noun: string; href: ((id: string) => string) | null }> = {
   contact: { icon: "user", noun: "Contact", href: (id) => `/hq/growth/contacts/${id}` },
@@ -48,9 +48,10 @@ const KIND: Record<Kind, { icon: IconName; noun: string; href: ((id: string) => 
   referral: { icon: "link", noun: "Referral", href: (id) => `/hq/growth/referrals/${id}` },
   // Opportunities have no page of their own: they live on the pipeline board.
   opportunity: { icon: "growth", noun: "Opportunity", href: null },
+  contractor: { icon: "partners", noun: "Contractor", href: (id) => `/hq/partners/${id}` },
 };
 
-const ORDER: Kind[] = ["contact", "organisation", "referral", "opportunity"];
+const ORDER: Kind[] = ["contact", "organisation", "referral", "opportunity", "contractor"];
 
 function RelatedChip({ kind, rel }: { kind: Kind; rel: RelatedRef }) {
   const k = KIND[kind];

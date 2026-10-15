@@ -22,6 +22,8 @@ export const HQ_ROUTES = {
   referralNew: `${HQ_BASE}/growth/referrals/new`,
   pipeline: `${HQ_BASE}/growth/pipeline`,
   partners: `${HQ_BASE}/partners`,
+  partnerNew: `${HQ_BASE}/partners/new`,
+  partnerImport: `${HQ_BASE}/partners/import`,
   operations: `${HQ_BASE}/operations`,
   taskNew: `${HQ_BASE}/operations/tasks/new`,
   people: `${HQ_BASE}/people`,
@@ -33,13 +35,14 @@ export const HQ_ROUTES = {
 // ── global search ────────────────────────────────────────────
 
 /** What `global_search` returns, mapped to the page that shows each kind of record. */
-export type SearchKind = "contacts" | "organisations" | "referrals" | "tasks";
+export type SearchKind = "contacts" | "organisations" | "referrals" | "tasks" | "contractors";
 
 const SEARCH_PATHS: Record<SearchKind, (id: string) => string> = {
   contacts: (id) => `${HQ_ROUTES.contacts}/${encodeURIComponent(id)}`,
   organisations: (id) => `${HQ_ROUTES.organisations}/${encodeURIComponent(id)}`,
   referrals: (id) => `${HQ_ROUTES.referrals}/${encodeURIComponent(id)}`,
   tasks: (id) => `${HQ_ROUTES.operations}/tasks/${encodeURIComponent(id)}`,
+  contractors: (id) => `${HQ_ROUTES.partners}/${encodeURIComponent(id)}`,
 };
 
 export function hrefForSearchHit(kind: SearchKind, id: string): string {
@@ -52,6 +55,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
   { kind: "organisations", label: "Organisations", icon: "building" },
   { kind: "referrals", label: "Referrals", icon: "link" },
   { kind: "tasks", label: "Tasks", icon: "task" },
+  { kind: "contractors", label: "Contractors", icon: "partners" },
 ];
 
 // ── primary navigation ───────────────────────────────────────
@@ -82,7 +86,7 @@ export type NavItem = {
 export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: HQ_ROUTES.dashboard, icon: "dashboard", status: "built", mobile: "tab" },
   { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", status: "built", requires: "growth.read", mobile: "tab" },
-  { key: "partners", label: "Partners", href: HQ_ROUTES.partners, icon: "partners", status: "planned", phase: 2, mobile: "more" },
+  { key: "partners", label: "Partners", href: HQ_ROUTES.partners, icon: "partners", status: "built", requires: "contractors.read", mobile: "more" },
   { key: "operations", label: "Operations", href: HQ_ROUTES.operations, icon: "operations", status: "built", mobile: "tab" },
   { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", status: "built", requires: "people.read", mobile: "more" },
   { key: "insights", label: "Insights", href: HQ_ROUTES.insights, icon: "insights", status: "planned", phase: 4, mobile: "more" },
@@ -149,6 +153,7 @@ export const QUICK_ACTIONS: readonly QuickAction[] = [
   { key: "call", label: "Log a call", href: HQ_ROUTES.logCall, icon: "phone", requires: "growth.write" },
   { key: "task", label: "New task", href: HQ_ROUTES.taskNew, icon: "task", requires: "tasks.write" },
   { key: "referral", label: "Record a referral", href: HQ_ROUTES.referralNew, icon: "link", requires: "growth.write" },
+  { key: "contractor", label: "Add contractor", href: HQ_ROUTES.partnerNew, icon: "partners", requires: "contractors.write" },
 ];
 
 export function visibleQuickActions(capabilities: readonly string[]): QuickAction[] {

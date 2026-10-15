@@ -129,3 +129,48 @@ test("isWidgetId", () => {
   assert.equal(isWidgetId("MY-TASKS"), false);
   assert.equal(isWidgetId(undefined), false);
 });
+
+// ── contractor widgets (Phase 2) ──
+
+const CONTRACTOR_WIDGETS = [
+  "contractors-awaiting-vetting",
+  "contractors-expiring-documents",
+  "contractors-preferred-coverage",
+  "contractors-recent-activity",
+] as const;
+
+test("the four contractor widgets exist, are panels, and need contractors.read", () => {
+  for (const id of CONTRACTOR_WIDGETS) {
+    const def = widgetDef(id);
+    assert.equal(def.kind, "panel", id);
+    assert.equal(def.requires, "contractors.read", id);
+  }
+});
+
+test("a person without contractors.read is never offered, given or saved a contractor widget", () => {
+  const caps = [...CAPS.director, "tasks.write"]; // every Phase 1 capability, no contractors.*
+  const offered = availableWidgets(caps).map((w) => w.id as string);
+  for (const id of CONTRACTOR_WIDGETS) assert.equal(offered.includes(id), false, id);
+  assert.deepEqual(defaultWidgetsFor("director", caps).filter((i) => (CONTRACTOR_WIDGETS as readonly string[]).includes(i)), []);
+  assert.deepEqual(sanitiseSelection([...CONTRACTOR_WIDGETS, "my-tasks"], caps), ["my-tasks"]);
+});
+
+test("with contractors.read the widgets are offered and a saved choice keeps them", () => {
+  const caps = [...CAPS.junior_property_manager, "contractors.read"];
+  const offered = availableWidgets(caps).map((w) => w.id as string);
+  for (const id of CONTRACTOR_WIDGETS) assert.ok(offered.includes(id), id);
+  assert.deepEqual(resolveWidgets({ role: "junior_property_manager", capabilities: caps, saved: ["contractors-expiring-documents", "my-tasks"] }), ["my-tasks", "contractors-expiring-documents"]);
+});
+
+test("directors and administrators get all four by default; others get a sensible subset", () => {
+  const withContractors = (c: readonly string[]) => [...c, "contractors.read"];
+  for (const role of ["director", "administrator"] as const) {
+    const d = defaultWidgetsFor(role, withContractors(CAPS[role]));
+    for (const id of CONTRACTOR_WIDGETS) assert.ok(d.includes(id), `${role} ${id}`);
+  }
+  const pm = defaultWidgetsFor("property_manager", withContractors(CAPS.property_manager));
+  assert.ok(pm.includes("contractors-awaiting-vetting") && pm.includes("contractors-expiring-documents"));
+  assert.equal(pm.includes("contractors-recent-activity"), false);
+  // A role the matrix gives only read (junior, read-only) is not pushed contractor panels it did not ask for.
+  assert.equal(defaultWidgetsFor("read_only", withContractors(CAPS.read_only)).some((i) => (CONTRACTOR_WIDGETS as readonly string[]).includes(i)), false);
+});

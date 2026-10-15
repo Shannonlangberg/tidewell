@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
 import { todayIn } from "@/lib/hq/format";
 import { isUuid } from "@/lib/hq/forms";
+import { contractorOptions } from "@/lib/hq/contractors/queries";
 import { contactOptions, organisationOptions, staffOptions, type Option } from "@/lib/hq/queries/options";
 import { getTask } from "@/lib/hq/tasks/queries";
 import { ErrorState, LinkButton, PageHeader } from "@/components/hq";
@@ -20,11 +21,13 @@ export default async function EditTaskPage({ params }: { params: Params }) {
   if (!isUuid(id)) notFound();
 
   const canLink = can("growth.read");
-  const [found, staffList, contacts, organisations] = await Promise.all([
-    getTask(db, id, { canGrowth: canLink }),
+  const canLinkContractors = can("contractors.read");
+  const [found, staffList, contacts, organisations, contractors] = await Promise.all([
+    getTask(db, id, { canGrowth: canLink, canContractors: canLinkContractors }),
     staffOptions(db),
     canLink ? contactOptions(db) : Promise.resolve<Option[]>([]),
     canLink ? organisationOptions(db) : Promise.resolve<Option[]>([]),
+    canLinkContractors ? contractorOptions(db) : Promise.resolve<Option[]>([]),
   ]);
 
   if (!found.ok) {
@@ -63,6 +66,7 @@ export default async function EditTaskPage({ params }: { params: Params }) {
   }
   if (t.related.referral) linked.push({ kind: "referral", label: t.related.referral.label, href: t.related.referral.label ? `/hq/growth/referrals/${t.related.referral.id}` : null });
   if (t.related.opportunity) linked.push({ kind: "opportunity", label: t.related.opportunity.label, href: null });
+  if (t.related.contractor) linked.push({ kind: "contractor", label: t.related.contractor.label, href: t.related.contractor.label ? `/hq/partners/${t.related.contractor.id}` : null });
 
   return (
     <>
@@ -90,10 +94,13 @@ export default async function EditTaskPage({ params }: { params: Params }) {
           organisationId: t.related.organisation?.id ?? "",
           referralId: t.related.referral?.id ?? "",
           opportunityId: t.related.opportunity?.id ?? "",
+          contractorId: t.related.contractor?.id ?? "",
         }}
         staff={assigneeOptions}
         contacts={withSelected(contacts, t.related.contact, "Linked contact")}
         organisations={withSelected(organisations, t.related.organisation, "Linked organisation")}
+        contractors={withSelected(contractors, t.related.contractor, "Linked contractor")}
+        canLinkContractors={canLinkContractors}
         canLink={canLink}
         linked={linked}
         referralLink={t.related.referral ? { id: t.related.referral.id, label: t.related.referral.label } : null}

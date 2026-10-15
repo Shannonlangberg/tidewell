@@ -26,6 +26,10 @@ export const WIDGET_IDS = [
   "partner-activity",
   "partner-referrals",
   "stale-partners",
+  "contractors-awaiting-vetting",
+  "contractors-expiring-documents",
+  "contractors-preferred-coverage",
+  "contractors-recent-activity",
 ] as const;
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
@@ -139,6 +143,38 @@ export const WIDGETS: readonly WidgetDef[] = [
     kind: "panel",
     requires: "growth.read",
     defaultFor: ["director", "business_development_manager", "virtual_assistant"],
+  },
+  {
+    id: "contractors-awaiting-vetting",
+    title: "Contractors awaiting vetting",
+    description: "Contractors being vetted, and how far through the checklist each one is.",
+    kind: "panel",
+    requires: "contractors.read",
+    defaultFor: ["director", "administrator", "senior_property_manager", "property_manager", "virtual_assistant"],
+  },
+  {
+    id: "contractors-expiring-documents",
+    title: "Expiring contractor documents",
+    description: "Licences, insurance and documents that have expired or expire soon, with a button to create reminder tasks.",
+    kind: "panel",
+    requires: "contractors.read",
+    defaultFor: ["director", "administrator", "senior_property_manager", "property_manager"],
+  },
+  {
+    id: "contractors-preferred-coverage",
+    title: "Preferred contractor coverage",
+    description: "Which trades have an approved contractor, and which have none.",
+    kind: "panel",
+    requires: "contractors.read",
+    defaultFor: ["director", "administrator", "senior_property_manager"],
+  },
+  {
+    id: "contractors-recent-activity",
+    title: "Recent contractor activity",
+    description: "The latest status changes, checklist steps, documents, feedback and contacts across contractors.",
+    kind: "panel",
+    requires: "contractors.read",
+    defaultFor: ["director", "administrator"],
   },
 ];
 

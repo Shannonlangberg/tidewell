@@ -30,6 +30,7 @@ export type SearchResults = {
   organisations: SearchHit[];
   referrals: SearchHit[];
   tasks: SearchHit[];
+  contractors: SearchHit[];
 };
 
 /** A Server Action that runs global search as the signed-in person. */

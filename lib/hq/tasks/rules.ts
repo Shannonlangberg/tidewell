@@ -400,13 +400,14 @@ export function resolveView(value: unknown, canReadAll: boolean): TaskViewKey {
 export const LIST_PAGE_SIZE = 25;
 export const Q_MAX = 100;
 
-export const RELATED_FILTERS = ["contact", "organisation", "referral", "opportunity", "none"] as const;
+export const RELATED_FILTERS = ["contact", "organisation", "referral", "opportunity", "contractor", "none"] as const;
 export type RelatedFilter = (typeof RELATED_FILTERS)[number];
 export const RELATED_FILTER_LABEL: Record<RelatedFilter, string> = {
   contact: "Linked to a contact",
   organisation: "Linked to an organisation",
   referral: "Linked to a referral",
   opportunity: "Linked to an opportunity",
+  contractor: "Linked to a contractor",
   none: "Not linked to anything",
 };
 
@@ -606,6 +607,7 @@ export const DESCRIPTION_MAX = 4000;
 
 export type NewTaskPrefill = {
   contact: string | null;
+  contractor: string | null;
   organisation: string | null;
   referral: string | null;
   opportunity: string | null;
@@ -641,6 +643,7 @@ export function parseNewTaskQuery(sp: Params, safePath: (value: unknown) => stri
   const due = first(sp.due).trim();
   return {
     contact: uuidParam(sp.contact),
+    contractor: uuidParam(sp.contractor),
     organisation: uuidParam(sp.organisation),
     referral: uuidParam(sp.referral),
     opportunity: uuidParam(sp.opportunity),
@@ -654,6 +657,7 @@ export function parseNewTaskQuery(sp: Params, safePath: (value: unknown) => stri
 export function newTaskHref(prefill: Partial<NewTaskPrefill> = {}): string {
   const params = new URLSearchParams();
   if (prefill.contact) params.set("contact", prefill.contact);
+  if (prefill.contractor) params.set("contractor", prefill.contractor);
   if (prefill.organisation) params.set("organisation", prefill.organisation);
   if (prefill.referral) params.set("referral", prefill.referral);
   if (prefill.opportunity) params.set("opportunity", prefill.opportunity);
@@ -679,6 +683,8 @@ export type TaskFormValues = {
   organisationId: string | null;
   referralId: string | null;
   opportunityId: string | null;
+  /** Phase 2: the contractor the task is about. */
+  contractorId: string | null;
 };
 
 /** The labels the form summary uses for each field. */
@@ -692,6 +698,7 @@ export const TASK_FORM_LABELS: Record<string, string> = {
   related_organisation_id: "Organisation",
   related_referral_id: "Referral",
   related_opportunity_id: "Opportunity",
+  related_contractor_id: "Contractor",
 };
 
 /**
@@ -708,6 +715,7 @@ export function readTaskFields(f: FormReader): TaskFormValues {
   const organisationId = f.uuid("related_organisation_id");
   const referralId = f.uuid("related_referral_id");
   const opportunityId = f.uuid("related_opportunity_id");
+  const contractorId = f.uuid("related_contractor_id");
   return {
     title,
     description,
@@ -718,6 +726,7 @@ export function readTaskFields(f: FormReader): TaskFormValues {
     organisationId: organisationId ? organisationId.toLowerCase() : null,
     referralId: referralId ? referralId.toLowerCase() : null,
     opportunityId: opportunityId ? opportunityId.toLowerCase() : null,
+    contractorId: contractorId ? contractorId.toLowerCase() : null,
   };
 }
 
@@ -732,4 +741,5 @@ export type TaskFormInitial = {
   organisationId: string;
   referralId: string;
   opportunityId: string;
+  contractorId: string;
 };

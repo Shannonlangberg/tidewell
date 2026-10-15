@@ -15,9 +15,10 @@ const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 test("a clean contract link prefills every field", () => {
-  const p = parseNewTaskQuery({ contact: A, organisation: B, referral: A, opportunity: B, title: "Call back", due: "2026-10-20", return: "/hq/growth/contacts/abc" });
+  const p = parseNewTaskQuery({ contact: A, contractor: B, organisation: B, referral: A, opportunity: B, title: "Call back", due: "2026-10-20", return: "/hq/growth/contacts/abc" });
   assert.deepEqual(p, {
     contact: A,
+    contractor: B,
     organisation: B,
     referral: A,
     opportunity: B,
@@ -29,7 +30,7 @@ test("a clean contract link prefills every field", () => {
 
 test("any subset works, and an empty query prefills nothing", () => {
   const empty = parseNewTaskQuery({});
-  assert.deepEqual(empty, { contact: null, organisation: null, referral: null, opportunity: null, title: null, due: null, returnTo: null });
+  assert.deepEqual(empty, { contact: null, contractor: null, organisation: null, referral: null, opportunity: null, title: null, due: null, returnTo: null });
   assert.equal(parseNewTaskQuery({ contact: A }).contact, A);
   assert.equal(parseNewTaskQuery({ contact: A }).organisation, null);
 });

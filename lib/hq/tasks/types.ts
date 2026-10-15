@@ -16,6 +16,8 @@ export type TaskRelated = {
   organisation: RelatedRef | null;
   referral: RelatedRef | null;
   opportunity: RelatedRef | null;
+  /** Phase 2: the contractor the task is about. Named only for people with contractors.read. */
+  contractor: RelatedRef | null;
 };
 
 export type TaskListItem = {

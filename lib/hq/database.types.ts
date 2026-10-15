@@ -167,15 +167,406 @@ export type Database = {
           },
         ]
       }
+      contractor_documents: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          document_type: Database["hq"]["Enums"]["contractor_document_type"]
+          expires_on: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          notes: string | null
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string | null
+          verification: Database["hq"]["Enums"]["document_verification"]
+          verification_note: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          document_type: Database["hq"]["Enums"]["contractor_document_type"]
+          expires_on?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          notes?: string | null
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          verification?: Database["hq"]["Enums"]["document_verification"]
+          verification_note?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          document_type?: Database["hq"]["Enums"]["contractor_document_type"]
+          expires_on?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          notes?: string | null
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          verification?: Database["hq"]["Enums"]["document_verification"]
+          verification_note?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_documents_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_documents_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_reviews: {
+        Row: {
+          communication: number | null
+          contractor_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          invoice_accuracy: number | null
+          job_date: string | null
+          job_reference: string | null
+          notes: string | null
+          recorded_by: string | null
+          response_time: number | null
+          rework_required: boolean | null
+          tenant_feedback: Database["hq"]["Enums"]["tenant_feedback"] | null
+          updated_at: string
+          work_quality: number | null
+        }
+        Insert: {
+          communication?: number | null
+          contractor_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          invoice_accuracy?: number | null
+          job_date?: string | null
+          job_reference?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          response_time?: number | null
+          rework_required?: boolean | null
+          tenant_feedback?: Database["hq"]["Enums"]["tenant_feedback"] | null
+          updated_at?: string
+          work_quality?: number | null
+        }
+        Update: {
+          communication?: number | null
+          contractor_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          invoice_accuracy?: number | null
+          job_date?: string | null
+          job_reference?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          response_time?: number | null
+          rework_required?: boolean | null
+          tenant_feedback?: Database["hq"]["Enums"]["tenant_feedback"] | null
+          updated_at?: string
+          work_quality?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_reviews_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_reviews_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          contractor_id: string
+          from_status: Database["hq"]["Enums"]["contractor_status"] | null
+          id: number
+          note: string | null
+          to_status: Database["hq"]["Enums"]["contractor_status"]
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          contractor_id: string
+          from_status?: Database["hq"]["Enums"]["contractor_status"] | null
+          id?: never
+          note?: string | null
+          to_status: Database["hq"]["Enums"]["contractor_status"]
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          contractor_id?: string
+          from_status?: Database["hq"]["Enums"]["contractor_status"] | null
+          id?: never
+          note?: string | null
+          to_status?: Database["hq"]["Enums"]["contractor_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_status_history_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_status_history_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_vetting_steps: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          contractor_id: string
+          note: string | null
+          status: Database["hq"]["Enums"]["vetting_step_status"]
+          step: Database["hq"]["Enums"]["vetting_step"]
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          contractor_id: string
+          note?: string | null
+          status?: Database["hq"]["Enums"]["vetting_step_status"]
+          step: Database["hq"]["Enums"]["vetting_step"]
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          contractor_id?: string
+          note?: string | null
+          status?: Database["hq"]["Enums"]["vetting_step_status"]
+          step?: Database["hq"]["Enums"]["vetting_step"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_vetting_steps_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contractor_vetting_steps_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractors: {
+        Row: {
+          abn: string | null
+          after_hours_fee_cents: number | null
+          approved_at: string | null
+          approved_by: string | null
+          business_hours: string | null
+          business_name: string
+          callout_fee_cents: number | null
+          categories: Database["hq"]["Enums"]["contractor_category"][]
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          email: string | null
+          emergency_available: boolean | null
+          external_ids: Json
+          hourly_rate_cents: number | null
+          id: string
+          insurance_details: string | null
+          insurance_expires_on: string | null
+          insurance_verified_at: string | null
+          internal_notes: string | null
+          invoice_terms: string | null
+          last_job_date: string | null
+          licence_details: string | null
+          licence_expires_on: string | null
+          licence_verified_at: string | null
+          minimum_charge_cents: number | null
+          name_key: string | null
+          needs_verification: boolean
+          phone: string | null
+          primary_contact_name: string | null
+          relationship_owner_id: string | null
+          service_regions: string[]
+          service_suburbs: string[]
+          source: string | null
+          status: Database["hq"]["Enums"]["contractor_status"]
+          status_reason: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          website: string | null
+        }
+        Insert: {
+          abn?: string | null
+          after_hours_fee_cents?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          business_hours?: string | null
+          business_name: string
+          callout_fee_cents?: number | null
+          categories: Database["hq"]["Enums"]["contractor_category"][]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          emergency_available?: boolean | null
+          external_ids?: Json
+          hourly_rate_cents?: number | null
+          id?: string
+          insurance_details?: string | null
+          insurance_expires_on?: string | null
+          insurance_verified_at?: string | null
+          internal_notes?: string | null
+          invoice_terms?: string | null
+          last_job_date?: string | null
+          licence_details?: string | null
+          licence_expires_on?: string | null
+          licence_verified_at?: string | null
+          minimum_charge_cents?: number | null
+          name_key?: string | null
+          needs_verification?: boolean
+          phone?: string | null
+          primary_contact_name?: string | null
+          relationship_owner_id?: string | null
+          service_regions?: string[]
+          service_suburbs?: string[]
+          source?: string | null
+          status?: Database["hq"]["Enums"]["contractor_status"]
+          status_reason?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          abn?: string | null
+          after_hours_fee_cents?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          business_hours?: string | null
+          business_name?: string
+          callout_fee_cents?: number | null
+          categories?: Database["hq"]["Enums"]["contractor_category"][]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string | null
+          emergency_available?: boolean | null
+          external_ids?: Json
+          hourly_rate_cents?: number | null
+          id?: string
+          insurance_details?: string | null
+          insurance_expires_on?: string | null
+          insurance_verified_at?: string | null
+          internal_notes?: string | null
+          invoice_terms?: string | null
+          last_job_date?: string | null
+          licence_details?: string | null
+          licence_expires_on?: string | null
+          licence_verified_at?: string | null
+          minimum_charge_cents?: number | null
+          name_key?: string | null
+          needs_verification?: boolean
+          phone?: string | null
+          primary_contact_name?: string | null
+          relationship_owner_id?: string | null
+          service_regions?: string[]
+          service_suburbs?: string[]
+          source?: string | null
+          status?: Database["hq"]["Enums"]["contractor_status"]
+          status_reason?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractors_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           applied_at: string
           applied_by: string | null
           contacts_created: number
+          contractors_created: number
           duplicates_skipped: number
           file_name: string | null
           flagged: number
           id: string
+          kind: string
           organisations_created: number
           row_count: number
           source: string
@@ -184,10 +575,12 @@ export type Database = {
           applied_at?: string
           applied_by?: string | null
           contacts_created?: number
+          contractors_created?: number
           duplicates_skipped?: number
           file_name?: string | null
           flagged?: number
           id?: string
+          kind?: string
           organisations_created?: number
           row_count?: number
           source: string
@@ -196,10 +589,12 @@ export type Database = {
           applied_at?: string
           applied_by?: string | null
           contacts_created?: number
+          contractors_created?: number
           duplicates_skipped?: number
           file_name?: string | null
           flagged?: number
           id?: string
+          kind?: string
           organisations_created?: number
           row_count?: number
           source?: string
@@ -209,6 +604,7 @@ export type Database = {
       interactions: {
         Row: {
           contact_id: string | null
+          contractor_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -226,6 +622,7 @@ export type Database = {
         }
         Insert: {
           contact_id?: string | null
+          contractor_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -243,6 +640,7 @@ export type Database = {
         }
         Update: {
           contact_id?: string | null
+          contractor_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -286,6 +684,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "overdue_followups"
             referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "interactions_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "interactions_organisation_id_fkey"
@@ -865,9 +1277,11 @@ export type Database = {
           id: string
           priority: Database["hq"]["Enums"]["task_priority"]
           related_contact_id: string | null
+          related_contractor_id: string | null
           related_opportunity_id: string | null
           related_organisation_id: string | null
           related_referral_id: string | null
+          reminder_key: string | null
           source: string
           status: Database["hq"]["Enums"]["task_status"]
           title: string
@@ -886,9 +1300,11 @@ export type Database = {
           id?: string
           priority?: Database["hq"]["Enums"]["task_priority"]
           related_contact_id?: string | null
+          related_contractor_id?: string | null
           related_opportunity_id?: string | null
           related_organisation_id?: string | null
           related_referral_id?: string | null
+          reminder_key?: string | null
           source?: string
           status?: Database["hq"]["Enums"]["task_status"]
           title: string
@@ -907,9 +1323,11 @@ export type Database = {
           id?: string
           priority?: Database["hq"]["Enums"]["task_priority"]
           related_contact_id?: string | null
+          related_contractor_id?: string | null
           related_opportunity_id?: string | null
           related_organisation_id?: string | null
           related_referral_id?: string | null
+          reminder_key?: string | null
           source?: string
           status?: Database["hq"]["Enums"]["task_status"]
           title?: string
@@ -950,6 +1368,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "overdue_followups"
             referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contractor_id_fkey"
+            columns: ["related_contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contractor_id_fkey"
+            columns: ["related_contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tasks_related_opportunity_id_fkey"
@@ -1059,6 +1491,126 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contractor_directory: {
+        Row: {
+          abn: string | null
+          after_hours_fee_cents: number | null
+          approved_at: string | null
+          approved_by: string | null
+          approved_by_name: string | null
+          business_hours: string | null
+          business_name: string | null
+          callout_fee_cents: number | null
+          categories: Database["hq"]["Enums"]["contractor_category"][] | null
+          created_at: string | null
+          document_count: number | null
+          email: string | null
+          emergency_available: boolean | null
+          hourly_rate_cents: number | null
+          id: string | null
+          insurance_days_remaining: number | null
+          insurance_details: string | null
+          insurance_expires_on: string | null
+          insurance_state: string | null
+          insurance_verified_at: string | null
+          internal_notes: string | null
+          invoice_terms: string | null
+          last_contacted_at: string | null
+          last_job_date: string | null
+          licence_days_remaining: number | null
+          licence_details: string | null
+          licence_expires_on: string | null
+          licence_state: string | null
+          licence_verified_at: string | null
+          minimum_charge_cents: number | null
+          needs_verification: boolean | null
+          open_task_count: number | null
+          phone: string | null
+          primary_contact_name: string | null
+          rated_review_count: number | null
+          rating: number | null
+          rating_communication: number | null
+          rating_invoice_accuracy: number | null
+          rating_response_time: number | null
+          rating_threshold: number | null
+          rating_work_quality: number | null
+          relationship_owner_id: string | null
+          relationship_owner_name: string | null
+          review_count: number | null
+          service_region_keys: string[] | null
+          service_regions: string[] | null
+          service_suburb_keys: string[] | null
+          service_suburbs: string[] | null
+          source: string | null
+          status: Database["hq"]["Enums"]["contractor_status"] | null
+          status_reason: string | null
+          updated_at: string | null
+          verified_at: string | null
+          vetting_done_count: number | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractors_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_expiry_watch: {
+        Row: {
+          business_name: string | null
+          contractor_id: string | null
+          contractor_status: Database["hq"]["Enums"]["contractor_status"] | null
+          days_remaining: number | null
+          document_id: string | null
+          document_type:
+            | Database["hq"]["Enums"]["contractor_document_type"]
+            | null
+          expires_on: string | null
+          file_name: string | null
+          item_key: string | null
+          kind: string | null
+          relationship_owner_id: string | null
+          relationship_owner_name: string | null
+          state: string | null
+          verified: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractors_relationship_owner_id_fkey"
+            columns: ["relationship_owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_timeline: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          business_name: string | null
+          contractor_id: string | null
+          detail: string | null
+          document_type:
+            | Database["hq"]["Enums"]["contractor_document_type"]
+            | null
+          entity_id: string | null
+          event_key: string | null
+          from_status: Database["hq"]["Enums"]["contractor_status"] | null
+          interaction_type: Database["hq"]["Enums"]["interaction_type"] | null
+          kind: string | null
+          occurred_at: string | null
+          step: Database["hq"]["Enums"]["vetting_step"] | null
+          step_status: Database["hq"]["Enums"]["vetting_step_status"] | null
+          summary: string | null
+          to_status: Database["hq"]["Enums"]["contractor_status"] | null
+        }
+        Relationships: []
       }
       organisation_directory: {
         Row: {
@@ -1314,6 +1866,19 @@ export type Database = {
       }
     }
     Functions: {
+      add_contractor_document: {
+        Args: {
+          p_contractor: string
+          p_document_type: Database["hq"]["Enums"]["contractor_document_type"]
+          p_expires_on?: string
+          p_file_name: string
+          p_mime_type: string
+          p_notes?: string
+          p_size_bytes: number
+          p_storage_path: string
+        }
+        Returns: Json
+      }
       add_staff: {
         Args: {
           p_email: string
@@ -1328,8 +1893,20 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_contractor_import: {
+        Args: { p_file_name?: string; p_rows: Json; p_source: string }
+        Returns: Json
+      }
       apply_partner_import: {
         Args: { p_file_name?: string; p_rows: Json; p_source: string }
+        Returns: Json
+      }
+      approve_contractor: {
+        Args: {
+          p_contractor: string
+          p_make_preferred?: boolean
+          p_note?: string
+        }
         Returns: Json
       }
       archive_record: {
@@ -1346,6 +1923,8 @@ export type Database = {
         Returns: Json
       }
       can: { Args: { p_capability: string }; Returns: boolean }
+      contractor_summary: { Args: never; Returns: Json }
+      create_expiry_tasks: { Args: never; Returns: Json }
       deactivate_staff: {
         Args: { p_reason?: string; p_staff_id: string }
         Returns: Json
@@ -1367,7 +1946,41 @@ export type Database = {
         Returns: Json
       }
       my_access: { Args: never; Returns: Json }
+      preview_contractor_approval: {
+        Args: { p_contractor: string }
+        Returns: Json
+      }
+      preview_contractor_import: { Args: { p_rows: Json }; Returns: Json }
       preview_partner_import: { Args: { p_rows: Json }; Returns: Json }
+      record_contractor_contact: {
+        Args: {
+          p_contractor: string
+          p_create_task?: boolean
+          p_follow_up_date?: string
+          p_new_status?: Database["hq"]["Enums"]["contractor_status"]
+          p_next_action?: string
+          p_occurred_at?: string
+          p_summary?: string
+          p_task_assignee?: string
+          p_type?: Database["hq"]["Enums"]["interaction_type"]
+        }
+        Returns: Json
+      }
+      record_contractor_review: {
+        Args: {
+          p_communication?: number
+          p_contractor: string
+          p_invoice_accuracy?: number
+          p_job_date?: string
+          p_job_reference?: string
+          p_notes?: string
+          p_response_time?: number
+          p_rework_required?: boolean
+          p_tenant_feedback?: Database["hq"]["Enums"]["tenant_feedback"]
+          p_work_quality?: number
+        }
+        Returns: Json
+      }
       record_interaction: {
         Args: {
           p_contact?: string
@@ -1403,12 +2016,33 @@ export type Database = {
         }
         Returns: Json
       }
+      reinstate_contractor: {
+        Args: { p_contractor: string; p_note?: string }
+        Returns: Json
+      }
       restore_record: {
         Args: { p_entity: string; p_id: string }
         Returns: Json
       }
       set_attributed_referral: {
         Args: { p_opportunity: string; p_referral: string }
+        Returns: Json
+      }
+      set_contractor_status: {
+        Args: {
+          p_contractor: string
+          p_note?: string
+          p_status: Database["hq"]["Enums"]["contractor_status"]
+        }
+        Returns: Json
+      }
+      set_vetting_step: {
+        Args: {
+          p_contractor: string
+          p_note?: string
+          p_status: Database["hq"]["Enums"]["vetting_step_status"]
+          p_step: Database["hq"]["Enums"]["vetting_step"]
+        }
         Returns: Json
       }
       today: { Args: never; Returns: string }
@@ -1430,8 +2064,59 @@ export type Database = {
         }
         Returns: Json
       }
+      verify_contractor_document: {
+        Args: {
+          p_apply_to_contractor?: boolean
+          p_document: string
+          p_expires_on?: string
+          p_note?: string
+          p_verification: Database["hq"]["Enums"]["document_verification"]
+        }
+        Returns: Json
+      }
     }
     Enums: {
+      contractor_category:
+        | "plumbing"
+        | "electrical"
+        | "general_maintenance"
+        | "handyman"
+        | "carpentry"
+        | "cleaning"
+        | "carpet_cleaning"
+        | "gardening"
+        | "landscaping"
+        | "pest_control"
+        | "locksmith"
+        | "painting"
+        | "roofing"
+        | "guttering"
+        | "air_conditioning"
+        | "appliance_repairs"
+        | "garage_doors"
+        | "glazing"
+        | "tree_services"
+        | "building"
+        | "emergency_restoration"
+        | "other"
+      contractor_document_type:
+        | "licence"
+        | "public_liability_insurance"
+        | "workers_compensation"
+        | "professional_indemnity"
+        | "abn_confirmation"
+        | "price_list"
+        | "agreement"
+        | "other"
+      contractor_status:
+        | "prospect"
+        | "contacted"
+        | "vetting"
+        | "approved"
+        | "preferred"
+        | "suspended"
+        | "inactive"
+      document_verification: "pending" | "verified" | "rejected"
       employment_status: "active" | "on_leave" | "ended"
       interaction_type:
         | "phone_call"
@@ -1493,6 +2178,22 @@ export type Database = {
         | "waiting"
         | "completed"
         | "cancelled"
+      tenant_feedback: "positive" | "neutral" | "negative" | "none_received"
+      vetting_step:
+        | "identity"
+        | "abn"
+        | "licence"
+        | "insurance"
+        | "service_areas"
+        | "pricing"
+        | "emergency_availability"
+        | "communication"
+        | "review_and_approve"
+      vetting_step_status:
+        | "not_started"
+        | "in_progress"
+        | "done"
+        | "not_applicable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1620,6 +2321,50 @@ export type CompositeTypes<
 export const Constants = {
   hq: {
     Enums: {
+      contractor_category: [
+        "plumbing",
+        "electrical",
+        "general_maintenance",
+        "handyman",
+        "carpentry",
+        "cleaning",
+        "carpet_cleaning",
+        "gardening",
+        "landscaping",
+        "pest_control",
+        "locksmith",
+        "painting",
+        "roofing",
+        "guttering",
+        "air_conditioning",
+        "appliance_repairs",
+        "garage_doors",
+        "glazing",
+        "tree_services",
+        "building",
+        "emergency_restoration",
+        "other",
+      ],
+      contractor_document_type: [
+        "licence",
+        "public_liability_insurance",
+        "workers_compensation",
+        "professional_indemnity",
+        "abn_confirmation",
+        "price_list",
+        "agreement",
+        "other",
+      ],
+      contractor_status: [
+        "prospect",
+        "contacted",
+        "vetting",
+        "approved",
+        "preferred",
+        "suspended",
+        "inactive",
+      ],
+      document_verification: ["pending", "verified", "rejected"],
       employment_status: ["active", "on_leave", "ended"],
       interaction_type: [
         "phone_call",
@@ -1687,6 +2432,24 @@ export const Constants = {
         "waiting",
         "completed",
         "cancelled",
+      ],
+      tenant_feedback: ["positive", "neutral", "negative", "none_received"],
+      vetting_step: [
+        "identity",
+        "abn",
+        "licence",
+        "insurance",
+        "service_areas",
+        "pricing",
+        "emergency_availability",
+        "communication",
+        "review_and_approve",
+      ],
+      vetting_step_status: [
+        "not_started",
+        "in_progress",
+        "done",
+        "not_applicable",
       ],
     },
   },

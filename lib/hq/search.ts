@@ -19,7 +19,7 @@ export const SEARCH_MAX = 100;
 /** Rows per group on the full page. The RPC itself caps at 25. */
 export const SEARCH_PAGE_LIMIT = 25;
 
-export const EMPTY_RESULTS: SearchResults = { contacts: [], organisations: [], referrals: [], tasks: [] };
+export const EMPTY_RESULTS: SearchResults = { contacts: [], organisations: [], referrals: [], tasks: [], contractors: [] };
 
 /** The query as typed, collapsed and bounded. */
 export function normaliseQuery(value: string | string[] | undefined | null): string {
@@ -48,13 +48,13 @@ function hits(value: unknown): SearchHit[] {
   return out;
 }
 
-/** The jsonb {contacts, organisations, referrals, tasks} as plain, checked arrays. */
+/** The jsonb {contacts, organisations, referrals, tasks, contractors} as plain, checked arrays. */
 export function parseSearchResults(data: unknown): SearchResults {
   if (!data || typeof data !== "object") return { ...EMPTY_RESULTS };
   const r = data as Record<string, unknown>;
-  return { contacts: hits(r.contacts), organisations: hits(r.organisations), referrals: hits(r.referrals), tasks: hits(r.tasks) };
+  return { contacts: hits(r.contacts), organisations: hits(r.organisations), referrals: hits(r.referrals), tasks: hits(r.tasks), contractors: hits(r.contractors) };
 }
 
 export function totalHits(results: SearchResults): number {
-  return results.contacts.length + results.organisations.length + results.referrals.length + results.tasks.length;
+  return results.contacts.length + results.organisations.length + results.referrals.length + results.tasks.length + results.contractors.length;
 }

@@ -19,7 +19,7 @@ import type { RelatedRef, Result, TaskDetail, TaskListItem, TaskPage, TaskRelate
  */
 
 const LIST_COLUMNS =
-  "id, title, status, priority, due_date, assigned_to, related_contact_id, related_organisation_id, related_referral_id, related_opportunity_id, completed_at, created_at";
+  "id, title, status, priority, due_date, assigned_to, related_contact_id, related_organisation_id, related_referral_id, related_opportunity_id, related_contractor_id, completed_at, created_at";
 const DETAIL_COLUMNS = `${LIST_COLUMNS}, description, created_by, completed_by, updated_at, source`;
 
 type ListRow = {
@@ -33,6 +33,7 @@ type ListRow = {
   related_organisation_id: string | null;
   related_referral_id: string | null;
   related_opportunity_id: string | null;
+  related_contractor_id: string | null;
   completed_at: string | null;
   created_at: string;
 };
@@ -87,12 +88,16 @@ function filteredTasks(db: HqClient, p: TaskPredicate, options?: { count: "exact
     case "opportunity":
       q = q.not("related_opportunity_id", "is", null);
       break;
+    case "contractor":
+      q = q.not("related_contractor_id", "is", null);
+      break;
     case "none":
       q = q
         .is("related_contact_id", null)
         .is("related_organisation_id", null)
         .is("related_referral_id", null)
-        .is("related_opportunity_id", null);
+        .is("related_opportunity_id", null)
+        .is("related_contractor_id", null);
       break;
     default:
       break;
@@ -143,11 +148,12 @@ type Labels = {
   organisations: Map<string, string>;
   referrals: Map<string, string>;
   opportunities: Map<string, string>;
+  contractors: Map<string, string>;
 };
 
 const uniq = (values: (string | null)[]) => [...new Set(values.filter((v): v is string => !!v))];
 
-type LinkIds = { contacts: string[]; organisations: string[]; referrals: string[]; opportunities: string[] };
+type LinkIds = { contacts: string[]; organisations: string[]; referrals: string[]; opportunities: string[]; contractors: string[] };
 
 function idsOf(rows: readonly ListRow[]): LinkIds {
   return {
@@ -155,17 +161,22 @@ function idsOf(rows: readonly ListRow[]): LinkIds {
     organisations: uniq(rows.map((r) => r.related_organisation_id)),
     referrals: uniq(rows.map((r) => r.related_referral_id)),
     opportunities: uniq(rows.map((r) => r.related_opportunity_id)),
+    contractors: uniq(rows.map((r) => r.related_contractor_id)),
   };
 }
 
-/** Names for the records the tasks link to. Only people who can read growth data get any; for everyone else the labels stay null. */
-async function relatedLabels(db: HqClient, ids: LinkIds, canGrowth: boolean): Promise<Labels> {
-  const labels: Labels = { contacts: new Map(), organisations: new Map(), referrals: new Map(), opportunities: new Map() };
-  if (!canGrowth) return labels;
-  const contactIds = ids.contacts;
-  const orgIds = ids.organisations;
-  const referralIds = ids.referrals;
-  const opportunityIds = ids.opportunities;
+/**
+ * Names for the records the tasks link to. Only people who can read growth data get contact, organisation,
+ * referral and opportunity names, and only people with contractors.read get contractor names; for everyone
+ * else the labels stay null.
+ */
+async function relatedLabels(db: HqClient, ids: LinkIds, canGrowth: boolean, canContractors = false): Promise<Labels> {
+  const labels: Labels = { contacts: new Map(), organisations: new Map(), referrals: new Map(), opportunities: new Map(), contractors: new Map() };
+  const contactIds = canGrowth ? ids.contacts : [];
+  const orgIds = canGrowth ? ids.organisations : [];
+  const referralIds = canGrowth ? ids.referrals : [];
+  const opportunityIds = canGrowth ? ids.opportunities : [];
+  const contractorIds = canContractors ? ids.contractors : [];
 
   await Promise.all([
     contactIds.length === 0
@@ -198,6 +209,16 @@ async function relatedLabels(db: HqClient, ids: LinkIds, canGrowth: boolean): Pr
             if (error) console.error("[hq] task referral labels failed:", logTag(error));
             for (const r of data ?? []) if (r.id && r.ref_label) labels.referrals.set(r.id, r.ref_label);
           }),
+    contractorIds.length === 0
+      ? null
+      : db
+          .from("contractor_directory")
+          .select("id, business_name")
+          .in("id", contractorIds)
+          .then(({ data, error }) => {
+            if (error) console.error("[hq] task contractor names failed:", logTag(error));
+            for (const c of data ?? []) if (c.id && c.business_name) labels.contractors.set(c.id, c.business_name);
+          }),
     opportunityIds.length === 0
       ? null
       : db
@@ -222,6 +243,7 @@ function relatedOf(row: ListRow, labels: Labels): TaskRelated {
     organisation: ref(row.related_organisation_id, labels.organisations),
     referral: ref(row.related_referral_id, labels.referrals),
     opportunity: ref(row.related_opportunity_id, labels.opportunities),
+    contractor: ref(row.related_contractor_id, labels.contractors),
   };
 }
 
@@ -245,7 +267,7 @@ function toListItem(row: ListRow, names: Map<string, string>, labels: Labels): T
 export async function listTasks(
   db: HqClient,
   predicate: TaskPredicate,
-  opts: { sort: SortKey; dir: SortDir; page: number; pageSize: number; canGrowth: boolean },
+  opts: { sort: SortKey; dir: SortDir; page: number; pageSize: number; canGrowth: boolean; canContractors?: boolean },
 ): Promise<Result<TaskPage>> {
   const total = await countTasks(db, predicate);
   if (total === null) return { ok: false };
@@ -265,7 +287,7 @@ export async function listTasks(
   const rows = (data ?? []) as unknown as ListRow[];
   const [names, labels] = await Promise.all([
     staffNames(db, rows.map((r) => r.assigned_to)),
-    relatedLabels(db, idsOf(rows), opts.canGrowth),
+    relatedLabels(db, idsOf(rows), opts.canGrowth, opts.canContractors),
   ]);
   return { ok: true, data: { rows: rows.map((r) => toListItem(r, names, labels)), total, page } };
 }
@@ -273,7 +295,7 @@ export async function listTasks(
 // ── one task ─────────────────────────────────────────────────
 
 /** A task the person can see, or null when it does not exist, is archived, or is not theirs to see (the same answer for all three). */
-export async function getTask(db: HqClient, id: string, opts: { canGrowth: boolean }): Promise<Result<TaskDetail | null>> {
+export async function getTask(db: HqClient, id: string, opts: { canGrowth: boolean; canContractors?: boolean }): Promise<Result<TaskDetail | null>> {
   if (!isUuid(id)) return { ok: true, data: null };
   const { data, error } = await db.from("tasks").select(DETAIL_COLUMNS).eq("id", id).is("deleted_at", null).maybeSingle();
   if (error) {
@@ -284,7 +306,7 @@ export async function getTask(db: HqClient, id: string, opts: { canGrowth: boole
   const row = data as unknown as DetailRow;
   const [names, labels] = await Promise.all([
     staffNames(db, [row.assigned_to, row.created_by, row.completed_by]),
-    relatedLabels(db, idsOf([row]), opts.canGrowth),
+    relatedLabels(db, idsOf([row]), opts.canGrowth, opts.canContractors),
   ]);
   const base = toListItem(row, names, labels);
   return {
@@ -328,11 +350,12 @@ export async function taskAudit(db: HqClient, id: string): Promise<AuditRow[] | 
  */
 export async function prefillRelated(
   db: HqClient,
-  prefill: { contact: string | null; organisation: string | null; referral: string | null; opportunity: string | null },
+  prefill: { contact: string | null; organisation: string | null; referral: string | null; opportunity: string | null; contractor?: string | null },
   canGrowth: boolean,
+  canContractors = false,
 ): Promise<TaskRelated> {
-  const none: TaskRelated = { contact: null, organisation: null, referral: null, opportunity: null };
-  if (!canGrowth) return none;
+  const none: TaskRelated = { contact: null, organisation: null, referral: null, opportunity: null, contractor: null };
+  if (!canGrowth && !canContractors) return none;
   const labels = await relatedLabels(
     db,
     {
@@ -340,8 +363,10 @@ export async function prefillRelated(
       organisations: prefill.organisation ? [prefill.organisation] : [],
       referrals: prefill.referral ? [prefill.referral] : [],
       opportunities: prefill.opportunity ? [prefill.opportunity] : [],
+      contractors: prefill.contractor ? [prefill.contractor] : [],
     },
-    true,
+    canGrowth,
+    canContractors,
   );
   const found = (id: string | null, map: Map<string, string>): RelatedRef | null => (id && map.has(id) ? { id, label: map.get(id) ?? null } : null);
   return {
@@ -349,5 +374,6 @@ export async function prefillRelated(
     organisation: found(prefill.organisation, labels.organisations),
     referral: found(prefill.referral, labels.referrals),
     opportunity: found(prefill.opportunity, labels.opportunities),
+    contractor: found(prefill.contractor ?? null, labels.contractors),
   };
 }

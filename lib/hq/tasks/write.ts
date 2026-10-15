@@ -33,7 +33,7 @@ async function exists(promise: PromiseLike<{ data: { id: string } | null; error:
  * read growth data (growth.read): without it they have no pickers, so any related id they send
  * is refused rather than trusted.
  */
-export async function checkTaskReferences(db: HqClient, values: TaskFormValues, opts: { canLink: boolean }): Promise<LinkCheck> {
+export async function checkTaskReferences(db: HqClient, values: TaskFormValues, opts: { canLink: boolean; canLinkContractors?: boolean }): Promise<LinkCheck> {
   const fieldErrors: Record<string, string> = {};
   let failed = false;
 
@@ -77,6 +77,18 @@ export async function checkTaskReferences(db: HqClient, values: TaskFormValues, 
     if (values.organisationId) fieldErrors.related_organisation_id = "You can't link this task to an organisation.";
     if (values.referralId) fieldErrors.related_referral_id = "You can't link this task to a referral.";
     if (values.opportunityId) fieldErrors.related_opportunity_id = "You can't link this task to an opportunity.";
+  }
+
+  if (opts.canLinkContractors) {
+    verify(
+      "related_contractor_id",
+      values.contractorId,
+      () => db.from("contractors").select("id").eq("id", values.contractorId as string).is("deleted_at", null).maybeSingle(),
+      "contractor",
+    );
+  } else if (values.contractorId) {
+    // No contractors.read: no picker, so no contractor id is accepted.
+    fieldErrors.related_contractor_id = "You can't link this task to a contractor.";
   }
 
   await Promise.all(jobs);

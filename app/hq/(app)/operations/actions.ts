@@ -58,7 +58,7 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
   const retained = retainedValues(formData);
   if (!reader.ok) return failWith(reader.fail(), retained);
 
-  const checked = await checkTaskReferences(db, values, { canLink: can("growth.read") });
+  const checked = await checkTaskReferences(db, values, { canLink: can("growth.read"), canLinkContractors: can("contractors.read") });
   if (checked.ok === "error") return failWith(fail(GENERIC), retained);
   if (checked.ok === false) return failWith(fail("Please check the highlighted fields and try again.", checked.fieldErrors), retained);
 
@@ -76,6 +76,7 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
       related_organisation_id: values.organisationId,
       related_referral_id: values.referralId,
       related_opportunity_id: values.opportunityId,
+      related_contractor_id: values.contractorId,
       source: "manual",
     })
     .select("id")
@@ -130,7 +131,8 @@ export async function updateTask(_prev: ActionState, formData: FormData): Promis
   }
 
   const canLink = can("growth.read");
-  const checked = await checkTaskReferences(db, values, { canLink });
+  const canLinkContractors = can("contractors.read");
+  const checked = await checkTaskReferences(db, values, { canLink, canLinkContractors });
   if (checked.ok === "error") return failWith(fail(GENERIC), retained);
   if (checked.ok === false) return failWith(fail("Please check the highlighted fields and try again.", checked.fieldErrors), retained);
 
@@ -150,6 +152,8 @@ export async function updateTask(_prev: ActionState, formData: FormData): Promis
           related_opportunity_id: values.opportunityId,
         }
       : {}),
+    // Likewise the contractor link: only someone with contractors.read has the picker, so only they change it.
+    ...(canLinkContractors ? { related_contractor_id: values.contractorId } : {}),
   };
 
   // No RETURNING: if the person reassigns a task they neither created nor may read in full, the

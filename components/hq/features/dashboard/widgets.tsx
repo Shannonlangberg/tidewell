@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { EmptyState, ErrorState } from "@/components/hq/EmptyState";
+import { EmptyState } from "@/components/hq/EmptyState";
 import { LinkButton } from "@/components/hq/Button";
 import { HQ_ROUTES, hrefForSearchHit } from "@/components/hq/nav";
 import { Panel, PanelHeader, Skeleton, SkeletonText } from "@/components/hq/Primitives";
@@ -14,7 +14,14 @@ import { daysFromToday, daysSince, formatDateTime, plural } from "@/lib/hq/forma
 import { shortDay } from "@/lib/hq/greeting";
 import { PERIOD_LABEL, type Period } from "@/lib/hq/periods";
 import type { WidgetId } from "@/lib/hq/dashboard-widgets";
+import {
+  AwaitingVettingWidget,
+  ExpiringDocumentsWidget,
+  PreferredCoverageWidget,
+  RecentContractorActivityWidget,
+} from "../contractor-sections/widgets-contractors";
 import { completeTaskAction } from "./actions";
+import { MoreLink, Rows, WidgetFailed, WidgetPanel, attempt, rowClass } from "./widget-chrome";
 import {
   bucketFor,
   hasCap,
@@ -45,38 +52,7 @@ import {
  *  - Figures are DM Sans (the kit's Stat); the only serif is an empty-state title.
  */
 
-type Attempt<T> = { ok: true; data: T } | { ok: false };
-
-/** Runs a loader and turns a failure into a result instead of an exception. Logs a code only. */
-async function attempt<T>(label: string, run: () => Promise<T>): Promise<Attempt<T>> {
-  try {
-    return { ok: true, data: await run() };
-  } catch (e) {
-    console.error(`[hq] dashboard widget "${label}" failed:`, e instanceof Error ? e.message : "error");
-    return { ok: false };
-  }
-}
-
-const LOAD_FAILED = "We could not load this just now. Reload the page to try again.";
-
 // ── chrome ───────────────────────────────────────────────────
-
-function WidgetPanel({ id, title, meta, action, children }: { id: WidgetId; title: string; meta?: ReactNode; action?: ReactNode; children: ReactNode }) {
-  return (
-    <Panel aria-labelledby={`w-${id}`}>
-      <PanelHeader id={`w-${id}`} title={title} meta={meta} action={action} />
-      {children}
-    </Panel>
-  );
-}
-
-function WidgetFailed({ id, title }: { id: WidgetId; title: string }) {
-  return (
-    <WidgetPanel id={id} title={title}>
-      <ErrorState>{LOAD_FAILED}</ErrorState>
-    </WidgetPanel>
-  );
-}
 
 /** What shows while a panel's data loads. */
 export function PanelSkeleton({ id, title }: { id: WidgetId; title: string }) {
@@ -104,25 +80,6 @@ export function StatsSkeleton() {
   );
 }
 
-const Rows = ({ children, label }: { children: ReactNode; label: string }) => (
-  <ul aria-label={label} className="m-0 list-none p-0">
-    {children}
-  </ul>
-);
-
-const rowClass = "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line py-3 first:border-t-0 first:pt-0 last:pb-0";
-
-/** "N more" under a capped list, linking to the full list. */
-function MoreLink({ shown, total, href, noun }: { shown: number; total: number; href: string; noun: string }) {
-  if (total <= shown) return null;
-  return (
-    <p className="mt-3 border-t border-line pt-3 text-[13px]">
-      <Link href={href} className="hq-muted underline underline-offset-2">
-        {plural(total - shown, `more ${noun}`, `more ${noun}s`)}
-      </Link>
-    </p>
-  );
-}
 
 function dueChip(dueDate: string | null, today: string): ReactNode {
   if (!dueDate) return <StatusChip plain>No due date</StatusChip>;
@@ -621,6 +578,14 @@ export function renderPanel(id: WidgetId, ctx: DashCtx, returnTo: string): React
       return <PartnerReferrals ctx={ctx} />;
     case "stale-partners":
       return <StalePartners ctx={ctx} />;
+    case "contractors-awaiting-vetting":
+      return <AwaitingVettingWidget ctx={ctx} />;
+    case "contractors-expiring-documents":
+      return <ExpiringDocumentsWidget ctx={ctx} returnTo={returnTo} />;
+    case "contractors-preferred-coverage":
+      return <PreferredCoverageWidget ctx={ctx} />;
+    case "contractors-recent-activity":
+      return <RecentContractorActivityWidget ctx={ctx} />;
     default:
       return null;
   }

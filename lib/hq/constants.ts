@@ -44,6 +44,10 @@ export const CAPABILITIES = [
   "audit.read",
   "import.run",
   "settings.admin",
+  "contractors.read",
+  "contractors.write",
+  "contractors.documents",
+  "contractors.approve",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -211,6 +215,136 @@ export const TASK_PRIORITY_LABEL: Record<TaskPriority, string> = {
 
 /** Statuses that mean "still to do". */
 export const OPEN_TASK_STATUSES: readonly TaskStatus[] = ["to_do", "in_progress", "waiting"];
+
+// ── partners: contractors (Phase 2) ──────────────────────────
+
+/** Mirrors hq.contractor_category, in enum order. */
+export const CONTRACTOR_CATEGORIES = [
+  "plumbing",
+  "electrical",
+  "general_maintenance",
+  "handyman",
+  "carpentry",
+  "cleaning",
+  "carpet_cleaning",
+  "gardening",
+  "landscaping",
+  "pest_control",
+  "locksmith",
+  "painting",
+  "roofing",
+  "guttering",
+  "air_conditioning",
+  "appliance_repairs",
+  "garage_doors",
+  "glazing",
+  "tree_services",
+  "building",
+  "emergency_restoration",
+  "other",
+] as const;
+export type ContractorCategory = (typeof CONTRACTOR_CATEGORIES)[number];
+
+export const CONTRACTOR_CATEGORY_LABEL: Record<ContractorCategory, string> = {
+  plumbing: "Plumbing",
+  electrical: "Electrical",
+  general_maintenance: "General maintenance",
+  handyman: "Handyman",
+  carpentry: "Carpentry",
+  cleaning: "Cleaning",
+  carpet_cleaning: "Carpet cleaning",
+  gardening: "Gardening",
+  landscaping: "Landscaping",
+  pest_control: "Pest control",
+  locksmith: "Locksmith",
+  painting: "Painting",
+  roofing: "Roofing",
+  guttering: "Guttering",
+  air_conditioning: "Air conditioning",
+  appliance_repairs: "Appliance repairs",
+  garage_doors: "Garage doors",
+  glazing: "Glazing",
+  tree_services: "Tree services",
+  building: "Building",
+  emergency_restoration: "Emergency restoration",
+  other: "Other",
+};
+
+/** Mirrors hq.contractor_status, in lifecycle order. */
+export const CONTRACTOR_STATUSES = ["prospect", "contacted", "vetting", "approved", "preferred", "suspended", "inactive"] as const;
+export type ContractorStatus = (typeof CONTRACTOR_STATUSES)[number];
+
+export const CONTRACTOR_STATUS_LABEL: Record<ContractorStatus, string> = {
+  prospect: "Prospect",
+  contacted: "Contacted",
+  vetting: "Vetting",
+  approved: "Approved",
+  preferred: "Preferred",
+  suspended: "Suspended",
+  inactive: "Inactive",
+};
+
+/** The same tone names as StatusChip. Kept here as plain strings so this file stays client-safe and import-free. */
+export type ContractorTone = "neutral" | "info" | "success" | "warning" | "error";
+
+export const CONTRACTOR_STATUS_TONE: Record<ContractorStatus, ContractorTone> = {
+  prospect: "neutral",
+  contacted: "info",
+  vetting: "warning",
+  approved: "success",
+  preferred: "success",
+  suspended: "error",
+  inactive: "neutral",
+};
+
+/** Statuses a contractor can be sent to a property in. */
+export const CLEARED_CONTRACTOR_STATUSES: readonly ContractorStatus[] = ["approved", "preferred"];
+
+/** The derived insurance / licence state in hq.contractor_directory. */
+export const CONTRACTOR_EXPIRY_STATES = ["not_recorded", "unverified", "current", "expiring_soon", "expired"] as const;
+export type ContractorExpiryState = (typeof CONTRACTOR_EXPIRY_STATES)[number];
+
+export const CONTRACTOR_EXPIRY_STATE_LABEL: Record<ContractorExpiryState, string> = {
+  not_recorded: "Not recorded",
+  unverified: "Not verified",
+  current: "Current",
+  expiring_soon: "Expiring soon",
+  expired: "Expired",
+};
+
+export const CONTRACTOR_EXPIRY_STATE_TONE: Record<ContractorExpiryState, ContractorTone> = {
+  not_recorded: "neutral",
+  unverified: "warning",
+  current: "success",
+  expiring_soon: "warning",
+  expired: "error",
+};
+
+/** Mirrors hq.vetting_step, in checklist order. */
+export const VETTING_STEPS = [
+  "identity",
+  "abn",
+  "licence",
+  "insurance",
+  "service_areas",
+  "pricing",
+  "emergency_availability",
+  "communication",
+  "review_and_approve",
+] as const;
+export type VettingStep = (typeof VETTING_STEPS)[number];
+
+export const VETTING_STEP_LABEL: Record<VettingStep, string> = {
+  identity: "Identity",
+  abn: "ABN",
+  licence: "Licence",
+  insurance: "Insurance",
+  service_areas: "Service areas",
+  pricing: "Pricing",
+  emergency_availability: "Emergency availability",
+  communication: "Communication",
+  review_and_approve: "Review and approve",
+};
 
 // ── tiny helpers ─────────────────────────────────────────────
 

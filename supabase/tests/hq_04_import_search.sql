@@ -235,9 +235,9 @@ select is(jsonb_array_length(hq.global_search('%%') -> 'organisations'), 0, 'sea
 select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_search('a_c') -> 'organisations') e), null, 'search: an underscore is not a single-character wildcard (a_c does not find ABC)');
 select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_search('k\s') -> 'organisations') e), array['Back\Slash Realty'], 'search: a backslash in the query is matched literally, never as an escape');
 select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_search('Back\Slash') -> 'organisations') e), array['Back\Slash Realty'], 'search: a backslash is matched literally');
-select is(hq.global_search('a') , '{"contacts": [], "organisations": [], "referrals": [], "tasks": []}'::jsonb, 'search: a one-character query returns nothing');
+select is(hq.global_search('a') , '{"contacts": [], "organisations": [], "referrals": [], "tasks": [], "contractors": []}'::jsonb, 'search: a one-character query returns nothing');
 select is(jsonb_array_length(hq.global_search('realty', 2) -> 'organisations'), 2, 'search: p_limit caps each list');
-select is(hq.global_search('', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": []}'::jsonb, 'search: an empty query returns empty lists');
+select is(hq.global_search('', 5), '{"contacts": [], "organisations": [], "referrals": [], "tasks": [], "contractors": []}'::jsonb, 'search: an empty query returns empty lists');
 select pg_temp.keep('sr', hq.record_referral(p_direction := 'received', p_referring_contact := pg_temp.fx('alice'), p_prospect_name := 'Quentin Quokka'));
 insert into hq.tasks (title, assigned_to) values ('Call Quentin about the appraisal', pg_temp.fx('dir'));
 select is((select array_agg(e ->> 'prospect_name') from jsonb_array_elements(hq.global_search('quokka') -> 'referrals') e), array['Quentin Quokka'], 'search: referrals by prospect name');
@@ -246,7 +246,7 @@ select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_s
 select pg_temp.unbecome();
 -- RLS decides what each person finds
 select pg_temp.become('jpm');
-select is(hq.global_search('loan') , '{"contacts": [], "organisations": [], "referrals": [], "tasks": []}'::jsonb, 'search as a junior: no partners, referrals or others'' tasks (RLS)');
+select is(hq.global_search('loan') , '{"contacts": [], "organisations": [], "referrals": [], "tasks": [], "contractors": []}'::jsonb, 'search as a junior: no partners, referrals or others'' tasks (RLS)');
 insert into hq.tasks (title, assigned_to) values ('Call Quentin from the junior desk', pg_temp.fx('jpm'));
 select is((select array_agg(e ->> 'title') from jsonb_array_elements(hq.global_search('quentin') -> 'tasks') e), array['Call Quentin from the junior desk'], 'search as a junior: only their own task');
 select pg_temp.become('pm');

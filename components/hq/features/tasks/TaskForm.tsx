@@ -35,7 +35,7 @@ import { DateInput, Textarea, TextInput } from "../../TextInput";
  */
 
 export type LinkedSummary = {
-  kind: "contact" | "organisation" | "referral" | "opportunity";
+  kind: "contact" | "organisation" | "referral" | "opportunity" | "contractor";
   /** null when the name could not be read */
   label: string | null;
   /** null when there is no page to open */
@@ -55,6 +55,9 @@ export type TaskFormProps = {
   staff: readonly PickerOption[];
   contacts: readonly PickerOption[];
   organisations: readonly PickerOption[];
+  /** Phase 2: choices for the related contractor, and whether the person may link one (contractors.read). */
+  contractors?: readonly PickerOption[];
+  canLinkContractors?: boolean;
   canLink: boolean;
   /** Records the task is (or will be) linked to, for the "Linked to" line. */
   linked: readonly LinkedSummary[];
@@ -75,10 +78,11 @@ const KIND_NOUN: Record<LinkedSummary["kind"], string> = {
   organisation: "Organisation",
   referral: "Referral",
   opportunity: "Opportunity",
+  contractor: "Contractor",
 };
 
 export function TaskForm(props: TaskFormProps) {
-  const { mode, action, initial, taskId, version, returnTo, staff, contacts, organisations, canLink, linked, referralLink, opportunityLink, today, cancelHref, lockAssignee } = props;
+  const { mode, action, initial, taskId, version, returnTo, staff, contacts, organisations, contractors = [], canLinkContractors = false, canLink, linked, referralLink, opportunityLink, today, cancelHref, lockAssignee } = props;
   const [state, formAction] = useActionState(action, idle);
 
   // After a failed save the server returns what was typed; until then, the starting values.
@@ -169,7 +173,7 @@ export function TaskForm(props: TaskFormProps) {
         />
       )}
 
-      {canLink ? (
+      {canLink || canLinkContractors ? (
         <fieldset className="grid gap-5 border-0 p-0">
           <legend className="sr-only">Linked records</legend>
           <SectionLabel as="h2" className="border-b border-line pb-3">
@@ -206,6 +210,7 @@ export function TaskForm(props: TaskFormProps) {
             </div>
           ) : null}
 
+          {canLink ? (
           <div className="grid gap-5 sm:grid-cols-2">
             <NativeSelectPicker
               name="related_contact_id"
@@ -224,8 +229,20 @@ export function TaskForm(props: TaskFormProps) {
               defaultValue={v("related_organisation_id", initial.organisationId)}
             />
           </div>
+          ) : null}
 
-          {referralLink ? (
+          {canLinkContractors ? (
+            <NativeSelectPicker
+              name="related_contractor_id"
+              label="Contractor"
+              placeholder="No contractor"
+              options={contractors}
+              error={fieldError(state, "related_contractor_id")}
+              defaultValue={v("related_contractor_id", initial.contractorId)}
+            />
+          ) : null}
+
+          {canLink && referralLink ? (
             <Checkbox
               key={`ref-${referralChecked}`}
               name="related_referral_id"
@@ -236,7 +253,7 @@ export function TaskForm(props: TaskFormProps) {
               error={fieldError(state, "related_referral_id")}
             />
           ) : null}
-          {opportunityLink ? (
+          {canLink && opportunityLink ? (
             <Checkbox
               key={`opp-${opportunityChecked}`}
               name="related_opportunity_id"
