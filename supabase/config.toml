@@ -8,10 +8,10 @@ project_id = "Tidewell"
 enabled = true
 # Port to use for the API URL.
 port = 54321
-# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
-# endpoints. `public` and `graphql_public` schemas are included by default.
-# `hq` is Planted HQ (docs/hq-design.md): tables, views and RPCs. Its helpers live in `hq_private`, which is NOT listed here.
-schemas = ["public", "graphql_public", "hq"]
+# Schemas to expose in your API. Only `hq` (Planted HQ, docs/hq-design.md): tables, views and RPCs.
+# Its helpers live in `hq_private`, which is NOT listed here. `public` and `graphql_public` are
+# deliberately not exposed: this database holds nothing that should be reachable there.
+schemas = ["hq"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -59,11 +59,11 @@ enabled = true
 schema_paths = []
 
 [db.seed]
-# If enabled, seeds the database after migrations during a db reset.
-enabled = true
+# HQ has no SQL seed: scripts/hq/seed-local.mts (npm run hq:seed) loads the fake local staff and the leads.
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = []
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -112,21 +112,8 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-# Buckets (design 3.4): all private; signed URLs only by row id after an RLS check.
-[storage.buckets.photos]
-public = false
-file_size_limit = "2MiB"
-allowed_mime_types = ["image/jpeg"]
-
-[storage.buckets.documents]
-public = false
-file_size_limit = "15MiB"
-allowed_mime_types = ["application/pdf", "image/jpeg", "image/png", "application/zip"]
-
-[storage.buckets.message-attachments]
-public = false
-file_size_limit = "15MiB"
-allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "application/pdf", "audio/mpeg"]
+# HQ buckets (Phase 2: contractor documents) are created by migration, with their policies, so they are
+# reproducible on any project. The parked Tidewell buckets are not created.
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
@@ -298,14 +285,10 @@ inactivity_timeout = "336h"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # Adds app_roles, is_manager, crew_kind, owner_account_ids from active memberships (routes the UI only).
-[auth.hook.custom_access_token]
-enabled = true
-uri = "pg-functions://postgres/private/custom_access_token_hook"
-
-# Password sign-in is refused for everyone; the emailed code is the single door (section 8).
-[auth.hook.password_verification_attempt]
-enabled = true
-uri = "pg-functions://postgres/private/password_verification_hook"
+# Planted HQ needs no auth hooks: access is read live from hq.staff_profiles by hq.my_access().
+# The password-refusal hook from the parked Tidewell schema is a Team/Enterprise-plan feature, so it is
+# not used. Defence instead: nobody is given a password, sign-up is off, and the database returns nothing
+# until the person has completed multi-factor sign-in (hq_private.mfa_ok). See docs/hq-setup.md.
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
@@ -434,3 +417,17 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Hosted project (Sydney, org PLANTED). `supabase config push` applies everything above with these overrides.
+# Captcha is OFF in production until real Cloudflare Turnstile keys exist: the local test secret accepts any
+# token, so enabling it with that secret would only look like protection.
+[remotes.production]
+project_id = "wnejvqyqqfxdjkbmbrvs"
+
+[remotes.production.auth]
+site_url = "https://tidewellcc.netlify.app"
+additional_redirect_urls = ["https://tidewellcc.netlify.app/**"]
+
+[remotes.production.auth.captcha]
+enabled = false
+secret = ""

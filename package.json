@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3210",
     "lint": "eslint .",
-    "seed:local": "node --env-file=.env.local supabase/seed.mts",
+    "seed:local": "node --env-file=.env.local supabase/parked-tidewell/seed.mts",
     "test": "node --test \"lib/**/*.test.mts\"",
     "hq:seed": "node --env-file=.env.local scripts/hq/seed-local.mts",
     "hq:session": "node --env-file=.env.local scripts/hq/dev-session.mts",
