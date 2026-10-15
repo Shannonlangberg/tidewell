@@ -9,15 +9,12 @@ import { MoreLink, Rows, WidgetFailed, WidgetPanel, attempt, rowClass } from "@/
 import { hasCap, type DashCtx } from "@/components/hq/features/dashboard/data";
 import {
   CLEARED_CONTRACTOR_STATUSES,
-  CONTRACTOR_CATEGORY_LABEL,
   CONTRACTOR_STATUS_LABEL,
   CONTRACTOR_STATUS_TONE,
   VETTING_STEPS,
-  isOneOf,
-  CONTRACTOR_CATEGORIES,
 } from "@/lib/hq/constants";
 import { DOCUMENT_TYPE_LABEL, expiryBadge } from "@/lib/hq/contractors/documents-rules";
-import { coveredTrades } from "@/lib/hq/contractors/widgets-summary";
+import { coverageLabel, coveredTrades } from "@/lib/hq/contractors/widgets-summary";
 import { loadAwaitingVetting, loadContractorSummary, loadExpiryWatch, loadRecentContractorActivity, type ExpiryItem } from "@/lib/hq/contractors/widgets-data";
 import { formatDateTime, plural } from "@/lib/hq/format";
 import { createExpiryTasksAction } from "./actions";
@@ -173,7 +170,6 @@ export async function ExpiringDocumentsWidget({ ctx, returnTo }: { ctx: DashCtx;
 
 // ── preferred contractor coverage ────────────────────────────
 
-const labelFor = (category: string): string => (isOneOf(CONTRACTOR_CATEGORIES, category) ? CONTRACTOR_CATEGORY_LABEL[category] : category.replace(/_/g, " "));
 
 export async function PreferredCoverageWidget({ ctx }: { ctx: DashCtx }) {
   const r = await attempt("contractors-preferred-coverage", () => loadContractorSummary());
@@ -182,6 +178,8 @@ export async function PreferredCoverageWidget({ ctx }: { ctx: DashCtx }) {
   const s = r.data;
   const covered = coveredTrades(s.coverage);
   const uncovered = s.tradesWithoutCover;
+  // Labels are the owner's, from hq.trades (contractor_summary sends them with each trade).
+  const labelFor = (slug: string) => coverageLabel(s.coverage, slug);
   const tradeCount = covered.length + uncovered.length;
 
   return (
@@ -222,7 +220,12 @@ export async function PreferredCoverageWidget({ ctx }: { ctx: DashCtx }) {
               ))}
             </Rows>
           ) : null}
-          <p className="hq-muted mt-4 border-t border-line pt-3 text-[13px]">Counts contractors a person has approved or marked preferred. Prospects and contractors being vetted do not count.</p>
+          <p className="hq-muted mt-4 border-t border-line pt-3 text-[13px]">
+            Counts contractors a person has approved or marked preferred. Prospects and contractors being vetted do not count.{" "}
+            <Link href={HQ_ROUTES.partnerTrades} className="text-charcoal underline underline-offset-2">
+              See every trade
+            </Link>
+          </p>
         </>
       )}
     </WidgetPanel>

@@ -26,6 +26,8 @@ export const HQ_ROUTES = {
   partners: `${HQ_BASE}/partners`,
   partnerNew: `${HQ_BASE}/partners/new`,
   partnerImport: `${HQ_BASE}/partners/import`,
+  /** One container per trade (industry), with the editable list of trades. */
+  partnerTrades: `${HQ_BASE}/partners/trades`,
   operations: `${HQ_BASE}/operations`,
   taskNew: `${HQ_BASE}/operations/tasks/new`,
   people: `${HQ_BASE}/people`,

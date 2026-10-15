@@ -6,8 +6,9 @@
 import { CONTRACTOR_EXPIRY_STATE_LABEL, CONTRACTOR_STATUS_LABEL, type ContractorStatus } from "../../constants";
 import { searchTerm } from "../../growth/params";
 import { HQ_PATHS, LIMITS, clean, plural, rowLimit } from "./core";
-import { day, dbFailure, defineTool, link, resolveContractor, respond } from "./kit";
-import { contractorRecord, tradeCats } from "./records";
+import { lastUsedText } from "../../trades/rules";
+import { day, dbFailure, defineTool, link, resolveContractor, resolveTrade, respond, today } from "./kit";
+import { contractorRecord } from "./records";
 import { contractorExpiriesShape, getContractorShape, searchContractorsShape } from "./schemas";
 
 const statusText = (s: string | null) => (s && s in CONTRACTOR_STATUS_LABEL ? CONTRACTOR_STATUS_LABEL[s as ContractorStatus] : (s ?? ""));
@@ -17,7 +18,7 @@ export const searchContractors = defineTool({
   name: "search_contractors",
   title: "Search contractors",
   description:
-    "Lists maintenance contractors from the HQ contractor directory, filtered by words, trade, suburb serviced, region, status, cleared (approved or preferred) or emergency availability. Example: approved plumbers who service Moonta = trade plumbing, suburb Moonta, cleared_only true. Shows status, vetting progress, insurance and licence state and rating (only when there is enough feedback). Read-only. It never approves, prefers or suspends anyone: those stay on the HQ screen.",
+    "Lists maintenance contractors from the HQ contractor directory, filtered by words, trade (the owner's own list of trades, matched loosely by name or slug: electricians finds Electrical), suburb serviced, region, status, cleared (approved or preferred), emergency availability, or not used in N days. Example: approved plumbers who service Moonta = trade plumbing, suburb Moonta, cleared_only true. Shows trades, status, vetting progress, insurance and licence state, last used (recorded by staff; HQ is not connected to Ailo) and rating (only when there is enough feedback). Sort by name or last used. Read-only. It never approves, prefers or suspends anyone: those stay on the HQ screen.",
   inputSchema: searchContractorsShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: "contractors.read",
@@ -26,10 +27,25 @@ export const searchContractors = defineTool({
     const n = rowLimit(args.limit);
     let q = ctx.db
       .from("contractor_directory")
-      .select("id, business_name, categories, service_suburbs, status, vetting_done_count, insurance_state, licence_state, rating, rated_review_count, rating_threshold, emergency_available, phone", { count: "exact" });
+      .select("id, business_name, categories, trade_labels, service_suburbs, status, vetting_done_count, insurance_state, licence_state, rating, rated_review_count, rating_threshold, emergency_available, phone, last_job_date", { count: "exact" });
+    let tradeNote: string | null = null;
+    let tradeLabel: string | null = null;
+    if (args.trade) {
+      const t = await resolveTrade(ctx, args.trade);
+      if (!t.ok) return t.result;
+      q = q.contains("categories", [t.trade.slug]);
+      tradeNote = t.note;
+      tradeLabel = t.trade.label;
+    }
+    const t0 = today(ctx);
+    if (args.not_used_days) {
+      const d = new Date(`${t0}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - args.not_used_days);
+      const cutoff = d.toISOString().slice(0, 10);
+      q = q.or(`last_job_date.is.null,last_job_date.lt.${cutoff}`);
+    }
     const term = searchTerm(args.query);
     if (term) q = q.or(`business_name.ilike."*${term}*",primary_contact_name.ilike."*${term}*",service_suburb_keys.cs.{"${term.toLowerCase()}"}`);
-    if (args.trade) q = q.contains("categories", [args.trade]);
     const suburb = searchTerm(args.suburb);
     if (suburb) q = q.contains("service_suburb_keys", [suburb.toLowerCase()]);
     const region = searchTerm(args.region);
@@ -37,29 +53,31 @@ export const searchContractors = defineTool({
     if (args.status) q = q.eq("status", args.status);
     if (args.cleared_only) q = q.in("status", ["approved", "preferred"]);
     if (args.emergency) q = q.eq("emergency_available", true);
-    const { data, error, count } = await q.order("business_name").limit(n);
+    if (args.sort === "last_used") q = q.order("last_job_date", { ascending: false, nullsFirst: false });
+    const { data, error, count } = await q.order("business_name").order("id").limit(n);
     if (error) return dbFailure("search_contractors", error);
     const rows = data ?? [];
     const filters = [
       term && `matching "${term}"`,
-      args.trade && `trade ${args.trade.replace(/_/g, " ")}`,
+      tradeLabel && `trade ${tradeLabel}`,
       suburb && `servicing ${suburb}`,
       region && `in region ${region}`,
       args.status && `status ${args.status}`,
       args.cleared_only && "approved or preferred",
       args.emergency && "emergency call-outs",
+      args.not_used_days && `no job recorded in the last ${args.not_used_days} days`,
     ].filter(Boolean);
     const what = filters.length ? ` (${filters.join(", ")})` : "";
     if (rows.length === 0) {
-      return respond("empty", `No contractors found${what}. HQ only knows the suburbs and trades that have been recorded: a contractor whose service areas are not recorded will not match a suburb.`, null, { count: 0 });
+      return respond("empty", `${tradeNote ? `${tradeNote} ` : ""}No contractors found${what}. HQ only knows the suburbs and trades that have been recorded: a contractor whose service areas are not recorded will not match a suburb.`, null, { count: 0 });
     }
     const total = count ?? rows.length;
     const lines = rows.map((r) => {
       const rating = r.rating !== null && (r.rated_review_count ?? 0) >= (r.rating_threshold ?? 3) ? `rating ${Number(r.rating).toFixed(1)}/5` : "not enough feedback for a rating";
       const subs = r.service_suburbs?.length ? `${r.service_suburbs.slice(0, 4).join(", ")}${r.service_suburbs.length > 4 ? ` +${r.service_suburbs.length - 4}` : ""}` : "service areas not recorded";
-      return `- ${clean(r.business_name)} [id: ${r.id}] - ${tradeCats(r.categories)} - ${statusText(r.status)} - vetting ${r.vetting_done_count ?? 0}/9 - insurance ${stateText(r.insurance_state)}, licence ${stateText(r.licence_state)} - ${clean(subs, LIMITS.short)} - ${rating}${r.emergency_available ? " - emergency call-outs" : ""}${r.phone ? ` - ${clean(r.phone, 40)}` : ""}`;
+      return `- ${clean(r.business_name)} [id: ${r.id}] - ${clean((r.trade_labels ?? r.categories ?? []).join(", "), LIMITS.short)} - ${statusText(r.status)} - vetting ${r.vetting_done_count ?? 0}/9 - insurance ${stateText(r.insurance_state)}, licence ${stateText(r.licence_state)} - ${clean(subs, LIMITS.short)} - ${lastUsedText(r.last_job_date, t0)} - ${rating}${r.emergency_available ? " - emergency call-outs" : ""}${r.phone ? ` - ${clean(r.phone, 40)}` : ""}`;
     });
-    return respond("ok", `${plural(total, "contractor")}${what}${total > rows.length ? `, showing the first ${rows.length}` : ""}. Directory: ${link(ctx, HQ_PATHS.partners())}`, lines, {
+    return respond("ok", `${tradeNote ? `${tradeNote} ` : ""}${plural(total, "contractor")}${what}${total > rows.length ? `, showing the first ${rows.length}` : ""}. Directory: ${link(ctx, HQ_PATHS.partners())}`, lines, {
       count: total,
       ids: rows.map((r) => r.id),
     });

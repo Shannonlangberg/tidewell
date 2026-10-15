@@ -5,8 +5,8 @@
  * estimated or filled in; an empty section says it is empty, and a section the person's role
  * cannot see says so rather than pretending to be zero.
  */
-import { CONTRACTOR_CATEGORY_LABEL, CONTRACTOR_STATUS_LABEL, type ContractorCategory, type ContractorStatus } from "../../constants";
-import { parseContractorSummary } from "../../contractors/widgets-summary";
+import { CONTRACTOR_STATUS_LABEL, type ContractorStatus } from "../../constants";
+import { coverageLabel, parseContractorSummary } from "../../contractors/widgets-summary";
 import { formatAud } from "../../format";
 import { formatConversion } from "../../referrals/numbers";
 import { countAdditionalClaims, loadGrowthSummary } from "../../referrals/queries";
@@ -201,7 +201,8 @@ async function contractorSection(ctx: ToolContext): Promise<{ section: Section; 
     .filter((k) => (byStatus[k] ?? 0) > 0)
     .map((k) => `${byStatus[k]} ${CONTRACTOR_STATUS_LABEL[k].toLowerCase()}`)
     .join(", ");
-  const label = (c: string) => (c in CONTRACTOR_CATEGORY_LABEL ? CONTRACTOR_CATEGORY_LABEL[c as ContractorCategory] : c);
+  // The owner's trade names, as contractor_summary sends them (hq.trades), never a fixed list.
+  const label = (c: string) => coverageLabel(s.coverage, c);
   const covered = s.coverage.filter((r) => r.total > 0).map((r) => `- ${label(r.category)}: ${r.approved} approved, ${r.preferred} preferred`);
   const summary =
     s.total === 0

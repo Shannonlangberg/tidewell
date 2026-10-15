@@ -26,6 +26,7 @@ export const DIRECTORY_SORT_COLUMNS = {
   owner: "relationship_owner_name",
   rating: "rating",
   contacted: "last_contacted_at",
+  used: "last_job_date",
 } as const;
 export type DirectorySortKey = keyof typeof DIRECTORY_SORT_COLUMNS;
 export const DIRECTORY_SORT_KEYS = Object.keys(DIRECTORY_SORT_COLUMNS) as DirectorySortKey[];
@@ -46,7 +47,7 @@ export type DirectoryVocab = {
 
 export type DirectoryQuery = {
   q: string;
-  /** A contractor_category value. */
+  /** A trade slug (hq.trades.slug), checked against the trades the caller passes in. */
   trade: string | null;
   /** The suburb as typed (cleaned); the database compares its lower-case `service_suburb_keys`. */
   suburb: string | null;

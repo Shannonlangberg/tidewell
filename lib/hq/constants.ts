@@ -219,7 +219,11 @@ export const OPEN_TASK_STATUSES: readonly TaskStatus[] = ["to_do", "in_progress"
 
 // ── partners: contractors (Phase 2) ──────────────────────────
 
-/** Mirrors hq.contractor_category, in enum order. */
+/**
+ * The 22 trades migration 0123 seeds into hq.trades (slug = the old enum value), in their original order.
+ * NOT the live list: trades are owner-editable (added, renamed, reordered, archived) and every screen reads
+ * them from hq.trades (lib/hq/trades/queries.ts). Kept only as a fallback label source and for tests.
+ */
 export const CONTRACTOR_CATEGORIES = [
   "plumbing",
   "electrical",
@@ -246,6 +250,7 @@ export const CONTRACTOR_CATEGORIES = [
 ] as const;
 export type ContractorCategory = (typeof CONTRACTOR_CATEGORIES)[number];
 
+/** The seeded labels (the owner may have renamed them since: read hq.trades for the current ones). */
 export const CONTRACTOR_CATEGORY_LABEL: Record<ContractorCategory, string> = {
   plumbing: "Plumbing",
   electrical: "Electrical",

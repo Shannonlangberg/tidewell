@@ -3,7 +3,8 @@ import { formatAbn } from "@/lib/hq/contractors/abn";
 import { formatRate } from "@/lib/hq/contractors/money";
 import { ratingText, vettingProgressText, type Contractor } from "@/lib/hq/contractors/types";
 import { formatDate, formatDateTime } from "@/lib/hq/format";
-import { agoLabel } from "@/lib/hq/growth/dates";
+import { agoLabel, todayInZone } from "@/lib/hq/growth/dates";
+import { lastUsedText } from "@/lib/hq/trades/rules";
 import { KeyValueList, SectionLabel, type KeyValueItem } from "../../Primitives";
 import { StatusChip } from "../../StatusChip";
 import { NeedsVerifyingChip } from "../contacts/Bits";
@@ -69,7 +70,7 @@ export function ContractorDetails({ c, timezone }: { c: Contractor; timezone: st
   ];
 
   const where: KeyValueItem[] = [
-    { label: "Trades", value: c.categories.length > 0 ? <TradeTags categories={c.categories} /> : null },
+    { label: "Trades", value: c.categories.length > 0 ? <TradeTags labels={c.tradeLabels} /> : null },
     { label: "Suburbs", value: c.serviceSuburbs.length > 0 ? c.serviceSuburbs.join(", ") : null },
     { label: "Regions", value: c.serviceRegions.length > 0 ? c.serviceRegions.join(", ") : null },
     { label: "Emergency call-outs", value: c.emergencyAvailable === null ? null : c.emergencyAvailable ? "Yes" : "No" },
@@ -85,7 +86,16 @@ export function ContractorDetails({ c, timezone }: { c: Contractor; timezone: st
     { label: "Vetting", value: `${vettingProgressText(c.vettingDoneCount)} steps done` },
     { label: "Feedback", value: ratingText(c) },
     { label: "Last contact", empty: "Not contacted yet", value: c.lastContactedAt ? <time dateTime={c.lastContactedAt}>{ago}<span className="block text-[13px] font-normal text-grey-text">{formatDateTime(c.lastContactedAt, timezone)}</span></time> : null },
-    { label: "Last job", value: c.lastJobDate ? formatDate(c.lastJobDate) : null },
+    {
+      label: "Last used",
+      empty: "Never recorded",
+      value: c.lastJobDate ? (
+        <>
+          {lastUsedText(c.lastJobDate, todayInZone(timezone))}
+          <span className="block text-[13px] font-normal text-grey-text">Recorded by staff (HQ is not connected to Ailo)</span>
+        </>
+      ) : null,
+    },
     { label: "Approved", value: c.approvedAt ? `${formatDate(c.approvedAt, timezone)}${c.approvedByName ? ` by ${c.approvedByName}` : ""}` : null, empty: "Not approved" },
     { label: "Source", value: c.source },
     { label: "Verification", value: c.needsVerification ? <NeedsVerifyingChip /> : c.verifiedAt ? `Verified ${formatDate(c.verifiedAt, timezone)}` : "No flag" },

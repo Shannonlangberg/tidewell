@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
-import { CONTRACTOR_CATEGORIES, HQ_BASE, INTERACTION_LABEL, type InteractionType } from "@/lib/hq/constants";
+import { HQ_BASE, INTERACTION_LABEL, type InteractionType } from "@/lib/hq/constants";
 import { readContactForm } from "@/lib/hq/contractors/contact-form";
 import { classifyContractorError, logTag } from "@/lib/hq/contractors/db-errors";
 import { abnProblem, stripAbn } from "@/lib/hq/contractors/abn";
@@ -13,6 +13,9 @@ import { MOVE_TARGETS } from "@/lib/hq/contractors/status";
 import { FormReader, fail, isUuid, type ActionState } from "@/lib/hq/forms";
 import { normaliseName } from "@/lib/hq/growth/params";
 import { retainedValues } from "@/lib/hq/growth/retain";
+import { todayInZone } from "@/lib/hq/growth/dates";
+import { loadTrades } from "@/lib/hq/trades/queries";
+import { allowedTradeSlugs } from "@/lib/hq/trades/rules";
 import { withToast } from "@/components/hq/flash";
 
 /*
@@ -34,6 +37,7 @@ import { withToast } from "@/components/hq/flash";
  *   approveContractor       contractors.approve  approve_contractor (preferred is a separate choice)
  *   reinstateContractor     contractors.approve  reinstate_contractor, back to vetting
  *   archiveContractor       contractors.approve  archive_record
+ *   recordContractorJob     contractors.write    mark_contractor_used ("Record a job": last used, never backwards unless confirmed)
  */
 
 const PARTNERS = `${HQ_BASE}/partners`;
@@ -56,18 +60,30 @@ function refresh(id?: string) {
 
 // ── add or edit ──────────────────────────────────────────────
 
-type Existing = { id: string; licence_expires_on: string | null; insurance_expires_on: string | null };
+type Existing = { id: string; categories: string[]; licence_expires_on: string | null; insurance_expires_on: string | null };
 
 export async function saveContractor(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { db } = await requireStaff("contractors.write");
-  const f = new FormReader(formData);
-  const v = readContractorFields(f, { categories: CONTRACTOR_CATEGORIES, abnProblem, stripAbn, parseDollars });
   const retained = retainedValues(formData);
+
+  // The trades a contractor may be given come from hq.trades: the active ones, plus any archived trade this
+  // contractor already has (kept, never silently dropped). The database checks the same rule again.
+  const trades = await loadTrades(db);
+  if (!trades.ok) return failWith(fail(GENERIC), retained);
+  const editingId = new FormReader(formData).uuid("id");
+  let current: string[] = [];
+  if (editingId) {
+    const had = await db.from("contractors").select("categories").eq("id", editingId).maybeSingle();
+    current = had.data?.categories ?? [];
+  }
+
+  const f = new FormReader(formData);
+  const v = readContractorFields(f, { categories: allowedTradeSlugs(trades.data, current), abnProblem, stripAbn, parseDollars });
   if (!f.ok) return failWith(f.fail(), retained);
 
   let existing: Existing | null = null;
   if (v.id) {
-    const found = await db.from("contractors").select("id, licence_expires_on, insurance_expires_on").eq("id", v.id).is("deleted_at", null).maybeSingle();
+    const found = await db.from("contractors").select("id, categories, licence_expires_on, insurance_expires_on").eq("id", v.id).is("deleted_at", null).maybeSingle();
     if (found.error) {
       console.error("[hq] saveContractor load failed:", logTag(found.error));
       return failWith(fail(GENERIC), retained);
@@ -101,7 +117,7 @@ export async function saveContractor(_prev: ActionState, formData: FormData): Pr
     email: v.email,
     website: v.website,
     abn: v.abn,
-    categories: v.categories as (typeof CONTRACTOR_CATEGORIES)[number][],
+    categories: v.categories,
     service_suburbs: v.serviceSuburbs,
     service_regions: v.serviceRegions,
     emergency_available: v.emergencyAvailable,
@@ -162,6 +178,8 @@ function saveFailure(error: DbErr): ActionState {
       return fail("Please check the highlighted fields and try again.", { abn: "That ABN doesn't pass the ABN check, so a digit is probably wrong." });
     case "categories_empty":
       return fail("Please check the highlighted fields and try again.", { categories: "Choose at least one trade." });
+    case "trade_not_current":
+      return fail("Please check the highlighted fields and try again.", { categories: "One of those trades has just been archived or removed. Reload the page and choose again." });
     case "email_shape":
       return fail("Please check the highlighted fields and try again.", { email: "That doesn't look like an email address." });
     case "rates_negative":
@@ -367,4 +385,45 @@ export async function archiveContractor(formData: FormData): Promise<ActionState
   }
   refresh(id);
   redirect(withToast(PARTNERS, "Contractor archived"));
+}
+
+// ── record a job ("last used") ───────────────────────────────
+
+/** Where "Record a job" may send the person back to: the profile or the Trades page, nothing else. */
+function jobReturnTo(raw: string | null, id: string): string {
+  const trades = `${PARTNERS}/trades`;
+  if (raw && (raw === trades || raw.startsWith(`${trades}?`)) && /^[\w/?=&%.,-]*$/.test(raw)) return raw;
+  return `${PARTNERS}/${id}`;
+}
+
+/**
+ * Records that a contractor was used: last_job_date (recorded by staff; HQ is not connected to Ailo),
+ * through hq.mark_contractor_used. Default today in the person's timezone; never in the future; an
+ * earlier date than the one recorded needs the explicit "move it back" tick (the database refuses it
+ * otherwise).
+ */
+export async function recordContractorJob(formData: FormData): Promise<ActionState> {
+  const { db, staff } = await requireStaff("contractors.write");
+  const f = new FormReader(formData);
+  const id = f.uuid("id", { required: true });
+  const jobDate = f.date("job_date") ?? todayInZone(staff.timezone);
+  const allowEarlier = f.bool("allow_earlier");
+  const returnTo = id ? jobReturnTo(f.text("return_to", { max: 300 }), id) : PARTNERS;
+  if (!id || !f.ok) return fail("That job could not be recorded.", f.errors);
+  if (jobDate > todayInZone(staff.timezone)) return fail("Nothing was recorded.", { job_date: "The job date can't be in the future." });
+
+  const { data, error } = await db.rpc("mark_contractor_used", { p_contractor: id, p_job_date: jobDate, p_allow_earlier: allowEarlier });
+  if (error) {
+    console.error("[hq] mark_contractor_used failed:", logTag(error));
+    const kind = classifyContractorError(error);
+    if (kind === "permission") return fail(FORBIDDEN);
+    if (kind === "not_found") return fail(NOT_FOUND);
+    if (kind === "refused") return fail("Nothing was recorded.", { job_date: "That is earlier than the last job already recorded. Tick the box to move the date back, or choose a later date." });
+    if (kind === "invalid") return fail("Nothing was recorded.", { job_date: "Choose a date that is today or earlier." });
+    return fail(GENERIC);
+  }
+  const changed = (data as { changed?: boolean } | null)?.changed !== false;
+  refresh(id);
+  revalidatePath(`${PARTNERS}/trades`);
+  redirect(withToast(returnTo, changed ? "Job recorded" : "That date was already recorded", changed ? "success" : "info"));
 }

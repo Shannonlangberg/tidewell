@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import {
-  CONTRACTOR_CATEGORIES,
-  CONTRACTOR_CATEGORY_LABEL,
   CONTRACTOR_EXPIRY_STATES,
   CONTRACTOR_EXPIRY_STATE_LABEL,
   CONTRACTOR_STATUSES,
@@ -10,6 +8,8 @@ import {
 import { requireStaff } from "@/lib/hq/auth";
 import { directoryCounts, directoryQuery, listContractors, placeChoices } from "@/lib/hq/contractors/queries";
 import { DIRECTORY_PAGE_SIZE, STATUS_FILTER_CLEARED } from "@/lib/hq/contractors/params";
+import { tradesAndLookup } from "@/lib/hq/trades/queries";
+import { tradeOptions } from "@/lib/hq/trades/rules";
 import {
   EmptyState,
   ErrorState,
@@ -27,6 +27,7 @@ import {
   type SortState,
 } from "@/components/hq";
 import { ContractorsTable } from "@/components/hq/features/contractors/ContractorsTable";
+import { PartnersSections } from "@/components/hq/features/contractors/PartnersSections";
 
 export const metadata: Metadata = { title: "Contractors" };
 
@@ -41,6 +42,7 @@ const SORT_LABEL: Record<string, string> = {
   owner: "owner",
   rating: "rating",
   contacted: "last contact",
+  used: "last used",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -49,7 +51,9 @@ export default async function ContractorDirectoryPage({ searchParams }: { search
   const sp = await searchParams;
   const { db, staff, can } = await requireStaff("contractors.read", false, buildHref(PATH, sp));
 
-  const query = directoryQuery(sp);
+  // The trade filter offers the trades in hq.trades (the owner's list), never a fixed one.
+  const trades = await tradesAndLookup(db);
+  const query = directoryQuery(sp, trades.trades.map((t) => t.slug));
   const canWrite = can("contractors.write");
   const canImport = can("import.run") && canWrite;
 
@@ -116,6 +120,8 @@ export default async function ContractorDirectoryPage({ searchParams }: { search
           </>
         }
       />
+
+      <PartnersSections current="directory" />
 
       {counts.ok ? (
         <StatBand label="Contractors at a glance" columns={4} className="mb-8">
@@ -190,7 +196,7 @@ export default async function ContractorDirectoryPage({ searchParams }: { search
           hideLabel
           placeholder="All trades"
           defaultValue={query.trade ?? ""}
-          options={CONTRACTOR_CATEGORIES.map((c) => ({ value: c, label: CONTRACTOR_CATEGORY_LABEL[c] }))}
+          options={tradeOptions(trades.trades, query.trade ? [query.trade] : [])}
         />
         <Select
           name="status"

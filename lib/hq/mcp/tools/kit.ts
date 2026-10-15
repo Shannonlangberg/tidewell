@@ -11,6 +11,7 @@ import { z } from "zod";
 import type { ToolContext, ToolDef, ToolResult } from "../types";
 import { formatDate, formatDateTime, todayIn } from "../../format";
 import { normaliseName, searchTerm } from "../../growth/params";
+import { matchTrade, sortTrades, type Trade } from "../../trades/rules";
 import {
   GENERIC_ERROR,
   HQ_PATHS,
@@ -348,3 +349,50 @@ export async function resolveOpportunity(ctx: ToolContext, query: string, mode: 
 }
 
 export { HQ_PATHS };
+
+// ── trades (hq.trades: the owner's own list) ─────────────────
+
+/** Every trade the person can read (contractors.read), active and archived, in the owner's order. Throws on a database error. */
+export async function loadToolTrades(ctx: ToolContext): Promise<Trade[]> {
+  const list = await rows(
+    "trades",
+    ctx.db.from("trades").select("id, slug, label, description, sort_order, is_active, archived_at").order("sort_order").limit(500),
+  );
+  return sortTrades(
+    list.map((t) => ({ id: t.id, slug: t.slug, label: t.label, description: t.description, sortOrder: t.sort_order, isActive: t.is_active ?? t.archived_at === null })),
+  );
+}
+
+/** "Plumbing (plumbing), Electrical (electrical), ..." for a reply that has to list the trades. */
+export function tradesListText(trades: readonly Trade[]): string {
+  const active = trades.filter((t) => t.isActive);
+  return active.length ? active.map((t) => `${t.label} (${t.slug})`).join(", ") : "none are recorded yet";
+}
+
+export type TradeResolved = { ok: true; trade: Trade; trades: Trade[]; note: string | null } | { ok: false; result: ToolResult };
+
+/**
+ * The trade a person named: exact (slug or label, any case) or a close match ("electricians" ->
+ * Electrical, said in a note). Never guesses: none or several -> the available trades, nothing done.
+ */
+export async function resolveTrade(ctx: ToolContext, input: string): Promise<TradeResolved> {
+  const trades = await loadToolTrades(ctx);
+  const m = matchTrade(input, trades);
+  if (m.kind === "match") {
+    return { ok: true, trade: m.trade, trades, note: m.exact ? null : `Read "${input.slice(0, 60)}" as the trade ${m.trade.label} (${m.trade.slug}).` };
+  }
+  if (m.kind === "ambiguous") {
+    return {
+      ok: false,
+      result: result("ambiguous", `"${input.slice(0, 60)}" could be more than one trade: ${m.options.map((t) => `${t.label} (${t.slug})`).join(", ")}. Say which one.`, {
+        candidates: m.options.map((t) => ({ slug: t.slug, label: t.label })),
+      }),
+    };
+  }
+  return {
+    ok: false,
+    result: result("not_found", `No trade in HQ matches "${input.slice(0, 60)}". The trades are: ${tradesListText(trades)}.`, {
+      trades: trades.filter((t) => t.isActive).map((t) => ({ slug: t.slug, label: t.label })),
+    }),
+  };
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   approveContractor,
   changeContractorStatus,
@@ -11,16 +11,13 @@ import { CONTRACTOR_STATUS_LABEL, VETTING_STEP_LABEL, type ContractorStatus, typ
 import type { ApprovalPreview, StatusActionSet } from "@/lib/hq/contractors/status";
 import { blockedText } from "@/lib/hq/contractors/status";
 import { formatDate } from "@/lib/hq/format";
-import { idle, type ActionState } from "@/lib/hq/forms";
 import { Button } from "../../Button";
+import { ErrorLine, FormDialog, useDecision } from "./FormDialog";
 import { Checkbox } from "../../Choice";
-import { FieldError, fieldError } from "../../Field";
+import { fieldError } from "../../Field";
 import { InlineNote } from "../../Primitives";
 import { NativeSelectPicker } from "../../Select";
-import { SubmitButton } from "../../SubmitButton";
 import { Textarea } from "../../TextInput";
-import { useModalDialog } from "../../useModalDialog";
-import { useCloseWhenDone } from "../referrals/useCloseWhenDone";
 
 /*
  * The status actions on a contractor's page: Approve (and make or remove Preferred), Suspend,
@@ -95,72 +92,6 @@ export function StatusActions({ contractorId, businessName, status, actions, pre
   );
 }
 
-// ── a native dialog that holds a real form ───────────────────
-
-type DialogShell = {
-  title: string;
-  onClose: () => void;
-  confirmLabel: string;
-  tone?: "primary" | "danger";
-  /** Keeps the confirm button inert (not hidden), with the reason in the body. */
-  confirmDisabled?: boolean;
-  pending: boolean;
-  children: ReactNode;
-  action: (formData: FormData) => void;
-  wide?: boolean;
-};
-
-/**
- * ConfirmDialog confirms with hidden fields only. These decisions need a note, and sometimes a
- * choice, inside the form, and a confirm button that can stay disabled, so the dialog wraps the whole
- * body in its own <form>. Same markup and classes as ConfirmDialog, so it looks the same.
- */
-function DialogShell({ title, onClose, confirmLabel, tone = "primary", confirmDisabled, pending, children, action, wide }: DialogShell) {
-  const { ref, handlers } = useModalDialog(true, onClose, { dismissible: !pending });
-  const titleId = useId();
-  return (
-    <dialog
-      ref={ref}
-      className="hq-modal hq-confirm"
-      role="alertdialog"
-      aria-labelledby={titleId}
-      style={{ width: wide ? "min(36rem, calc(100vw - 32px))" : undefined, maxHeight: "calc(100dvh - 32px)", overflowY: "auto" }}
-      {...handlers}
-    >
-      <form action={action} className="hq-confirm__panel" noValidate>
-        <h2 id={titleId} className="hq-confirm__title">
-          {title}
-        </h2>
-        <div className="hq-confirm__body grid gap-4">{children}</div>
-        <div className="hq-confirm__actions">
-          <Button variant="secondary" onClick={onClose} disabled={pending} data-autofocus>
-            Cancel
-          </Button>
-          <SubmitButton variant={tone} disabled={confirmDisabled} pendingLabel={`${confirmLabel} in progress`}>
-            {confirmLabel}
-          </SubmitButton>
-        </div>
-      </form>
-    </dialog>
-  );
-}
-
-/** One action's state: a failed attempt keeps the dialog open and says why; a redirect closes it. */
-function useDecision(action: (formData: FormData) => Promise<ActionState>, onClose: () => void) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(async (_prev, formData) => (await action(formData)) ?? idle, idle);
-  useCloseWhenDone(state, pending, onClose);
-  return { state, formAction, pending };
-}
-
-function ErrorLine({ state }: { state: ActionState }) {
-  if (state.ok || !state.message) return null;
-  return (
-    <div role="alert">
-      <FieldError>{state.message}</FieldError>
-    </div>
-  );
-}
-
 // ── approve / prefer / remove preferred ──────────────────────
 
 function ApproveDialog({
@@ -187,7 +118,7 @@ function ApproveDialog({
   const confirmLabel = mode === "unprefer" ? "Remove preferred" : makePreferred ? "Approve as preferred" : mode === "prefer" ? "Make preferred" : "Approve contractor";
 
   return (
-    <DialogShell title={title} onClose={onClose} confirmLabel={confirmLabel} confirmDisabled={Boolean(blocked)} pending={pending} action={formAction} wide>
+    <FormDialog title={title} onClose={onClose} confirmLabel={confirmLabel} confirmDisabled={Boolean(blocked)} pending={pending} action={formAction} wide>
       <input type="hidden" name="id" value={contractorId} />
       {makePreferred ? <input type="hidden" name="make_preferred" value="on" /> : null}
 
@@ -263,7 +194,7 @@ function ApproveDialog({
         error={fieldError(state, "note")}
       />
       <ErrorLine state={state} />
-    </DialogShell>
+    </FormDialog>
   );
 }
 
@@ -272,7 +203,7 @@ function ApproveDialog({
 function SuspendDialog({ contractorId, businessName, onClose }: { contractorId: string; businessName: string; onClose: () => void }) {
   const { state, formAction, pending } = useDecision(suspendContractor, onClose);
   return (
-    <DialogShell title={`Suspend ${businessName}?`} onClose={onClose} confirmLabel="Suspend contractor" tone="danger" pending={pending} action={formAction}>
+    <FormDialog title={`Suspend ${businessName}?`} onClose={onClose} confirmLabel="Suspend contractor" tone="danger" pending={pending} action={formAction}>
       <input type="hidden" name="id" value={contractorId} />
       <p>They will be marked suspended straight away, so nobody sends them to a property. Their records and documents are kept. Only a director or administrator can reinstate them, and they return to vetting.</p>
       <Textarea
@@ -286,7 +217,7 @@ function SuspendDialog({ contractorId, businessName, onClose }: { contractorId: 
         error={fieldError(state, "note")}
       />
       <ErrorLine state={state} />
-    </DialogShell>
+    </FormDialog>
   );
 }
 
@@ -295,12 +226,12 @@ function SuspendDialog({ contractorId, businessName, onClose }: { contractorId: 
 function ReinstateDialog({ contractorId, businessName, onClose }: { contractorId: string; businessName: string; onClose: () => void }) {
   const { state, formAction, pending } = useDecision(reinstateContractor, onClose);
   return (
-    <DialogShell title={`Reinstate ${businessName}?`} onClose={onClose} confirmLabel="Reinstate contractor" pending={pending} action={formAction}>
+    <FormDialog title={`Reinstate ${businessName}?`} onClose={onClose} confirmLabel="Reinstate contractor" pending={pending} action={formAction}>
       <input type="hidden" name="id" value={contractorId} />
       <p>They return to vetting, not to approved. To send them to a property again, approve them once the checklist is complete.</p>
       <Textarea name="note" idPrefix={`reinstate-${contractorId}`} label="Note (optional)" rows={3} maxLength={1000} hint="Why they are being reinstated." error={fieldError(state, "note")} />
       <ErrorLine state={state} />
-    </DialogShell>
+    </FormDialog>
   );
 }
 
@@ -322,7 +253,7 @@ function MoveDialog({
   const { state, formAction, pending } = useDecision(changeContractorStatus, onClose);
   const leavingCleared = status === "approved" || status === "preferred";
   return (
-    <DialogShell title={`Change status of ${businessName}`} onClose={onClose} confirmLabel="Change status" pending={pending} action={formAction}>
+    <FormDialog title={`Change status of ${businessName}`} onClose={onClose} confirmLabel="Change status" pending={pending} action={formAction}>
       <input type="hidden" name="id" value={contractorId} />
       <p>
         Now: <b className="font-semibold text-charcoal">{CONTRACTOR_STATUS_LABEL[status]}</b>.{" "}
@@ -340,6 +271,6 @@ function MoveDialog({
       />
       <Textarea name="note" idPrefix={`move-note-${contractorId}`} label="Note (optional)" rows={3} maxLength={1000} error={fieldError(state, "note")} />
       <ErrorLine state={state} />
-    </DialogShell>
+    </FormDialog>
   );
 }

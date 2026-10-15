@@ -3,7 +3,7 @@
  * without ever showing the raw message to a person or writing personal data to a log. Pure and
  * import-free.
  *
- * Constraint names come from migrations 0112 to 0118: structural, not personal, so it is safe to
+ * Constraint names come from migrations 0112 to 0118 and 0123: structural, not personal, so it is safe to
  * read and log them. The `details` text of a unique violation holds the offending VALUES (a
  * business name, an ABN): it is never read here and must never be logged.
  */
@@ -15,6 +15,7 @@ export type ContractorErrorKind =
   | "abn_duplicate"
   | "name_duplicate"
   | "categories_empty"
+  | "trade_not_current"
   | "email_shape"
   | "rates_negative"
   | "suspended_needs_reason"
@@ -32,6 +33,8 @@ const CONSTRAINTS: Array<[string, ContractorErrorKind]> = [
   ["contractors_abn_uq", "abn_duplicate"],
   ["contractors_name_key_uq", "name_duplicate"],
   ["contractors_categories_not_empty", "categories_empty"],
+  // 0123: a slug that is not an active trade (raised by hq_private.contractor_trades_guard)
+  ["contractors_trades_known", "trade_not_current"],
   ["contractors_email_shape", "email_shape"],
   ["contractors_rates_not_negative", "rates_negative"],
   ["contractors_suspended_needs_reason", "suspended_needs_reason"],

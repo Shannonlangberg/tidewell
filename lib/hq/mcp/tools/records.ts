@@ -8,7 +8,6 @@
  */
 import {
   CATEGORY_LABEL,
-  CONTRACTOR_CATEGORY_LABEL,
   CONTRACTOR_EXPIRY_STATE_LABEL,
   CONTRACTOR_STATUS_LABEL,
   INTERACTION_LABEL,
@@ -21,7 +20,6 @@ import {
   VETTING_STEP_LABEL,
   isOneOf,
   OPPORTUNITY_STAGES,
-  type ContractorCategory,
   type InteractionType,
   type PartnerCategory,
   type Priority,
@@ -34,6 +32,7 @@ import { getContractor, openTasksForContractor } from "../../contractors/queries
 import { formatRate } from "../../contractors/money";
 import { listInteractions } from "../../contacts/queries";
 import { formatAud, refNumber } from "../../format";
+import { lastUsedText } from "../../trades/rules";
 import { HQ_PATHS, LIMITS, clean, recordId, type RecordKind } from "./core";
 import { can, day, link, logDb, today, when, type ToolContext } from "./kit";
 
@@ -65,8 +64,8 @@ function fail(where: string, error: { code?: string | null } | null): never {
 
 const partnerCats = (cats: readonly string[] | null | undefined) =>
   (cats ?? []).map((c) => (isOneOf(Object.keys(CATEGORY_LABEL) as PartnerCategory[], c) ? CATEGORY_LABEL[c] : c)).join(", ");
-const tradeCats = (cats: readonly string[] | null | undefined) =>
-  (cats ?? []).map((c) => (isOneOf(Object.keys(CONTRACTOR_CATEGORY_LABEL) as ContractorCategory[], c) ? CONTRACTOR_CATEGORY_LABEL[c] : c)).join(", ");
+/** Trade slugs as words, for a row that carries no labels (contractor_directory carries trade_labels: prefer those). */
+const tradeCats = (cats: readonly string[] | null | undefined) => (cats ?? []).map((c) => c.replace(/_/g, " ")).join(", ");
 export const relLabel = (s: string | null | undefined) => (s && s in RELATIONSHIP_LABEL ? RELATIONSHIP_LABEL[s as RelationshipStatus] : (s ?? ""));
 export const taskStatusLabel = (s: string) => (s in TASK_STATUS_LABEL ? TASK_STATUS_LABEL[s as TaskStatus] : s);
 export const taskPriorityLabel = (s: string) => (s in TASK_PRIORITY_LABEL ? TASK_PRIORITY_LABEL[s as TaskPriority] : s);
@@ -221,7 +220,7 @@ export async function contractorRecord(ctx: ToolContext, id: string): Promise<Re
     line("Business", c.businessName),
     line("Status", `${CONTRACTOR_STATUS_LABEL[c.status]}${c.statusReason ? ` (${clean(c.statusReason)})` : ""}`),
     c.status === "approved" || c.status === "preferred" ? line("Approved", `${day(ctx, c.approvedAt)}${c.approvedByName ? ` by ${c.approvedByName}` : ""}`) : null,
-    line("Trades", tradeCats(c.categories)),
+    line("Trades", c.tradeLabels.length ? c.tradeLabels.join(", ") : tradeCats(c.categories)),
     line("Contact person", c.primaryContactName ?? "Not recorded"),
     line("Phone", c.phone ?? "Not recorded"),
     line("Email", c.email ?? "Not recorded"),
@@ -238,7 +237,7 @@ export async function contractorRecord(ctx: ToolContext, id: string): Promise<Re
     line("Documents on file", String(c.documentCount)),
     line("Relationship owner", c.ownerName ?? "Nobody"),
     line("Last contacted", c.lastContactedAt ? when(ctx, c.lastContactedAt) : "Never recorded"),
-    line("Last job", c.lastJobDate ? day(ctx, c.lastJobDate) : "Not recorded"),
+    line("Last used", `${lastUsedText(c.lastJobDate, today(ctx))} (recorded by staff; HQ is not connected to Ailo)`),
     line("Rating", rating),
     c.needsVerification ? "Needs verifying: yes (details not yet checked by a person)" : null,
     `Vetting checklist: ${c.vettingDoneCount} of 9 done`,
@@ -267,7 +266,7 @@ export async function contractorRecord(ctx: ToolContext, id: string): Promise<Re
     title: c.businessName,
     url: link(ctx, HQ_PATHS.contractor(c.id)),
     lines,
-    metadata: { type: "contractor", status: c.status, trades: c.categories, insurance_state: c.insuranceState, licence_state: c.licenceState, vetting_done: c.vettingDoneCount },
+    metadata: { type: "contractor", status: c.status, trades: c.categories, trade_labels: c.tradeLabels, last_job_date: c.lastJobDate, insurance_state: c.insuranceState, licence_state: c.licenceState, vetting_done: c.vettingDoneCount },
   };
 }
 

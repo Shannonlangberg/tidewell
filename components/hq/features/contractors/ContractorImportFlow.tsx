@@ -122,7 +122,11 @@ function ChooseFile({ state, formAction }: { state: ContractorImportState; formA
           </SectionLabel>
           <ul className="grid gap-2 text-[14px]">
             <li>
-              <b className="font-semibold">business_name</b> and <b className="font-semibold">categories</b> are required. Categories is a list in JSON, or separated by <code>|</code> in a CSV (<code>plumbing|electrical</code>).
+              <b className="font-semibold">business_name</b> and <b className="font-semibold">categories</b> are required. Categories is a list in JSON, or separated by <code>|</code> in a CSV (<code>plumbing|electrical</code>). Use the trades on the{" "}
+              <Link href="/hq/partners/trades" className="underline underline-offset-2">
+                Trades
+              </Link>{" "}
+              page, by name or slug; an archived trade cannot be imported.
             </li>
             <li>Optional: primary_contact_name, phone, email, website, abn, service_suburbs, service_regions, notes, flags.</li>
             <li>
