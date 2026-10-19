@@ -15,7 +15,7 @@ export const searchContacts = defineTool({
   name: "search_contacts",
   title: "Search contacts",
   description:
-    "Lists partner contacts (people at agencies, brokers, conveyancers and so on) filtered by words, organisation, relationship status, owner, or follow-up due. Shows organisation, status, last contact and next follow-up, with ids for follow-up calls. Read-only.",
+    "Lists many partner contacts in ONE call (people at agencies, brokers, conveyancers and so on), preferred over opening contacts one by one. Filter by words, organisation, relationship status, owner, or follow-up due. Shows organisation, status, last contact and next follow-up, with ids for follow-up calls. Read-only.",
   inputSchema: searchContactsShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: "growth.read",
@@ -61,7 +61,7 @@ export const getContact = defineTool({
   name: "get_contact",
   title: "Get a contact",
   description:
-    "Shows one partner contact in full by name or id: organisation, contact details, relationship status, owner, last contact, next follow-up, notes, the five most recent interactions and open tasks, with the HQ link. If the name matches several people you get the candidates instead (add the organisation to tell them apart). Read-only.",
+    "Opens ONE partner contact in full. Use only when asked about that specific person; to look at several people, use search_contacts, who_to_contact or a report, never repeated get_contact calls. Shows, by name or id, organisation, contact details, relationship status, owner, last contact, next follow-up, notes, the five most recent interactions and open tasks, with the HQ link. If the name matches several people you get the candidates instead (add the organisation to tell them apart). Read-only.",
   inputSchema: getContactShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: "growth.read",

@@ -227,7 +227,7 @@ export const dailyBrief = defineTool({
   name: "daily_brief",
   title: "Daily brief",
   description:
-    "Today's brief for you: your overdue and due-today tasks, partner follow-ups overdue or due today, contractor licences/insurance/documents expired or expiring soon, and referrals recorded since yesterday. Sections your role cannot see are named as not included, never shown as zero. Read-only.",
+    "The best first call for 'what's on my plate', 'what should I do today' or 'what needs attention': one call that covers everything below. Today's brief for you: your overdue and due-today tasks, partner follow-ups overdue or due today, contractor licences/insurance/documents expired or expiring soon, and referrals recorded since yesterday. Sections your role cannot see are named as not included, never shown as zero. Read-only.",
   inputSchema: dailyBriefShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: null,

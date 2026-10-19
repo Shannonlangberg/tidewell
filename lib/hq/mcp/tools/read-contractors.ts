@@ -88,7 +88,7 @@ export const getContractor = defineTool({
   name: "get_contractor",
   title: "Get a contractor",
   description:
-    "Shows one contractor in full by business name or id: status, trades, contact details, service areas, rates (in dollars; unknown says Not recorded), insurance and licence state, the nine-step vetting checklist, latest feedback, recent contact and open tasks, with the HQ link. If the name matches several contractors you get the candidates instead. Read-only; document files are never opened.",
+    "Opens ONE contractor in full. Use only when asked about that specific business; to compare or list several, use search_contractors or contractor_report, never repeated get_contractor calls. Shows, by business name or id, status, trades, contact details, service areas, rates (in dollars; unknown says Not recorded), insurance and licence state, the nine-step vetting checklist, latest feedback, recent contact and open tasks, with the HQ link. If the name matches several contractors you get the candidates instead. Read-only; document files are never opened.",
   inputSchema: getContractorShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: "contractors.read",
