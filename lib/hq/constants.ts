@@ -56,6 +56,10 @@ export const CAPABILITIES = [
   // Email (0132): drafting a branded email, and approving and sending one.
   "email.draft",
   "email.send",
+  // Knowledge base (0138): read (every role), write drafts, approve (and archive).
+  "knowledge.read",
+  "knowledge.write",
+  "knowledge.approve",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

@@ -40,6 +40,10 @@ const NOT_SENT = "Not sent. It needs approval: open it in HQ and tap Approve and
 const ECONOMY =
   "Use one call per step; do not call get_email_draft after draft_email (the result already holds the preview).";
 
+/** The house-style lookup (the Knowledge base, category brand_voice) both writing tools ask for. */
+const HOUSE_STYLE =
+  "Before writing, make ONE lookup for APPROVED house style: search_knowledge (or list_knowledge) with category brand_voice, then get_knowledge on the relevant document, and follow it. If none is approved yet, write plainly and tell the person no approved voice guide exists yet. Never treat a DRAFT brand document as the house style.";
+
 // ── finding a draft ──────────────────────────────────────────
 
 type Found = { ok: true; email: EmailRow } | { ok: false; result: ToolResult };
@@ -153,7 +157,7 @@ export const draftEmail = defineTool({
   name: "draft_email",
   title: "Draft an email",
   description:
-    `Drafts ONE branded PLANTED. email to ONE person HQ already holds an email address for: a contact or a member of staff, found by name (several matches -> candidates, never a guess). It creates a DRAFT ONLY and sends nothing: the person approves it in HQ (Approve and send). The address always comes from the person's HQ record; there is no way to type an address, add cc or bcc, attach files or email several people. Write the body in plain text from what the person actually said: never invent promises, prices, fees, dates, times, figures or claims, and leave out any sign-off (HQ adds the signature and footer). Returns the EML number, a plain-text preview and the HQ link. ${ECONOMY}`,
+    `Drafts ONE branded PLANTED. email to ONE person HQ already holds an email address for: a contact or a member of staff, found by name (several matches -> candidates, never a guess). It creates a DRAFT ONLY and sends nothing: the person approves it in HQ (Approve and send). The address always comes from the person's HQ record; there is no way to type an address, add cc or bcc, attach files or email several people. Write the body in plain text from what the person actually said: never invent promises, prices, fees, dates, times, figures or claims, and leave out any sign-off (HQ adds the signature and footer). Returns the EML number, a plain-text preview and the HQ link. ${HOUSE_STYLE} ${ECONOMY}`,
   inputSchema: draftEmailShape,
   annotations: WRITE,
   capability: "email.draft",
@@ -249,7 +253,7 @@ export const updateEmailDraft = defineTool({
   name: "update_email_draft",
   title: "Change an email draft",
   description:
-    "Changes the subject, message or template of ONE of your own drafts that is still waiting for approval (by EML number or id). The recipient cannot change: discard it and draft a new one. Same writing rules as draft_email: only what the person said, no invented promises, prices, dates or claims, no sign-off. Returns what changed and the new preview. Sends nothing.",
+    `Changes the subject, message or template of ONE of your own drafts that is still waiting for approval (by EML number or id). The recipient cannot change: discard it and draft a new one. Same writing rules as draft_email: only what the person said, no invented promises, prices, dates or claims, no sign-off. ${HOUSE_STYLE} Returns what changed and the new preview. Sends nothing.`,
   inputSchema: updateEmailDraftShape,
   annotations: WRITE,
   capability: "email.draft",

@@ -5,7 +5,7 @@
  *
  * Single record, named, no bulk, no deletes. Deliberately not available through chat (HQ screens
  * only): approving, preferring, suspending, reinstating or deactivating a contractor; signing a
- * management or marking it lost; archiving or deleting anything; documents; imports; people and
+ * management or marking it lost; archiving or deleting anything (knowledge documents aside, below); documents; imports; people and
  * roles; settings. Leads can be added, listed, opened, updated and have calls logged; moving a lead's
  * stage stays move_opportunity (never signed or lost). Decisions can be listed, searched, opened, recorded and updated, never archived.
  * Managed properties can be listed, opened, made from a signed lead, updated and have a handover step
@@ -14,6 +14,9 @@
  * and an APPROVED email sent; approving is a tap in HQ only (chat-send mode aside, see email.ts).
  * Website enquiries can be listed and opened (their text is untrusted public input); marking spam,
  * changing a status and choosing who gets them are HQ screens only.
+ * The knowledge base can be fully maintained from chat (knowledge.ts): every change to the words is a NEW
+ * DRAFT version; approving from chat works only while a director has switched it on; archiving is a
+ * reversible soft archive (approvers only). Nothing anywhere is hard-deleted.
  */
 import type { ToolDef } from "../types";
 import { fetchRecord, search } from "./read-search";
@@ -29,6 +32,20 @@ import { createOpportunity, getOpportunity, listInteractions, listOpportunities,
 import { businessSummary, createManagedProperty, getManagedProperty, listManagedProperties, setHandoverStep, updateManagedProperty } from "./portfolio";
 import { discardEmailDraft, draftEmail, getEmailDraft, listEmailDrafts, sendEmailDraft, updateEmailDraft } from "./email";
 import { getEnquiryTool, listEnquiriesTool } from "./enquiries";
+import {
+  approveKnowledge,
+  archiveKnowledge,
+  createKnowledge,
+  discardKnowledgeDraft,
+  getKnowledge,
+  getKnowledgeVersion,
+  listKnowledge,
+  listKnowledgeVersions,
+  restoreKnowledgeDocument,
+  restoreKnowledgeVersion,
+  searchKnowledge,
+  updateKnowledge,
+} from "./knowledge";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -91,6 +108,19 @@ export const TOOLS: ToolDef[] = [
   updateEmailDraft,
   discardEmailDraft,
   sendEmailDraft,
+  // knowledge base (reads for everyone; drafts for writers; approve, archive and restore for approvers)
+  listKnowledge,
+  searchKnowledge,
+  getKnowledge,
+  listKnowledgeVersions,
+  getKnowledgeVersion,
+  createKnowledge,
+  updateKnowledge,
+  restoreKnowledgeVersion,
+  discardKnowledgeDraft,
+  approveKnowledge,
+  archiveKnowledge,
+  restoreKnowledgeDocument,
 ];
 
 /** The tools a person with these capabilities may see and call. */

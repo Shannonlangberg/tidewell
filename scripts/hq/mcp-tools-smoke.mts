@@ -61,6 +61,9 @@ const EXPECTED_TOOLS = [
   "list_email_drafts", "get_email_draft", "draft_email", "update_email_draft", "discard_email_draft", "send_email_draft",
   // website enquiries
   "list_enquiries", "get_enquiry",
+  // knowledge base
+  "list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge",
+  "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -135,14 +138,14 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[] };
+const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[] };
 // The email settings this run changes (restored in the cleanup).
 const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled"]);
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (55 tools, none missing, none extra)", EXPECTED_TOOLS.length === 55 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (67 tools, none missing, none extra)", EXPECTED_TOOLS.length === 67 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -849,6 +852,121 @@ try {
   const roSpam = await readOnly.db.rpc("mark_enquiry_spam", { p_id: enq.enquiry_id ?? "" });
   check("read-only cannot mark an enquiry as spam (42501)", roSpam.error?.code === "42501", JSON.stringify(roSpam.error));
 
+  // ── 2g. the knowledge base (approved content never changes silently) ──
+  const KB_TOOLS = ["list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge", "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document"];
+  const KB_READ = KB_TOOLS.slice(0, 5);
+  const kbListed = (ctx: Ctx) => toolsFor(ctx.staff.capabilities).map((t) => t.name).filter((n) => KB_TOOLS.includes(n)).sort().join(",");
+  check("director: all twelve knowledge tools are listed", kbListed(director) === [...KB_TOOLS].sort().join(","), kbListed(director));
+  check("virtual assistant (a writer): the reads and the four drafting tools, not approve, archive or restore", kbListed(assistant) === KB_TOOLS.filter((n) => !["approve_knowledge", "archive_knowledge", "restore_knowledge_document"].includes(n)).sort().join(","), kbListed(assistant));
+  check("junior and read-only: only the five read tools", kbListed(junior) === [...KB_READ].sort().join(",") && kbListed(readOnly) === [...KB_READ].sort().join(","), `${kbListed(junior)} | ${kbListed(readOnly)}`);
+  const draftEmailTool = tool("draft_email");
+  check("draft_email and update_email_draft tell the assistant to follow APPROVED brand_voice guidance, never a draft", /brand_voice/.test(draftEmailTool.description) && /Never treat a DRAFT brand document as the house style/.test(draftEmailTool.description) && /brand_voice/.test(tool("update_email_draft").description), draftEmailTool.description);
+
+  const kbSettingBefore = await director.db.from("settings").select("value").eq("key", "knowledge_chat_approve_enabled").single();
+  const kbTitle = `[test] ${RUN} Landlord onboarding checklist`;
+  const kbBody = `Purpose: welcome a new landlord. [test]\n\n## Steps\n1. Sign the management agreement\n2. Book the ingoing inspection\n\n## Notes\n${INJECTION}`;
+  mark = await auditMark();
+  const kbC = await call(director, "create_knowledge", { title: kbTitle, category: "landlord_onboarding", body: kbBody, summary: "How we welcome a landlord [test]" });
+  audit = await auditSince(mark, director.staff.id);
+  const kbId = String(kbC.structured?.id ?? "");
+  const kbRef = String(kbC.structured?.ref ?? "");
+  if (kbId) created.knowledge.push(kbId);
+  check("create_knowledge saves ONE document as a DRAFT and says it needs approval", outcome(kbC) === "ok" && /^KB-\d{4,}$/.test(kbRef) && /as a DRAFT/.test(kbC.text) && /needs approval/.test(kbC.text) && kbC.text.includes(`/hq/knowledge/${kbId}`), kbC.text);
+  check("  ...audited as one knowledge_document create", audit.length === 1 && audit[0].entity_type === "knowledge_document" && audit[0].action === "create" && audit[0].entity_id === kbId, auditText(audit));
+  const kbDup = await call(director, "create_knowledge", { title: kbTitle.toUpperCase(), category: "general", body: "x" });
+  check("create_knowledge refuses a title a live document already has", outcome(kbDup) === "invalid" && /already has that title/.test(kbDup.text), kbDup.text);
+
+  const kb_roKb = await call(readOnly, "get_knowledge", { document: kbRef });
+  const kb_roKbHead = kb_roKb.text.slice(0, kb_roKb.text.indexOf(core.DATA_OPEN));
+  check("read-only: get_knowledge marks a never-approved document DRAFT, NOT YET APPROVED", outcome(kb_roKb) === "ok" && /DRAFT, NOT YET APPROVED/.test(kb_roKbHead) && kb_roKb.text.includes("DRAFT TEXT, NOT YET APPROVED"), kb_roKb.text.slice(0, 600));
+  check("  ...and the document's instruction-like text stays inside the data block", kb_roKb.text.indexOf("IGNORE ALL PREVIOUS") > kb_roKb.text.indexOf(core.DATA_OPEN) && kb_roKb.text.indexOf("IGNORE ALL PREVIOUS") < kb_roKb.text.indexOf(core.DATA_CLOSE), kb_roKb.text.slice(0, 300));
+  const kb_jSearch = await call(junior, "search_knowledge", { query: RUN });
+  check("junior: search_knowledge finds it, with a draft excerpt", outcome(kb_jSearch) === "ok" && kb_jSearch.text.includes(kbRef) && /Draft text \(not approved\)/.test(kb_jSearch.text), kb_jSearch.text.slice(0, 400));
+  const kbList = await call(director, "list_knowledge", { category: "landlord_onboarding", status: "waiting" });
+  check("list_knowledge filters by category and 'waiting for approval'", outcome(kbList) === "ok" && kbList.text.includes(kbRef), kbList.text.slice(0, 400));
+  const kb_bv = await call(director, "search_knowledge", { query: "voice", category: "brand_voice" });
+  check("search_knowledge in brand_voice finds the starter templates, marked as drafts (not house style)", outcome(kb_bv) === "ok" && /Draft, not yet approved/.test(kb_bv.text), kb_bv.text.slice(0, 400));
+
+  // approving: refused from chat while the switch is off, then allowed once a director turns it on
+  await director.db.from("settings").update({ value: false }).eq("key", "knowledge_chat_approve_enabled");
+  const kb_apOff = await call(directorApp, "approve_knowledge", { document: kbRef, version: 1 });
+  exercised.add("approve_knowledge");
+  const kbRow1 = await director.db.from("knowledge_documents").select("approved_version").eq("id", kbId).single();
+  check("approve_knowledge with the switch off: refused, with the HQ link and how to approve there", outcome(kb_apOff) === "refused" && /approved in HQ/.test(kb_apOff.text) && kb_apOff.text.includes(`/hq/knowledge/${kbId}`) && kbRow1.data?.approved_version === null, `${kb_apOff.text}\n${JSON.stringify(kbRow1.data)}`);
+  const kb_apForced = await directorApp.db.rpc("approve_knowledge_version", { p_document: kbId, p_version: 1 });
+  check("  ...and the database refuses a connected app's approval too (42501)", kb_apForced.error?.code === "42501", JSON.stringify(kb_apForced.error));
+  await director.db.from("settings").update({ value: true }).eq("key", "knowledge_chat_approve_enabled");
+  mark = await auditMark();
+  const kb_apOn = await call(directorApp, "approve_knowledge", { document: kbRef, version: 1 });
+  audit = await auditSince(mark, director.staff.id);
+  check("approve_knowledge with the switch on: version 1 approved, one audit row", outcome(kb_apOn) === "ok" && /Approved version 1/.test(kb_apOn.text) && audit.length === 1 && audit[0].action === "approve", `${kb_apOn.text}\n${auditText(audit)}`);
+
+  // the assistant edits by section: a new draft; staff still read the approved text
+  mark = await auditMark();
+  const kb_up = await call(assistant, "update_knowledge", { document: kbRef, expected_version: 1, change_note: "Added the Ailo invitation step [test]", edit: { op: "add_to_section", heading: "Steps", text: "3. Confirm the owner has an Ailo invitation" } });
+  audit = await auditSince(mark, assistant.staff.id);
+  check("assistant: update_knowledge (add_to_section) saves version 2 as a DRAFT and shows what changed", outcome(kb_up) === "ok" && kb_up.structured?.version === 2 && /as a DRAFT/.test(kb_up.text) && kb_up.text.includes("+ 3. Confirm the owner has an Ailo invitation") && /1 line added/.test(kb_up.text), kb_up.text);
+  check("  ...audited as one edit", audit.length === 1 && audit[0].action === "edit" && audit[0].entity_id === kbId, auditText(audit));
+  const kb_roAfter = await call(readOnly, "get_knowledge", { document: kbRef });
+  check("THE RULE: read-only still reads the approved version 1, without the new step, and is told a draft is waiting", outcome(kb_roAfter) === "ok" && !kb_roAfter.text.includes("Ailo invitation") && /APPROVED \(version 1/.test(kb_roAfter.text) && /newer draft is waiting/.test(kb_roAfter.text), kb_roAfter.text.slice(0, 700));
+  const kb_vaAfter = await call(assistant, "get_knowledge", { document: kbRef });
+  check("a writer sees the approved text AND the draft, clearly labelled DRAFT, NOT APPROVED", outcome(kb_vaAfter) === "ok" && kb_vaAfter.text.includes("=== DRAFT TEXT, NOT APPROVED (version 2") && kb_vaAfter.text.includes("Ailo invitation") && kb_vaAfter.structured?.current_version === 2, kb_vaAfter.text.slice(0, 900));
+  const kb_stale = await call(assistant, "update_knowledge", { document: kbRef, expected_version: 1, change_note: "late", edit: { op: "append_section", heading: "Keys", text: "Collect the keys" } });
+  check("update_knowledge with an old expected_version is refused (someone saved since)", outcome(kb_stale) === "refused" && /version 2, not version 1/.test(kb_stale.text), kb_stale.text);
+  const kb_amb = await call(assistant, "update_knowledge", { document: kbRef, change_note: "x", edit: { op: "replace_text", old_text: "the", new_text: "THE" } });
+  check("replace_text matching more than once is refused, never guessed", outcome(kb_amb) === "invalid" && /more than once/.test(kb_amb.text), kb_amb.text);
+  const kb_miss = await call(assistant, "update_knowledge", { document: kbRef, change_note: "x", edit: { op: "replace_text", old_text: "not in the text", new_text: "y" } });
+  check("replace_text with words not in the text is refused", outcome(kb_miss) === "invalid" && /not found exactly/.test(kb_miss.text), kb_miss.text);
+  const kb_noSec = await call(assistant, "update_knowledge", { document: kbRef, change_note: "x", edit: { op: "replace_section", heading: "Fees", text: "y" } });
+  check("a section that does not exist is refused, naming the headings", outcome(kb_noSec) === "invalid" && /its headings are/.test(kb_noSec.text), kb_noSec.text);
+  const kb_same = await call(assistant, "update_knowledge", { document: kbRef, change_note: "x", title: kbTitle });
+  check("a change that changes nothing is refused (no new version)", outcome(kb_same) === "unchanged", kb_same.text);
+  const kb_meta = await call(assistant, "update_knowledge", { document: kbRef, change_note: "Set the review [test]", review_due: plusDays(30), owner: "me" });
+  const kbRow2 = await director.db.from("knowledge_documents").select("current_version, owner_id, review_due").eq("id", kbId).single();
+  check("update_knowledge filing details (owner, review date) change straight away, no new version", outcome(kb_meta) === "ok" && kbRow2.data?.current_version === 2 && kbRow2.data?.owner_id === assistant.staff.id && kbRow2.data?.review_due === plusDays(30), `${kb_meta.text}\n${JSON.stringify(kbRow2.data)}`);
+
+  const kb_lv = await call(director, "list_knowledge_versions", { document: kbRef });
+  check("list_knowledge_versions: both versions, newest first, with what changed", outcome(kb_lv) === "ok" && kb_lv.text.indexOf("Version 2") < kb_lv.text.indexOf("Version 1") && /1 line added/.test(kb_lv.text) && /Approved/.test(kb_lv.text), kb_lv.text.slice(0, 700));
+  const kb_gv = await call(director, "get_knowledge_version", { document: kbRef, version: 2 });
+  check("get_knowledge_version 2: compared with version 1, the added line, and the text", outcome(kb_gv) === "ok" && /Compared with version 1/.test(kb_gv.text) && kb_gv.text.includes("+ 3. Confirm the owner") && kb_gv.text.includes("TEXT OF VERSION 2"), kb_gv.text.slice(0, 700));
+  const kb_sec = await call(director, "get_knowledge", { document: kbRef, which: "draft", section: "Steps" });
+  check("get_knowledge can return one section of the draft", outcome(kb_sec) === "ok" && kb_sec.text.includes("Ailo invitation") && !kb_sec.text.includes("IGNORE ALL PREVIOUS"), kb_sec.text.slice(0, 600));
+
+  // forced past the tools: the database refuses too
+  const kb_vaApprove = await forced(assistant, "approve_knowledge", { document: kbRef, version: 2 });
+  check("assistant: approve_knowledge forced past the tool is refused by the database (no knowledge.approve)", outcome(kb_vaApprove) === "refused", kb_vaApprove.text);
+  const kb_vaArchive = await forced(assistant, "archive_knowledge", { document: kbRef, reason: "forged" });
+  check("assistant: archive_knowledge forced past the tool is refused by the database", outcome(kb_vaArchive) === "refused", kb_vaArchive.text);
+  for (const [who, ctx] of [["junior", junior], ["read-only", readOnly]] as Array<[string, Ctx]>) {
+    mark = await auditMark();
+    const byTool = await call(ctx, "update_knowledge", { document: kbRef, change_note: "forged", body: "forged" });
+    const byDb = await forced(ctx, "create_knowledge", { title: `${RUN} ${who} forged`, category: "general", body: "forged" });
+    audit = await auditSince(mark, ctx.staff.id);
+    check(`${who}: update_knowledge is refused by the tool (knowledge.write)`, outcome(byTool) === "refused" && /knowledge\.write/.test(byTool.text), byTool.text);
+    check(`${who}: create_knowledge forced past the tool is refused by the database, nothing written`, outcome(byDb) === "refused" && audit.length === 0, `${byDb.text}\n${auditText(audit)}`);
+  }
+
+  // approve version 2 (director, from chat), then restore version 1 as a draft and discard it
+  const kb_ap2 = await call(directorApp, "approve_knowledge", { document: kbRef, version: 2 });
+  const kb_roNow = await call(readOnly, "get_knowledge", { document: kbRef });
+  check("after approving version 2, read-only reads the new step", outcome(kb_ap2) === "ok" && kb_roNow.text.includes("Ailo invitation") && /version 1 is kept/i.test(kb_ap2.text), `${kb_ap2.text}\n${kb_roNow.text.slice(0, 300)}`);
+  const kb_rv = await call(director, "restore_knowledge_version", { document: kbRef, version: 1, expected_version: 2 });
+  check("restore_knowledge_version brings version 1 back as draft version 3 (approved stays 2)", outcome(kb_rv) === "ok" && kb_rv.structured?.version === 3 && /1 line removed/.test(kb_rv.text), kb_rv.text);
+  const kb_ds = await call(director, "discard_knowledge_draft", { document: kbRef, version: 3, reason: "smoke" });
+  const kbRow3 = await director.db.from("knowledge_documents").select("current_version, approved_version").eq("id", kbId).single();
+  check("discard_knowledge_draft drops draft 3; the document is back on approved version 2", outcome(kb_ds) === "ok" && kbRow3.data?.current_version === 2 && kbRow3.data?.approved_version === 2, `${kb_ds.text}\n${JSON.stringify(kbRow3.data)}`);
+  const kb_big = await call(director, "update_knowledge", { document: kbRef, change_note: "too long", body: "x".repeat(50_001) });
+  check("a body over 50,000 characters is refused", outcome(kb_big) === "invalid", kb_big.text.slice(0, 200));
+
+  // archive and restore (reversible; nothing erased)
+  const kb_ar = await call(director, "archive_knowledge", { document: kbRef, reason: "smoke test" });
+  const kb_vaGone = await call(assistant, "get_knowledge", { document: kbRef });
+  check("archive_knowledge archives it (nothing erased); a writer no longer finds it", outcome(kb_ar) === "ok" && /Nothing was erased/.test(kb_ar.text) && outcome(kb_vaGone) === "not_found", `${kb_ar.text}\n${kb_vaGone.text}`);
+  const kb_rd = await call(director, "restore_knowledge_document", { document: kbRef });
+  const kb_vaBack = await call(assistant, "get_knowledge", { document: kbRef });
+  check("restore_knowledge_document brings it back as it was", outcome(kb_rd) === "ok" && outcome(kb_vaBack) === "ok" && kb_vaBack.text.includes("Ailo invitation"), `${kb_rd.text}\n${kb_vaBack.text.slice(0, 200)}`);
+  await director.db.from("settings").update({ value: kbSettingBefore.data?.value ?? false }).eq("key", "knowledge_chat_approve_enabled");
+
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
   const jWrites: Array<[string, Record<string, unknown>]> = [
@@ -949,6 +1067,7 @@ try {
   }
   // decisions first, in the order created (a decision another one is superseded by is archived after it)
   await archive("decision", created.decisions);
+  await archive("knowledge_document", created.knowledge);
   await archive("interaction", created.interactions);
   await archive("task", created.tasks);
   await archive("referral", created.referrals);

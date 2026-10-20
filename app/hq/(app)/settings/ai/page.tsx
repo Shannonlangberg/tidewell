@@ -12,6 +12,7 @@ import { Select } from "@/components/hq/Select";
 import { StatusChip } from "@/components/hq/StatusChip";
 import { AiSettings } from "@/components/hq/features/people/AiSettings";
 import { EmailSettingsSection } from "@/components/hq/features/email/EmailSettingsSection";
+import { KnowledgeSettingsSection } from "@/components/hq/features/knowledge/KnowledgeSettingsSection";
 import { AI_STATUSES, AI_STATUS_LABEL, AI_STATUS_TONE, isAiStatus, parseAiQuestion, readAiSettings, shortClientId, toolFilter, type AiStatus } from "@/lib/hq/ai-log";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
@@ -178,11 +179,12 @@ export default async function AiSettingsPage({ searchParams }: { searchParams: P
           )}
           <p className="hq-muted mt-6 max-w-xl text-[13px]">
             Changes made through an app have a lower limit of {writeHourlyLimit()} per person per hour, set on the server. Some things are never available through an app:
-            approving or suspending contractors, archiving or deleting, documents, imports, people, roles and settings.
+            approving or suspending contractors, archiving or deleting (knowledge documents aside: approvers can archive and restore them), documents, imports, people, roles and settings.
           </p>
         </section>
 
         <EmailSettingsSection />
+        <KnowledgeSettingsSection />
 
         <section aria-labelledby="ai-stop-h" className="max-w-xl">
           <SectionLabel as="h2" id="ai-stop-h" className="mb-3.5">
