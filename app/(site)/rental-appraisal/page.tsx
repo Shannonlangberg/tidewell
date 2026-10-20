@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/planted";
-import { Label, Point, RuleLink, Section, Stop } from "@/components/planted/ui";
+import { Label, RuleLink, Section } from "@/components/planted/ui";
+import { IconCare, IconCommunication, IconLocal } from "@/components/planted/Icons";
 import { turnstileSiteKey } from "@/lib/enquiries";
 import { AppraisalForm } from "@/components/planted/AppraisalForm";
 
@@ -20,14 +21,17 @@ export const metadata: Metadata = {
 
 const STEPS = [
   {
+    icon: IconCare,
     title: "Tell us about the property",
     body: "Four short steps: where it is, what it is, how it's managed today and how to reach you.",
   },
   {
+    icon: IconCommunication,
     title: "We'll be in touch",
     body: "We'll talk through your property's rental potential and what managing it well would involve.",
   },
   {
+    icon: IconLocal,
     title: "Decide in your own time",
     body: "Asking for an appraisal doesn't commit you to anything.",
   },
@@ -49,7 +53,7 @@ export default function RentalAppraisalPage() {
             </div>
             <div className="md:col-span-9">
               <h1 className="display display-xl reveal reveal-2 max-w-[18ch]">
-                Know your property&rsquo;s potential<Stop />
+                Know your property&rsquo;s potential.
               </h1>
               <p className="lede prose-measure reveal reveal-3 mt-8">
                 Tell us a little about your investment property, and we&rsquo;ll be in touch to
@@ -70,11 +74,11 @@ export default function RentalAppraisalPage() {
 
             <aside className="lg:col-span-4 lg:col-start-9">
               <Label>How this works</Label>
-              <ol className="pointline mt-8">
-                {STEPS.map(({ title, body }) => (
-                  <li key={title}>
-                    <Point />
-                    <h2 className="display display-sm">{title}</h2>
+              <ol className="mt-8 grid gap-px bg-line">
+                {STEPS.map(({ icon: Icon, title, body }) => (
+                  <li key={title} className="bg-softwhite py-8 pr-2">
+                    <Icon className="text-clay-deep" />
+                    <h2 className="display display-sm mt-5">{title}</h2>
                     <p className="mt-3 text-[0.9375rem] leading-relaxed text-ink-muted">{body}</p>
                   </li>
                 ))}
