@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { publicOrigin } from "@/lib/hq/mcp/auth";
 import { createCookieClient } from "@/lib/supabase/server";
 import { ROLE_COOKIE } from "@/lib/roles";
 import { cookies } from "next/headers";
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest) {
     // HQ sign-in keeps `next` (it re-checks it with safeNextPath), so a person sent to sign in
     // from a deep link (for example the connected-app consent page) comes back to it.
     const signedOutTo = next.startsWith("/hq") ? `/hq/sign-in?next=${encodeURIComponent(next)}` : "/app";
-    return NextResponse.redirect(new URL(signedIn ? next : signedOutTo, request.url), { status: 303, headers });
+    // request.url is the platform's internal address (on Netlify, the per-deploy address): send people back to the
+    // address they actually used, e.g. https://hq.plantedproperty.com.au.
+    return NextResponse.redirect(new URL(signedIn ? next : signedOutTo, publicOrigin(request)), { status: 303, headers });
   }
   return new NextResponse(null, { status: signedIn ? 204 : 401, headers });
 }
