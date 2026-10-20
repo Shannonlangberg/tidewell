@@ -50,6 +50,25 @@ const nextConfig = {
 
   // hq.plantedproperty.com.au is the staff address for Planted HQ. Its front page is the HQ sign-in/home,
   // not the public website; every other path (/hq/..., /mcp, /.well-known/...) is served as normal.
+  // HQ lives at hq.plantedproperty.com.au. Anyone who reaches /hq on the plain Netlify address is sent there.
+  // Only the exact production Netlify host: deploy-preview hosts (xxxx--plantedhq.netlify.app) are untouched.
+  async redirects() {
+    return [
+      {
+        source: "/hq/:path*",
+        has: [{ type: "host", value: "plantedhq.netlify.app" }],
+        destination: "https://hq.plantedproperty.com.au/hq/:path*",
+        permanent: false,
+      },
+      {
+        source: "/mcp",
+        has: [{ type: "host", value: "plantedhq.netlify.app" }],
+        destination: "https://hq.plantedproperty.com.au/mcp",
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     return {
       beforeFiles: [
