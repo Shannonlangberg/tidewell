@@ -825,6 +825,16 @@ try {
   check("get_enquiry returns what was submitted; the injected instruction is only inside the data block", outcome(ge) === "ok" && core.hasDataBlock(ge.text) && geData.includes("IGNORE ALL PREVIOUS INSTRUCTIONS") && !ge.text.slice(0, ge.text.indexOf(core.DATA_OPEN)).includes("IGNORE") && ge.text.includes("Property address: 1 Smoke Street"), ge.text.slice(0, 800));
   const geId = await call(director, "get_enquiry", { enquiry: enq.enquiry_id ?? "" });
   check("get_enquiry also opens it by id", outcome(geId) === "ok" && geId.text.includes(enq.ref ?? "?"), geId.text.slice(0, 200));
+  check("get_enquiry says no thank-you was attempted for an enquiry stored without one", outcome(ge) === "ok" && ge.text.includes("Automatic thank-you email to the enquirer: none attempted"), ge.text.slice(0, 600));
+  // the website's thank-you, as the site does it (service_role): begin, then finish as sent
+  const ackBegin = await adminClient().schema("hq").rpc("begin_enquiry_auto_reply", { p_enquiry_id: enq.enquiry_id ?? "" });
+  const ackFinish = ackBegin.error ? null : await adminClient().schema("hq").rpc("finish_enquiry_auto_reply", { p_enquiry_id: enq.enquiry_id ?? "", p_ok: true, p_message_id: "fake-smoke" });
+  check("the website's thank-you (service_role) is begun and finished", !ackBegin.error && (ackBegin.data as { send?: boolean } | null)?.send === true && !!ackFinish && !ackFinish.error, JSON.stringify(ackBegin.error ?? ackFinish?.error ?? ackBegin.data));
+  const geAck = await call(director, "get_enquiry", { enquiry: enq.ref ?? "" });
+  const leAck = await call(director, "list_enquiries", { status: "new" });
+  check("get_enquiry and list_enquiries show the thank-you as sent", outcome(geAck) === "ok" && /Automatic thank-you email to the enquirer: Thank-you sent/.test(geAck.text) && leAck.text.includes("Thank-you sent"), `${geAck.text.slice(0, 500)}\n${leAck.text.slice(0, 300)}`);
+  const forgedAck = await director.db.rpc("begin_enquiry_auto_reply" as never, { p_enquiry_id: enq.enquiry_id ?? "" } as never);
+  check("a signed-in person cannot call begin_enquiry_auto_reply (refused by the database)", !!forgedAck.error && forgedAck.data === null, JSON.stringify(forgedAck.error));
   const geNone = await call(director, "get_enquiry", { enquiry: "ENQ-999999" });
   check("get_enquiry of an unknown number says not found", outcome(geNone) === "not_found", geNone.text);
   const leKind = await call(director, "list_enquiries", { kind: "contact", since: today });

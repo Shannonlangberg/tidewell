@@ -58,7 +58,8 @@ update hq.settings set value = 'null'::jsonb where key = 'enquiry_default_owner_
 select has_table('hq', 'enquiries', 'hq.enquiries exists');
 select columns_are('hq', 'enquiries', array['id', 'ref_number', 'kind', 'received_at', 'name', 'email', 'phone', 'suburb', 'message', 'details', 'source_page',
   'ip_hash', 'submission_hash', 'status', 'opportunity_id', 'contact_id', 'task_id', 'interaction_id', 'created_lead', 'created_contact', 'handled_by', 'handled_at',
-  'spam_marked_by', 'spam_marked_at', 'status_note', 'updated_at']);
+  'spam_marked_by', 'spam_marked_at', 'status_note', 'updated_at',
+  'auto_reply_status', 'auto_reply_at', 'auto_reply_message_id', 'auto_reply_reason', 'auto_reply_interaction_id']);
 select enum_has_labels('hq', 'enquiry_kind', array['appraisal', 'contact']);
 select enum_has_labels('hq', 'enquiry_status', array['new', 'in_progress', 'spam', 'archived']);
 select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'hq.enquiries'::regclass), 'RLS is enabled and forced on enquiries');

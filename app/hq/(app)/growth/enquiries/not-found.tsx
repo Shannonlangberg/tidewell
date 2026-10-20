@@ -7,8 +7,8 @@ export default function EnquiryNotFound() {
       <EmptyState
         title="We couldn't find that enquiry"
         action={
-          <LinkButton href="/hq/growth/enquiries" variant="primary">
-            Back to website enquiries
+          <LinkButton href="/hq/communications/enquiries" variant="primary">
+            Back to enquiries
           </LinkButton>
         }
       >

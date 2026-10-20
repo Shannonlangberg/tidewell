@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
+import { COMMS_TAB_PATH } from "@/lib/hq/communications";
 import { fail, isUuid, type ActionState } from "@/lib/hq/forms";
 import { parseDailyLimit, emailDbMessage, sendErrorText, validateEmailFields } from "@/lib/hq/email/rules";
 import { sendDraft } from "@/lib/hq/email/send";
@@ -24,7 +25,9 @@ import { withToast } from "@/components/hq/flash";
  * People see plain messages; only error codes are logged (never an address or the message).
  */
 
+// An email's own pages stay at /hq/email/<id>; the list is Communications > Emails.
 const EMAIL = `${HQ_BASE}/email`;
+const LIST = COMMS_TAB_PATH.emails;
 const GENERIC = "Something went wrong and nothing was changed. Try again in a moment.";
 const CHECK = "Please check the highlighted fields and try again.";
 
@@ -35,6 +38,7 @@ function logged(where: string, error: DbError): void {
 }
 
 function refresh(id?: string) {
+  revalidatePath(LIST);
   revalidatePath(EMAIL);
   revalidatePath(HQ_BASE);
   if (id) revalidatePath(`${EMAIL}/${id}`);
@@ -105,7 +109,7 @@ export async function updateEmailDraftAction(_prev: ActionState, formData: FormD
 export async function discardEmailDraftAction(formData: FormData): Promise<void> {
   const { db } = await requireStaff("email.draft");
   const id = idFrom(formData);
-  if (!id) redirect(withToast(EMAIL, "That email could not be found.", "error"));
+  if (!id) redirect(withToast(LIST, "That email could not be found.", "error"));
   const { error } = await db.rpc("discard_email_draft", { p_id: id, p_reason: "Discarded in HQ" });
   const back = backTo(formData, `${EMAIL}/${id}`);
   if (error) {
@@ -133,7 +137,7 @@ async function send(db: Awaited<ReturnType<typeof requireStaff>>["db"], id: stri
 export async function approveAndSendAction(formData: FormData): Promise<void> {
   const { db } = await requireStaff("email.send");
   const id = idFrom(formData);
-  if (!id) redirect(withToast(EMAIL, "That email could not be found.", "error"));
+  if (!id) redirect(withToast(LIST, "That email could not be found.", "error"));
   const back = backTo(formData, `${EMAIL}/${id}`);
   const { error } = await db.rpc("approve_email_draft", { p_id: id });
   if (error) {
@@ -147,7 +151,7 @@ export async function approveAndSendAction(formData: FormData): Promise<void> {
 export async function sendApprovedAction(formData: FormData): Promise<void> {
   const { db } = await requireStaff("email.send");
   const id = idFrom(formData);
-  if (!id) redirect(withToast(EMAIL, "That email could not be found.", "error"));
+  if (!id) redirect(withToast(LIST, "That email could not be found.", "error"));
   await send(db, id, backTo(formData, `${EMAIL}/${id}`));
 }
 

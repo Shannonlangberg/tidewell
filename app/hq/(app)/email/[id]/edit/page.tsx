@@ -33,7 +33,7 @@ export default async function EditEmailPage({ params }: { params: Params }) {
 
   return (
     <>
-      <PageHeader breadcrumbs={[{ label: "Email", href: "/hq/email" }, { label: e.ref, href: `/hq/email/${id}` }, { label: "Edit" }]} title={`Edit ${e.ref}`} />
+      <PageHeader breadcrumbs={[{ label: "Communications", href: "/hq/communications" }, { label: "Emails", href: "/hq/communications/emails" }, { label: e.ref, href: `/hq/email/${id}` }, { label: "Edit" }]} title={`Edit ${e.ref}`} />
       <ComposeForm
         action={updateEmailDraftAction}
         draftId={e.id}

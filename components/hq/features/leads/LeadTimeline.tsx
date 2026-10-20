@@ -3,13 +3,19 @@ import { INTERACTION_LABEL, STAGE_LABEL, TASK_STATUS_LABEL, type InteractionType
 import { formatDate, formatDateTime } from "@/lib/hq/format";
 import { agoLabel } from "@/lib/hq/growth/dates";
 import type { LeadEvent } from "@/lib/hq/leads/queries";
+import type { AckStatus } from "@/lib/hq/enquiry-rules";
+import { AckChip } from "../enquiries/AckChip";
 import type { IconName } from "../../icons";
 import { Timeline, TimelineItem } from "../../Timeline";
 
 /*
  * A lead's timeline, newest first: the calls, meetings and notes logged on it, its stage changes
  * and the tasks made for it. Server-rendered from data the page has already loaded.
+ * `ackMarks` puts the website thank-you chip ("Thank-you sent", with when) on a website enquiry's
+ * message and on the automatic thank-you's own entry (the touch point).
  */
+
+export type AckMarks = Record<string, { status: AckStatus; at: string | null; reason: string | null }>;
 
 const ICON: Record<InteractionType, IconName> = {
   phone_call: "phone",
@@ -30,12 +36,13 @@ function When({ at, timezone }: { at: string; timezone: string }) {
   );
 }
 
-export function LeadTimeline({ events, timezone, label }: { events: readonly LeadEvent[]; timezone: string; label: string }) {
+export function LeadTimeline({ events, timezone, label, ackMarks = {} }: { events: readonly LeadEvent[]; timezone: string; label: string; ackMarks?: AckMarks }) {
   return (
     <Timeline label={label}>
       {events.map((e) => {
         if (e.kind === "interaction") {
           const i = e.item;
+          const ack = Object.hasOwn(ackMarks, i.id) ? ackMarks[i.id] : null;
           return (
             <TimelineItem
               key={`i-${i.id}`}
@@ -48,8 +55,9 @@ export function LeadTimeline({ events, timezone, label }: { events: readonly Lea
                 </>
               }
               footer={
-                i.followUpDate || i.taskId ? (
+                i.followUpDate || i.taskId || ack ? (
                   <span className="flex flex-wrap items-center gap-3 text-[13px]">
+                    {ack ? <AckChip status={ack.status} at={ack.at} reason={ack.reason} timezone={timezone} detail /> : null}
                     {i.followUpDate ? <span>Follow up {formatDate(i.followUpDate, timezone)}</span> : null}
                     {i.taskId ? (
                       <Link href={`/hq/operations/tasks/${i.taskId}`} className="underline underline-offset-2">

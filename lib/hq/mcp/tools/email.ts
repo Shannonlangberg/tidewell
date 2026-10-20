@@ -216,7 +216,7 @@ export const listEmailDrafts = defineTool({
     const lines = rows.map(
       (e) => `- ${e.ref} to ${clean(e.toName)}: ${clean(e.subject)} · ${EMAIL_STATUS_LABEL[e.status]} · ${when(ctx, e.sentAt ?? e.updatedAt)}${e.createdByName && e.createdBy !== ctx.staff.id ? ` · by ${clean(e.createdByName)}` : ""} [id: ${e.id}] ${link(ctx, path(e.id))}`,
     );
-    return respond("ok", `${total} email${total === 1 ? "" : "s"} (${scope}), newest first${total > rows.length ? `; showing ${rows.length}` : ""}. All emails: ${link(ctx, "/hq/email")}`, lines, { count: rows.length, total, ids: rows.map((e) => e.id) });
+    return respond("ok", `${total} email${total === 1 ? "" : "s"} (${scope}), newest first${total > rows.length ? `; showing ${rows.length}` : ""}. All emails: ${link(ctx, "/hq/communications/emails")}`, lines, { count: rows.length, total, ids: rows.map((e) => e.id) });
   },
 });
 

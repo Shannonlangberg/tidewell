@@ -27,7 +27,7 @@ export default async function EmailDetailPage({ params }: { params: Params }) {
   if (!found.ok) {
     return (
       <>
-        <PageHeader title="Email" breadcrumbs={[{ label: "Email", href: "/hq/email" }, { label: "Email" }]} />
+        <PageHeader title="Email" breadcrumbs={[{ label: "Communications", href: "/hq/communications" }, { label: "Emails", href: "/hq/communications/emails" }, { label: "Email" }]} />
         <ErrorState
           title="We could not load this email"
           action={
@@ -72,7 +72,7 @@ export default async function EmailDetailPage({ params }: { params: Params }) {
   return (
     <>
       <PageHeader
-        breadcrumbs={[{ label: "Email", href: "/hq/email" }, { label: e.ref }]}
+        breadcrumbs={[{ label: "Communications", href: "/hq/communications" }, { label: "Emails", href: "/hq/communications/emails" }, { label: e.ref }]}
         eyebrow={e.ref}
         title={e.subject}
         meta={

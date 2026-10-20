@@ -1,5 +1,5 @@
 import type { HqClient, ViewRow } from "@/lib/hq/db";
-import { isEnquiryKind, isEnquiryStatus, type EnquiryKindValue, type EnquiryStatus } from "./enquiry-rules";
+import { isAckStatus, isEnquiryKind, isEnquiryStatus, type AckStatus, type EnquiryKindValue, type EnquiryStatus } from "./enquiry-rules";
 
 /*
  * Reads for the website enquiry screens, the Today line and the MCP tools. Every query runs as the
@@ -37,16 +37,20 @@ export type EnquiryRow = {
   handledAt: string | null;
   spamMarkedAt: string | null;
   statusNote: string | null;
+  /** The automatic thank-you to the enquirer (0136). */
+  ackStatus: AckStatus;
+  ackAt: string | null;
+  ackReason: string | null;
 };
 
 const COLUMNS =
-  "id, ref, ref_number, kind, status, received_at, name, email, phone, suburb, message, details, source_page, opportunity_id, lead_ref, lead_live, owner_id, owner_name, contact_id, contact_name, created_lead, created_contact, handled_by_name, handled_at, spam_marked_at, status_note";
+  "id, ref, ref_number, kind, status, received_at, name, email, phone, suburb, message, details, source_page, opportunity_id, lead_ref, lead_live, owner_id, owner_name, contact_id, contact_name, created_lead, created_contact, handled_by_name, handled_at, spam_marked_at, status_note, auto_reply_status, auto_reply_at, auto_reply_reason";
 
 type Raw = Pick<
   ViewRow<"enquiry_overview">,
   | "id" | "ref" | "ref_number" | "kind" | "status" | "received_at" | "name" | "email" | "phone" | "suburb" | "message" | "details" | "source_page"
   | "opportunity_id" | "lead_ref" | "lead_live" | "owner_id" | "owner_name" | "contact_id" | "contact_name" | "created_lead" | "created_contact"
-  | "handled_by_name" | "handled_at" | "spam_marked_at" | "status_note"
+  | "handled_by_name" | "handled_at" | "spam_marked_at" | "status_note" | "auto_reply_status" | "auto_reply_at" | "auto_reply_reason"
 >;
 
 function toRow(r: Raw): EnquiryRow | null {
@@ -78,6 +82,9 @@ function toRow(r: Raw): EnquiryRow | null {
     handledAt: r.handled_at,
     spamMarkedAt: r.spam_marked_at,
     statusNote: r.status_note,
+    ackStatus: isAckStatus(r.auto_reply_status) ? r.auto_reply_status : "none",
+    ackAt: r.auto_reply_at,
+    ackReason: r.auto_reply_reason,
   };
 }
 
@@ -133,9 +140,9 @@ export async function getEnquiryByNumber(db: HqClient, n: number): Promise<Loade
   return { ok: true, data: data ? toRow(data as Raw) : null };
 }
 
-/** How many enquiries are still New. */
+/** How many enquiries are still New and not handled by anyone: one head-only count (no rows come back). Used by Today and the Communications badge. */
 export async function countNewEnquiries(db: HqClient): Promise<Loaded<number>> {
-  const { count, error } = await db.from("enquiries").select("id", { count: "exact", head: true }).eq("status", "new");
+  const { count, error } = await db.from("enquiries").select("id", { count: "exact", head: true }).eq("status", "new").is("handled_at", null);
   if (error) {
     console.error("[hq] countNewEnquiries failed:", error.code);
     return { ok: false };
@@ -143,11 +150,23 @@ export async function countNewEnquiries(db: HqClient): Promise<Loaded<number>> {
   return { ok: true, data: count ?? 0 };
 }
 
-/** The ENQ ref of the enquiry that created or joined a lead (newest first), for the lead's page. */
-export async function enquiriesForLead(db: HqClient, opportunityId: string): Promise<Loaded<{ id: string; ref: string; receivedAt: string }[]>> {
+export type LeadEnquiry = {
+  id: string;
+  ref: string;
+  receivedAt: string;
+  ackStatus: AckStatus;
+  ackAt: string | null;
+  ackReason: string | null;
+  /** The enquiry's message on the lead's timeline, and the thank-you's entry (sent only). */
+  interactionId: string | null;
+  ackInteractionId: string | null;
+};
+
+/** The enquiries that created or joined a lead (newest first), with their thank-you, for the lead's page. */
+export async function enquiriesForLead(db: HqClient, opportunityId: string): Promise<Loaded<LeadEnquiry[]>> {
   const { data, error } = await db
     .from("enquiry_overview")
-    .select("id, ref, received_at")
+    .select("id, ref, received_at, auto_reply_status, auto_reply_at, auto_reply_reason, interaction_id, auto_reply_interaction_id")
     .eq("opportunity_id", opportunityId)
     .order("received_at", { ascending: false })
     .limit(10);
@@ -155,5 +174,19 @@ export async function enquiriesForLead(db: HqClient, opportunityId: string): Pro
     console.error("[hq] enquiriesForLead failed:", error.code);
     return { ok: false };
   }
-  return { ok: true, data: (data ?? []).filter((r) => r.id && r.ref && r.received_at).map((r) => ({ id: r.id!, ref: r.ref!, receivedAt: r.received_at! })) };
+  const rows: LeadEnquiry[] = [];
+  for (const r of data ?? []) {
+    if (!r.id || !r.ref || !r.received_at) continue;
+    rows.push({
+      id: r.id,
+      ref: r.ref,
+      receivedAt: r.received_at,
+      ackStatus: isAckStatus(r.auto_reply_status) ? r.auto_reply_status : "none",
+      ackAt: r.auto_reply_at,
+      ackReason: r.auto_reply_reason,
+      interactionId: r.interaction_id,
+      ackInteractionId: r.auto_reply_interaction_id,
+    });
+  }
+  return { ok: true, data: rows };
 }

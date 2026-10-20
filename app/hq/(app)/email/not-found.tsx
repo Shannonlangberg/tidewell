@@ -11,7 +11,7 @@ export default function EmailNotFound() {
       <EmptyState
         title="We couldn't find that email"
         action={
-          <LinkButton href="/hq/email" variant="primary">
+          <LinkButton href="/hq/communications/emails" variant="primary">
             Back to email
           </LinkButton>
         }

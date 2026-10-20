@@ -5,6 +5,7 @@ import { ErrorState } from "../../EmptyState";
 import { InlineNote, KeyValueList, SectionLabel } from "../../Primitives";
 import { Select } from "../../Select";
 import { SubmitButton } from "../../SubmitButton";
+import { EnquiryAutoReplySetting } from "./EnquiryAutoReplySetting";
 
 /*
  * Settings: "Who gets website enquiries". Each enquiry from the website becomes a lead owned by this
@@ -52,6 +53,7 @@ export async function EnquiryOwnerSetting() {
           <InlineNote className="mt-4">This is chosen by a director.</InlineNote>
         </>
       )}
+      <EnquiryAutoReplySetting />
     </section>
   );
 }

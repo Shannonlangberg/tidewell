@@ -966,6 +966,11 @@ export type Database = {
       }
       enquiries: {
         Row: {
+          auto_reply_at: string | null
+          auto_reply_interaction_id: string | null
+          auto_reply_message_id: string | null
+          auto_reply_reason: string | null
+          auto_reply_status: Database["hq"]["Enums"]["enquiry_auto_reply_status"]
           contact_id: string | null
           created_contact: boolean
           created_lead: boolean
@@ -994,6 +999,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_reply_at?: string | null
+          auto_reply_interaction_id?: string | null
+          auto_reply_message_id?: string | null
+          auto_reply_reason?: string | null
+          auto_reply_status?: Database["hq"]["Enums"]["enquiry_auto_reply_status"]
           contact_id?: string | null
           created_contact?: boolean
           created_lead?: boolean
@@ -1022,6 +1032,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_reply_at?: string | null
+          auto_reply_interaction_id?: string | null
+          auto_reply_message_id?: string | null
+          auto_reply_reason?: string | null
+          auto_reply_status?: Database["hq"]["Enums"]["enquiry_auto_reply_status"]
           contact_id?: string | null
           created_contact?: boolean
           created_lead?: boolean
@@ -1050,6 +1065,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "enquiries_auto_reply_interaction_id_fkey"
+            columns: ["auto_reply_interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "enquiries_contact_id_fkey"
             columns: ["contact_id"]
@@ -2586,6 +2608,12 @@ export type Database = {
       }
       enquiry_overview: {
         Row: {
+          auto_reply_at: string | null
+          auto_reply_interaction_id: string | null
+          auto_reply_reason: string | null
+          auto_reply_status:
+            | Database["hq"]["Enums"]["enquiry_auto_reply_status"]
+            | null
           contact_id: string | null
           contact_kind: Database["hq"]["Enums"]["contact_kind"] | null
           contact_name: string | null
@@ -2597,6 +2625,7 @@ export type Database = {
           handled_by: string | null
           handled_by_name: string | null
           id: string | null
+          interaction_id: string | null
           kind: Database["hq"]["Enums"]["enquiry_kind"] | null
           lead_live: boolean | null
           lead_ref: string | null
@@ -2620,6 +2649,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "enquiries_auto_reply_interaction_id_fkey"
+            columns: ["auto_reply_interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "enquiries_contact_id_fkey"
             columns: ["contact_id"]
@@ -2653,6 +2689,13 @@ export type Database = {
             columns: ["handled_by"]
             isOneToOne: false
             referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
             referencedColumns: ["id"]
           },
           {
@@ -3330,6 +3373,10 @@ export type Database = {
         Returns: Json
       }
       begin_email_send: { Args: { p_id: string; p_via: string }; Returns: Json }
+      begin_enquiry_auto_reply: {
+        Args: { p_enquiry_id: string }
+        Returns: Json
+      }
       bootstrap_first_director: {
         Args: {
           p_email: string
@@ -3421,6 +3468,15 @@ export type Database = {
         Args: {
           p_error?: string
           p_id: string
+          p_message_id?: string
+          p_ok: boolean
+        }
+        Returns: Json
+      }
+      finish_enquiry_auto_reply: {
+        Args: {
+          p_enquiry_id: string
+          p_error?: string
           p_message_id?: string
           p_ok: boolean
         }
@@ -3780,6 +3836,12 @@ export type Database = {
         | "discarded"
       email_template: "thank_you" | "follow_up" | "introduction" | "general"
       employment_status: "active" | "on_leave" | "ended"
+      enquiry_auto_reply_status:
+        | "none"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "skipped"
       enquiry_kind: "appraisal" | "contact"
       enquiry_status: "new" | "in_progress" | "spam" | "archived"
       fee_basis: "percent_of_rent" | "flat_fee" | "other"
@@ -4068,6 +4130,13 @@ export const Constants = {
       ],
       email_template: ["thank_you", "follow_up", "introduction", "general"],
       employment_status: ["active", "on_leave", "ended"],
+      enquiry_auto_reply_status: [
+        "none",
+        "sending",
+        "sent",
+        "failed",
+        "skipped",
+      ],
       enquiry_kind: ["appraisal", "contact"],
       enquiry_status: ["new", "in_progress", "spam", "archived"],
       fee_basis: ["percent_of_rent", "flat_fee", "other"],

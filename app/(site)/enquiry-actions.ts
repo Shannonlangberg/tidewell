@@ -3,7 +3,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { processEnquiry, type DeliveryDeps, type EnquiryKind, type EnquiryState } from "@/lib/enquiries";
-import { submitToHq } from "@/lib/hq/enquiry-intake";
+import { beginEnquiryAck, finishEnquiryAck, submitToHq } from "@/lib/hq/enquiry-intake";
+import { acknowledgeEnquiry } from "@/lib/hq/email/enquiry-ack";
 import { notifyStaffOfEnquiry } from "@/lib/hq/email/enquiry-notify";
 
 /*
@@ -14,7 +15,9 @@ import { notifyStaffOfEnquiry } from "@/lib/hq/email/enquiry-notify";
  * (lib/enquiries.ts processEnquiry: honeypot, timing, validation, Turnstile).
  * Only then is it delivered: stored in Planted HQ through hq.submit_enquiry
  * (lib/hq/enquiry-intake.ts; the database validates, dedupes and rate-limits
- * again), followed by a best-effort email to staff (ENQUIRY_TO_EMAIL only).
+ * again), followed by a best-effort email to staff (ENQUIRY_TO_EMAIL only) and
+ * then a best-effort thank-you to the enquirer (one per address per day, and
+ * only when the database allows it: lib/hq/email/enquiry-ack.ts).
  *
  * Both actions work with or without JavaScript — the form sends a flag, and
  * without it a success redirects to the shared confirmation page instead of
@@ -22,8 +25,8 @@ import { notifyStaffOfEnquiry } from "@/lib/hq/email/enquiry-notify";
  *
  * The one rule that outranks everything else: a person is only ever told their
  * enquiry was sent when it was actually delivered (stored in HQ, or delivered
- * by another configured adapter). An email notice failing after HQ stored it
- * does not change that.
+ * by another configured adapter). An email notice or a thank-you failing after
+ * HQ stored it does not change that.
  */
 
 async function deliveryDeps(): Promise<DeliveryDeps> {
@@ -39,6 +42,7 @@ async function deliveryDeps(): Promise<DeliveryDeps> {
         name: enquiry.data.name ?? "",
         suburb: enquiry.suburb,
       }),
+    acknowledge: (_enquiry, stored) => acknowledgeEnquiry(stored.enquiryId, stored.ref, { begin: beginEnquiryAck, finish: finishEnquiryAck }),
   };
 }
 

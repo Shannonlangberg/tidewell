@@ -6,6 +6,7 @@ import type { EnquiryRow } from "@/lib/hq/enquiry-queries";
 import { DataTable, ResponsiveTable, type Column } from "../../DataTable";
 import { MobileList } from "../../MobileList";
 import { StatusChip, type StatusTone } from "../../StatusChip";
+import { AckChip } from "./AckChip";
 
 /*
  * Small pieces of the website enquiry screens: the kind (a plain tag), the status (dot plus label,
@@ -85,6 +86,13 @@ export function EnquiriesTable({ rows, caption, empty, timezone }: { rows: reado
     },
     { key: "received", header: "Received", nowrap: true, cell: (e) => <Received at={e.receivedAt} timezone={timezone} /> },
     { key: "status", header: "Status", nowrap: true, cell: (e) => <EnquiryStatusChip status={e.status} /> },
+    {
+      key: "ack",
+      header: "Thank-you",
+      nowrap: true,
+      hideBelow: "lg",
+      cell: (e) => (e.ackStatus === "none" ? <span className="hq-cell-nil">None</span> : <AckChip status={e.ackStatus} at={e.ackAt} reason={e.ackReason} timezone={timezone} />),
+    },
     { key: "owner", header: "Owner", nowrap: true, hideBelow: "lg", cell: (e) => e.ownerName ?? <span className="hq-cell-nil">No owner</span> },
     { key: "lead", header: "Lead", nowrap: true, cell: (e) => <LeadLink e={e} /> },
   ];
@@ -106,7 +114,10 @@ export function EnquiriesTable({ rows, caption, empty, timezone }: { rows: reado
                   {e.ownerName ? <> &middot; {e.ownerName}</> : null}
                 </span>
                 <span className="hq-mitem__row">
-                  <EnquiryStatusChip status={e.status} />
+                  <span className="flex flex-wrap items-center gap-2">
+                    <EnquiryStatusChip status={e.status} />
+                    {e.ackStatus !== "none" ? <AckChip status={e.ackStatus} at={null} reason={e.ackReason} timezone={timezone} /> : null}
+                  </span>
                   <span className="hq-mitem__meta shrink-0 whitespace-nowrap">
                     <time dateTime={e.receivedAt} title={formatDateTime(e.receivedAt, timezone)}>
                       {receivedAgo(e.receivedAt) ?? formatDateTime(e.receivedAt, timezone)}
