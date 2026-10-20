@@ -28,6 +28,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   contractor_vetting_step: "Vetting step",
   trade: "Trade",
   ai_request: "Connected app call",
+  decision: "Decision",
 };
 
 export const ACTION_LABEL: Record<string, string> = {
@@ -38,6 +39,8 @@ export const ACTION_LABEL: Record<string, string> = {
   restore: "Restored",
   stage_change: "Stage changed",
   status_change: "Status changed",
+  link_task: "Task linked",
+  unlink_task: "Task unlinked",
   import: "Imported",
   reorder: "Reordered",
   invite: "Invited",
