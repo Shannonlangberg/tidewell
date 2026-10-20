@@ -27,14 +27,14 @@ export function EmailsTable({ rows, caption, empty, timezone, showCreator }: { r
   if (rows.length === 0) return <>{empty}</>;
 
   const columns: Column<EmailRow>[] = [
-    { key: "ref", header: "Ref", nowrap: true, width: "6.5rem", cell: (e) => <span className="tabular-nums text-grey-text">{e.ref}</span> },
+    { key: "ref", header: "Ref", nowrap: true, width: "6.5rem", cell: (e) => <Link href={emailHref(e.id)} className="tabular-nums underline underline-offset-4">{e.ref}</Link> },
     {
       key: "to",
       header: "To",
       primary: true,
       cell: (e) => (
         <>
-          <Link href={emailHref(e.id)}>{e.toName}</Link>
+          <Link href={emailHref(e.id)} className="underline underline-offset-4">{e.toName}</Link>
           <span className="hq-cell-sub">{e.subject}</span>
         </>
       ),
@@ -42,6 +42,7 @@ export function EmailsTable({ rows, caption, empty, timezone, showCreator }: { r
     ...(showCreator ? [{ key: "by", header: "Drafted by", nowrap: true, hideBelow: "lg" as const, cell: (e: EmailRow) => e.createdByName ?? <span className="hq-cell-nil">A colleague</span> }] : []),
     { key: "status", header: "Status", nowrap: true, cell: (e) => <EmailStatusChip status={e.status} /> },
     { key: "when", header: "When", nowrap: true, cell: (e) => <time dateTime={moment(e)}>{formatDateTime(moment(e), timezone)}</time> },
+    { key: "open", header: "", nowrap: true, cell: (e) => <Link href={emailHref(e.id)} className="underline underline-offset-4">{e.status === "draft" || e.status === "approved" ? "Preview and send" : "Open"}</Link> },
   ];
 
   return (
