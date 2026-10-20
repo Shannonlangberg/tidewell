@@ -6,7 +6,7 @@
  * Single record, named, no bulk, no deletes. Deliberately not available through chat (HQ screens
  * only): approving, preferring, suspending, reinstating or deactivating a contractor; signing a
  * management or marking it lost; archiving or deleting anything; documents; imports; people and
- * roles; settings.
+ * roles; settings. Decisions can be listed, searched, opened, recorded and updated, never archived.
  */
 import type { ToolDef } from "../types";
 import { fetchRecord, search } from "./read-search";
@@ -17,6 +17,7 @@ import { contractorReport, dailyBrief, growthReport, weeklyReport } from "./repo
 import { createTask, updateTask } from "./write-tasks";
 import { createContact, createOrganisation, logInteraction, moveOpportunity, recordReferral, updateContact } from "./write-growth";
 import { logContractorContact, recordContractorJob, recordContractorReview, setVettingStep, updateContractor } from "./write-contractors";
+import { createDecision, getDecision, listDecisions, searchDecisions, updateDecision } from "./decisions";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -33,6 +34,9 @@ export const TOOLS: ToolDef[] = [
   pipelineSummary,
   whoToContact,
   teamDirectory,
+  listDecisions,
+  searchDecisions,
+  getDecision,
   // reports
   dailyBrief,
   growthReport,
@@ -52,6 +56,8 @@ export const TOOLS: ToolDef[] = [
   setVettingStep,
   recordReferral,
   moveOpportunity,
+  createDecision,
+  updateDecision,
 ];
 
 /** The tools a person with these capabilities may see and call. */

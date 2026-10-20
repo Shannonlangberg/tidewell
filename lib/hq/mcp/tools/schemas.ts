@@ -32,6 +32,9 @@ export const VETTING_STEP_STATUS_VALUES = ["not_started", "in_progress", "done",
 export const TENANT_FEEDBACK_VALUES = ["positive", "neutral", "negative", "none_received"] as const;
 export const GROWTH_PERIOD_VALUES = ["month", "30d", "fy", "all"] as const;
 export const EXPIRY_FILTER_VALUES = ["expired", "expiring_soon", "all"] as const;
+export const DECISION_CATEGORY_VALUES = ["strategy", "finance", "people", "operations", "partners", "marketing", "technology", "legal_compliance", "service_offering", "other"] as const;
+export const DECISION_STATUS_VALUES = ["proposed", "decided", "in_effect", "superseded", "reversed"] as const;
+export const OPEN_DECISION_STATUS_VALUES = ["proposed", "decided", "in_effect"] as const;
 
 // ── building blocks ──────────────────────────────────────────
 
@@ -333,4 +336,59 @@ export const moveOpportunityShape = {
     .enum(OPPORTUNITY_STAGE_VALUES)
     .describe("The stage to move to. management_signed and lost are refused here: they are done on the HQ pipeline screen."),
   note: z.string().trim().max(500).optional().describe("Optional. A note for the stage history."),
+};
+
+// ── decisions (the Business Decisions Register) ──────────────
+
+const decisionRef = (what: string) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .describe(`${what}: its number as people say it (DEC-0001), its id from an earlier result, or words of its title (if several match you get candidates to choose from).`);
+
+export const listDecisionsShape = {
+  status: z.enum(DECISION_STATUS_VALUES).optional().describe("Optional. Only decisions with this status: proposed, decided, in_effect, superseded or reversed."),
+  category: z.enum(DECISION_CATEGORY_VALUES).optional().describe("Optional. Only decisions in this category."),
+  decision_maker: z.string().trim().max(200).optional().describe('Optional. Only decisions made by this person: "me", a staff name, or a staff id.'),
+  since: optDate("Optional. Only decisions dated on or after this day"),
+  until: optDate("Optional. Only decisions dated on or before this day"),
+  limit,
+};
+
+export const searchDecisionsShape = {
+  query: z.string().trim().min(2).max(100).describe("Words to find in a decision's title, what was decided or why (2 to 100 characters), or a number like DEC-0001."),
+  limit,
+};
+
+export const getDecisionShape = { decision: decisionRef("The decision") };
+
+export const createDecisionShape = {
+  title: text("The decision in one sentence", 200),
+  category: z.enum(DECISION_CATEGORY_VALUES).describe("The category: strategy, finance, people, operations, partners, marketing, technology, legal_compliance, service_offering or other."),
+  description: z.string().trim().max(5000).optional().describe("Optional. What was decided, in more detail (at most 5000 characters)."),
+  rationale: z.string().trim().max(5000).optional().describe("Optional. Why it was decided (at most 5000 characters)."),
+  decision_date: optDate("Optional. When it was decided (default today; at most 7 days ahead)"),
+  status: z.enum(OPEN_DECISION_STATUS_VALUES).optional().describe("Optional. proposed, decided (default) or in_effect. Superseding or reversing happens later with update_decision."),
+  decision_maker: z.string().trim().max(200).optional().describe('Optional. Who made the decision: "me" (default), an active staff member\'s name, or their id.'),
+  note: z.string().trim().max(1000).optional().describe("Optional. A note for the decision's history, for example where it was agreed (at most 1000 characters)."),
+};
+
+export const updateDecisionShape = {
+  decision: decisionRef("The decision to change"),
+  title: z.string().trim().min(1).max(200).optional().describe("Optional. A new wording of the decision (at most 200 characters)."),
+  description: z.string().trim().max(5000).optional().describe('Optional. Replaces what was decided (the previous text is kept in the history), or "none" to clear it.'),
+  rationale: z.string().trim().max(5000).optional().describe('Optional. Replaces why it was decided (the previous text is kept in the history), or "none" to clear it.'),
+  category: z.enum(DECISION_CATEGORY_VALUES).optional().describe("Optional. A new category."),
+  decision_date: optDate("Optional. A corrected decision date (at most 7 days ahead)"),
+  status: z
+    .enum(DECISION_STATUS_VALUES)
+    .optional()
+    .describe("Optional. New status. proposed, decided and in_effect move freely. reversed needs a note. superseded needs superseded_by and a note. A superseded or reversed decision is closed: its status cannot change again."),
+  decision_maker: z.string().trim().max(200).optional().describe('Optional. A different decision maker: "me", an active staff name, or id.'),
+  superseded_by: decisionRef("The decision that replaces this one")
+    .optional()
+    .describe("Optional. The decision that replaces this one (marks it superseded; needs a note): its number (DEC-0002), its id, or words of its title. It must be a live decision still in force."),
+  note: z.string().trim().max(1000).optional().describe("Optional, but required to supersede or reverse: why it changed (kept in the history; at most 1000 characters)."),
 };

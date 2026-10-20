@@ -25,6 +25,13 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
   const canLink = can("growth.read");
   const canLinkContractors = can("contractors.read");
 
+  // A task from a decision: only for someone who may link it (decisions.write), and only a live decision they can see.
+  const decisionLink =
+    prefill.decision && can("decisions.write")
+      ? await db.from("decision_overview").select("id, ref, title").eq("id", prefill.decision).is("deleted_at", null).maybeSingle()
+      : null;
+  const decision = decisionLink?.data?.id && decisionLink.data.ref ? { id: decisionLink.data.id, ref: decisionLink.data.ref, title: decisionLink.data.title ?? "" } : null;
+
   const [staffList, related, contacts, organisations, contractors] = await Promise.all([
     staffOptions(db),
     // Only records that exist AND that this person can read are kept; the rest are dropped, never linked blindly.
@@ -52,7 +59,7 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
     [prefill.referral, related.referral],
     [prefill.opportunity, related.opportunity],
     [prefill.contractor, related.contractor],
-  ].some(([asked, found]) => asked && !found);
+  ].some(([asked, found]) => asked && !found) || (!!prefill.decision && !decision);
 
   const returnTo = prefill.returnTo;
 
@@ -66,6 +73,11 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
       {dropped ? (
         <InlineNote className="mb-6 max-w-2xl">
           One of the records this link pointed to could not be found, or you don&rsquo;t have access to it, so the task won&rsquo;t be linked to it.
+        </InlineNote>
+      ) : null}
+      {decision ? (
+        <InlineNote className="mb-6 max-w-2xl">
+          This task will be linked to decision {decision.ref}: {decision.title}.
         </InlineNote>
       ) : null}
       <TaskForm
@@ -95,6 +107,7 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
         opportunityLink={related.opportunity ? { id: related.opportunity.id, label: related.opportunity.label } : null}
         today={todayIn(staff.timezone)}
         cancelHref={returnTo ?? "/hq/operations"}
+        hiddenFields={decision ? { decision_id: decision.id } : undefined}
       />
     </>
   );

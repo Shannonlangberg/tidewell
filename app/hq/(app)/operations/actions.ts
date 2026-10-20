@@ -90,6 +90,20 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
 
   refreshTasks(data.id);
   const returnTo = safeReturnPath(formData.get("return"));
+
+  // "Create a task from this decision": link the new task to the decision (decisions.write; the
+  // database checks the decision is live and the task is one this person can see).
+  const decisionRaw = formData.get("decision_id");
+  if (typeof decisionRaw === "string" && isUuid(decisionRaw) && can("decisions.write")) {
+    const decisionId = decisionRaw.toLowerCase();
+    const linked = await db.rpc("link_decision_task", { p_decision: decisionId, p_task: data.id });
+    revalidatePath(`${HQ_BASE}/decisions/${decisionId}`);
+    if (linked.error) {
+      console.error("[hq] createTask link to decision failed:", logTag(linked.error));
+      redirect(withToast(`${TASKS}/${data.id}`, "Task created, but it could not be linked to the decision", "error"));
+    }
+    redirect(withToast(returnTo ?? `${HQ_BASE}/decisions/${decisionId}`, "Task created and linked to the decision"));
+  }
   redirect(withToast(returnTo ?? `${TASKS}/${data.id}`, "Task created"));
 }
 

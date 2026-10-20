@@ -49,6 +49,8 @@ export const CAPABILITIES = [
   "contractors.documents",
   "contractors.approve",
   "ai.use",
+  "decisions.read",
+  "decisions.write",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

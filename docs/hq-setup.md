@@ -125,11 +125,11 @@ HQ is an **MCP server** at **`/mcp`** (`https://tidewellcc.netlify.app/mcp` in p
 
 ### What it can do
 
-The tools are in `lib/hq/mcp/tools/` (one file per group). Read tools: `search` and `fetch` (the two tools ChatGPT's connectors expect), contractors, contacts, organisations, tasks, referrals, the pipeline, who to contact, the team directory (names and roles), and reports (daily brief, growth report, contractor report, weekly report). Small single-record writes: tasks, logging a call/meeting/email/note, contacts, organisations, contractor details, contractor reviews, vetting steps, referrals, and moving an opportunity (never to signed). People refer to records by name; when a name matches more than one record, the tool returns the candidates and asks.
+The tools are in `lib/hq/mcp/tools/` (one file per group). Read tools: `search` and `fetch` (the two tools ChatGPT's connectors expect), contractors, contacts, organisations, tasks, referrals, the pipeline, who to contact, the team directory (names and roles), and reports (daily brief, growth report, contractor report, weekly report). Small single-record writes: tasks, logging a call/meeting/email/note, contacts, organisations, contractor details, contractor reviews, vetting steps, referrals, and moving an opportunity (never to signed). The Decisions register: list, search and open decisions (`decisions.read`), record and update one (`decisions.write`); see [Decisions register](#decisions-register). People refer to records by name; when a name matches more than one record, the tool returns the candidates and asks.
 
 ### Deliberately not available through a chat app
 
-Approving, preferring, suspending, reinstating or deactivating a contractor; archiving or deleting anything; document upload or download; imports; people and roles; settings; signing a management; anything that needs `people.admin` or `settings.admin`. These stay deliberate actions in the HQ screens.
+Approving, preferring, suspending, reinstating or deactivating a contractor; archiving or deleting anything (decisions included); document upload or download; imports; people and roles; settings; signing a management; anything that needs `people.admin` or `settings.admin`. These stay deliberate actions in the HQ screens.
 
 ### Switching it on (production)
 
@@ -171,6 +171,34 @@ node --env-file=.env.local scripts/hq/mcp-e2e.mts http://mcp.localhost:3350
 ```
 
 The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && supabase start -x logflare,vector` after changing it). Supabase sends consent to `site_url` + `/hq/oauth/consent`, which locally is port 3210; the test script reads the `authorization_id` from that redirect and opens the consent page on whichever server it is testing.
+
+## Decisions register
+
+**What it is.** `/hq/decisions` (nav: **Decisions**) is the record of what the business has decided, why, who decided, when, and whether it still stands. Each decision gets a number (`DEC-0001`), a category, a status and a full history of every change. It is for business decisions (strategy, pricing, people, service offering, partners, compliance...), not for tasks: a decision can lead to tasks, and those tasks are linked to it.
+
+**Statuses.** `Proposed`, `Decided`, `In effect` (open: a director can move between them), `Superseded` (replaced by a later decision, which is named) and `Reversed` (undone, with the reason). Superseded and reversed are **closed**: the status never changes again, so the register stays an honest record. To change course, record a new decision and supersede the old one with it.
+
+**Who can do what** (the matrix is data in `hq.role_capabilities`; change it there, by migration, not in code). **This split is an assumption for the owner to confirm.**
+
+| Role | `decisions.read` (see the register, search, history) | `decisions.write` (record, edit, supersede, reverse, link tasks, archive) |
+|---|---|---|
+| Director | yes | yes |
+| Administrator | yes | yes |
+| Senior Property Manager | yes | no |
+| Business Development Manager | yes | no |
+| Read-only | yes | no |
+| Property Manager, Junior Property Manager, Virtual Assistant | no (no nav item; the pages send them back to Today) | no |
+
+**How to use it.**
+
+- **Record a decision:** Decisions, **Record a decision**. Write it in one sentence, choose a category, the date (default today; at most a week ahead) and who decided (default you; any active member of staff), then what was decided and why. An optional note goes into the history ("Agreed at the planning day").
+- **Find one:** the search box matches words in the decision, what was decided and why, or a number such as `DEC-0004`. **Filter** reveals category, status, decision maker and a date range. Newest decision first, 25 per page; one card per decision on a phone.
+- **On a decision's page:** what was decided and why, what it replaces and what replaced it (with links), its tasks, and the full **History** (who changed what, when, and the note). **Edit** corrects the wording, category, date or decision maker. **Supersede this decision** (choose the decision that replaces it; a note is required) and **Reverse this decision** (a note is required). **Create a task from this decision** opens New task with the title filled in, and links the task to the decision when it is saved; **Link an existing task** links one of your open tasks. A linked task is shown only to people who can see that task (others see a count). **Archive** is for a decision recorded by mistake (refused while another decision is superseded by it); a director or administrator can restore it.
+- **Through ChatGPT or Claude:** `list_decisions`, `search_decisions`, `get_decision` (with `decisions.read`), `create_decision`, `update_decision` (with `decisions.write`). No archiving or deleting through chat. See [hq-mcp.md](hq-mcp.md#testing-the-decisions-tools-from-chatgpt). Read-only staff cannot connect a chat app at all (their role has no `ai.use`), so in chat the register is for directors and administrators (read and write) and senior property managers and BDMs (read).
+
+**How it is protected.** Tables `hq.decisions`, `hq.decision_history` (append-only for every role), `hq.decision_tasks`; view `hq.decision_overview` (security invoker). RLS is enabled and forced; the API may only read them; every write goes through `create_decision`, `update_decision`, `supersede_decision`, `link_decision_task`, `unlink_decision_task` and `archive_record` / `restore_record` (entity `decision`), which check the capability and the second sign-in step, validate, write the history and an audit event (`entity_type = 'decision'`). Migrations `0125_hq_decisions.sql`, `0126_hq_function_acl_decisions.sql`; tests `supabase/tests/hq_09_decisions.sql`.
+
+**Not yet:** a link to **projects** (HQ has no projects yet; add a nullable `project_id` to `hq.decisions`, or a `decision_projects` table like `decision_tasks`, when it does); decisions in the global search (`Cmd/Ctrl+K`) and on Reports (left out to keep this change small; the register's own search covers it).
 
 ## Known limitations and open decisions
 

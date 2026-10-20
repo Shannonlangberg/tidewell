@@ -600,6 +600,182 @@ export type Database = {
           },
         ]
       }
+      decision_history: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_name: string | null
+          changes: Json
+          decision_id: string
+          id: number
+          note: string | null
+          summary: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          changes?: Json
+          decision_id: string
+          id?: never
+          note?: string | null
+          summary: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          changes?: Json
+          decision_id?: string
+          id?: never
+          note?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_history_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decision_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_history_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decision_tasks: {
+        Row: {
+          decision_id: string
+          linked_at: string
+          linked_by: string | null
+          task_id: string
+        }
+        Insert: {
+          decision_id: string
+          linked_at?: string
+          linked_by?: string | null
+          task_id: string
+        }
+        Update: {
+          decision_id?: string
+          linked_at?: string
+          linked_by?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_tasks_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decision_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_tasks_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decisions: {
+        Row: {
+          category: Database["hq"]["Enums"]["decision_category"]
+          created_at: string
+          created_by: string | null
+          decision_date: string
+          decision_maker_id: string
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          id: string
+          rationale: string | null
+          ref_number: number
+          reversed_note: string | null
+          status: Database["hq"]["Enums"]["decision_status"]
+          superseded_by_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category: Database["hq"]["Enums"]["decision_category"]
+          created_at?: string
+          created_by?: string | null
+          decision_date: string
+          decision_maker_id: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          id?: string
+          rationale?: string | null
+          ref_number?: never
+          reversed_note?: string | null
+          status?: Database["hq"]["Enums"]["decision_status"]
+          superseded_by_id?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: Database["hq"]["Enums"]["decision_category"]
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string
+          decision_maker_id?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          id?: string
+          rationale?: string | null
+          ref_number?: never
+          reversed_note?: string | null
+          status?: Database["hq"]["Enums"]["decision_status"]
+          superseded_by_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decisions_decision_maker_id_fkey"
+            columns: ["decision_maker_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "decision_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           applied_at: string
@@ -1702,6 +1878,54 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_overview: {
+        Row: {
+          category: Database["hq"]["Enums"]["decision_category"] | null
+          created_at: string | null
+          created_by: string | null
+          decision_date: string | null
+          decision_maker_id: string | null
+          decision_maker_name: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string | null
+          linked_task_count: number | null
+          open_linked_task_count: number | null
+          rationale: string | null
+          ref: string | null
+          ref_number: number | null
+          reversed_note: string | null
+          status: Database["hq"]["Enums"]["decision_status"] | null
+          superseded_by_id: string | null
+          superseded_by_ref: string | null
+          superseded_by_title: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decisions_decision_maker_id_fkey"
+            columns: ["decision_maker_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "decision_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organisation_directory: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][] | null
@@ -2060,6 +2284,19 @@ export type Database = {
       }
       can: { Args: { p_capability: string }; Returns: boolean }
       contractor_summary: { Args: never; Returns: Json }
+      create_decision: {
+        Args: {
+          p_category: Database["hq"]["Enums"]["decision_category"]
+          p_decision_date?: string
+          p_decision_maker?: string
+          p_description?: string
+          p_note?: string
+          p_rationale?: string
+          p_status?: Database["hq"]["Enums"]["decision_status"]
+          p_title: string
+        }
+        Returns: Json
+      }
       create_expiry_tasks: { Args: never; Returns: Json }
       create_trade: {
         Args: { p_description?: string; p_label: string }
@@ -2074,6 +2311,10 @@ export type Database = {
         Returns: Json
       }
       growth_summary: { Args: { p_since?: string }; Returns: Json }
+      link_decision_task: {
+        Args: { p_decision: string; p_task: string }
+        Returns: Json
+      }
       mark_contractor_used: {
         Args: {
           p_allow_earlier?: boolean
@@ -2201,7 +2442,31 @@ export type Database = {
         }
         Returns: Json
       }
+      supersede_decision: {
+        Args: { p_decision: string; p_note: string; p_superseded_by: string }
+        Returns: Json
+      }
       today: { Args: never; Returns: string }
+      unlink_decision_task: {
+        Args: { p_decision: string; p_task: string }
+        Returns: Json
+      }
+      update_decision: {
+        Args: {
+          p_category?: Database["hq"]["Enums"]["decision_category"]
+          p_decision: string
+          p_decision_date?: string
+          p_decision_maker?: string
+          p_description?: string
+          p_expected_updated_at?: string
+          p_note?: string
+          p_rationale?: string
+          p_status?: Database["hq"]["Enums"]["decision_status"]
+          p_superseded_by?: string
+          p_title?: string
+        }
+        Returns: Json
+      }
       update_staff: {
         Args: {
           p_clear_pod?: boolean
@@ -2258,6 +2523,23 @@ export type Database = {
         | "preferred"
         | "suspended"
         | "inactive"
+      decision_category:
+        | "strategy"
+        | "finance"
+        | "people"
+        | "operations"
+        | "partners"
+        | "marketing"
+        | "technology"
+        | "legal_compliance"
+        | "service_offering"
+        | "other"
+      decision_status:
+        | "proposed"
+        | "decided"
+        | "in_effect"
+        | "superseded"
+        | "reversed"
       document_verification: "pending" | "verified" | "rejected"
       employment_status: "active" | "on_leave" | "ended"
       interaction_type:
@@ -2481,6 +2763,25 @@ export const Constants = {
         "preferred",
         "suspended",
         "inactive",
+      ],
+      decision_category: [
+        "strategy",
+        "finance",
+        "people",
+        "operations",
+        "partners",
+        "marketing",
+        "technology",
+        "legal_compliance",
+        "service_offering",
+        "other",
+      ],
+      decision_status: [
+        "proposed",
+        "decided",
+        "in_effect",
+        "superseded",
+        "reversed",
       ],
       document_verification: ["pending", "verified", "rejected"],
       employment_status: ["active", "on_leave", "ended"],
