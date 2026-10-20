@@ -4,7 +4,7 @@ import { cx } from "./cx";
 
 /*
  * The statistics band: a FLAT strip divided by hairlines, not a row of boxed cards.
- * Every figure is DM Sans (tabular numerals), never a serif.
+ * Every figure is Hanken Grotesk with tabular numerals.
  *
  * A Stat whose `value` is null shows an em dash and its hint ("Appears once connected
  * to Ailo"): the band never shows an invented number. A value of 0 is shown quietly

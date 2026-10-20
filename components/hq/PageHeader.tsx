@@ -5,8 +5,8 @@ import { Icon } from "./icons";
 
 /*
  * Page title area. Two looks:
- *  - default: the title in DM Sans 600 at 26px, for every data page (lists, profiles, forms);
- *  - welcome: Cormorant Garamond, large, for the dashboard greeting ONLY (and sign-in).
+ *  - default: the title in Hanken Grotesk 600 at 26px, for every data page (lists, profiles, forms);
+ *  - welcome: the large display style, for the dashboard greeting ONLY (and sign-in).
  * An `eyebrow` (small uppercase label: a date, the module name) sits above the title.
  */
 
@@ -49,7 +49,7 @@ export function Breadcrumbs({
 export type PageHeaderProps = {
   /** The page's h1. */
   title: ReactNode;
-  /** `welcome` uses Cormorant and is for the dashboard greeting only. */
+  /** `welcome` is the large display style and is for the dashboard greeting only. */
   variant?: "default" | "welcome";
   /** Small uppercase label above the title: "Thursday 15 October" or "Growth". */
   eyebrow?: ReactNode;

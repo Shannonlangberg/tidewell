@@ -494,7 +494,7 @@ export default function PrivacyPage() {
             action={
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Button href="/contact" variant="primary">
-                  Get in Touch
+                  Get in touch
                 </Button>
                 <span className="flex items-center">
                   <RuleLink href="/terms">Terms &amp; Disclaimer</RuleLink>

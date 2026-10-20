@@ -96,7 +96,7 @@ export default function RentalAppraisalPage() {
       </Section>
 
       {/* ── Closing ─────────────────────────────────────────── */}
-      <Section tone="charcoal">
+      <Section tone="forest" rounded>
         <div className="shell">
           <div className="grid gap-x-16 gap-y-10 md:grid-cols-12">
             <div className="md:col-span-7">

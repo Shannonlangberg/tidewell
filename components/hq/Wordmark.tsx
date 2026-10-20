@@ -1,15 +1,15 @@
 import Link from "next/link";
+import { Logo } from "@/components/planted/Logo";
 import { cx } from "./cx";
 import { HQ_ROUTES } from "./nav";
 
 /*
- * The PLANTED. wordmark, as in the approved reference: "PLANTED." in Cormorant 500
- * with 0.05em tracking (the full stop is permanent), PROPERTY MANAGEMENT beneath it in
- * tiny tracked DM Sans, and a small HQ tag. No leaves, buildings or icons, ever.
+ * The PLANTED. wordmark: the 2026 outlined logo artwork (components/planted/Logo,
+ * the same file the public site uses; never retyped as live text), PROPERTY
+ * MANAGEMENT beneath it in small tracked Hanken Grotesk, and a small HQ tag.
  *
- * `tone="onDark"` (default) is for the charcoal sidebar; `"onLight"` for ivory or
- * soft-white screens such as sign-in. The wordmark is a logotype, so it is exempt from
- * the text-size contrast rules, but both tones still pass them.
+ * `tone="onDark"` (default) is for the forest sidebar: ivory letters with the lime
+ * full stop. `"onLight"` is for ivory or white screens such as sign-in: forest.
  */
 
 export type WordmarkProps = {
@@ -22,10 +22,15 @@ export type WordmarkProps = {
   className?: string;
 };
 
+/** Cap height of the outlined wordmark per size, in px. */
+const LOGO_HEIGHT = { sm: 15, md: 19, lg: 30 } as const;
+
 export function Wordmark({ tone = "onDark", size = "md", descriptor = true, href = HQ_ROUTES.dashboard, className }: WordmarkProps) {
   const body = (
     <>
-      <span className="hq-wordmark__name">PLANTED.</span>
+      <span className="hq-wordmark__name">
+        <Logo tone={tone === "onLight" ? "dark" : "light"} height={LOGO_HEIGHT[size]} />
+      </span>
       {descriptor ? (
         <span className="hq-wordmark__row">
           <span className="hq-wordmark__desc">Property Management</span>

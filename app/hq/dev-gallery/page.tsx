@@ -274,8 +274,8 @@ export default async function DevGalleryPage({ searchParams }: { searchParams: P
             </div>
             <div>
               <p className="hq-display text-[46px] leading-none">Good morning, Sample.</p>
-              <p className="hq-muted mt-3 text-[14px]">Cormorant Garamond appears only in the wordmark, the dashboard welcome, sign-in, and empty-state titles. Never in data.</p>
-              <p className="mt-4 text-[34px] font-semibold leading-none hq-nums">1,284 &nbsp;<span className="font-normal text-[14px] hq-muted">every figure is DM Sans</span></p>
+              <p className="hq-muted mt-3 text-[14px]">The wordmark is outlined artwork; the large display style appears only in the dashboard welcome, sign-in and empty-state titles. Never in data.</p>
+              <p className="mt-4 text-[34px] font-semibold leading-none hq-nums">1,284 &nbsp;<span className="font-normal text-[14px] hq-muted">every figure is Hanken Grotesk</span></p>
             </div>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">

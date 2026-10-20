@@ -20,7 +20,7 @@ import {
   focusField,
   FormMessage,
   Honeypot,
-  SelectField,
+  RadioField,
   SubmitButton,
   SuccessPanel,
   TextAreaField,
@@ -34,6 +34,11 @@ import {
  * and the same promise: it only ever says an enquiry was sent once the server
  * confirms it was delivered.
  *
+ * 2026 layout (homepage "Contact & appraisal" band in the Claude Design
+ * handoff): "I'm interested in" as pill chips, name and email, phone and
+ * property suburb, the message, then the submit. `tone="dark"` is the forest
+ * band on the homepage; the /contact page uses the light default.
+ *
  * Without JavaScript this posts to the Server Action as an ordinary form and
  * the action redirects to /enquiry-received. Native `required` attributes are
  * in the server-rendered HTML for that path and step aside once this component
@@ -44,14 +49,24 @@ const FORM = "contact";
 const MESSAGE_ID = `${FORM}-form-message`;
 const SUMMARY_ID = `${FORM}-error-summary`;
 
-const EMPTY: Values = { name: "", email: "", phone: "", enquiryType: "", message: "" };
+const EMPTY: Values = { name: "", email: "", phone: "", suburb: "", enquiryType: "", message: "" };
 
 const LABELS: Record<string, string> = {
+  enquiryType: "I’m interested in",
   name: "Your name",
   email: "Email",
   phone: "Phone",
-  enquiryType: "What this is about",
-  message: "Your message",
+  suburb: "Property suburb",
+  message: "Tell us about your property",
+};
+
+/** The chip shown for each enquiry type the server accepts (lib/enquiries.ts). */
+const INTEREST_LABELS: Record<string, string> = {
+  "Rental Appraisal": "Rental appraisal",
+  "Property Management": "Property management",
+  "Switching Property Managers": "Switching managers",
+  "Tenant Enquiry": "I’m a tenant",
+  "General Enquiry": "Something else",
 };
 
 const NO_ERRORS: FieldErrors = {};
@@ -59,11 +74,14 @@ const NO_ERRORS: FieldErrors = {};
 export function ContactForm({
   turnstileSiteKey,
   initialEnquiryType = "",
+  tone = "light",
 }: {
   turnstileSiteKey: string | null;
   /** Preselected from ?enquiry= on the way in, e.g. from the homepage. */
   initialEnquiryType?: string;
+  tone?: "light" | "dark";
 }) {
+  const dark = tone === "dark";
   const [state, formAction, pending] = useActionState(submitContact, IDLE_STATE);
   const hydrated = useHydrated();
   const startedAt = useStartedAt();
@@ -125,7 +143,7 @@ export function ContactForm({
 
   if (state.status === "sent") {
     return (
-      <SuccessPanel heading="Thank you for getting in touch.">
+      <SuccessPanel heading="Thank you for getting in touch." tone={tone}>
         <p>
           Your message has reached us. We&rsquo;ll read it properly and come back to you about what
           you&rsquo;ve asked.
@@ -180,18 +198,30 @@ export function ContactForm({
       )}
 
       <div className="grid gap-7">
-        <TextField
+        <RadioField
           form={FORM}
-          name="name"
-          label="Your name"
-          value={values.name}
-          onChange={(v) => set("name", v)}
-          autoComplete="name"
-          maxLength={120}
+          name="enquiryType"
+          label="I’m interested in"
+          layout="chips"
+          value={values.enquiryType}
+          onChange={(v) => set("enquiryType", v)}
+          options={ENQUIRY_TYPES}
+          labels={INTEREST_LABELS}
           required={!hydrated}
-          error={errors.name}
+          error={errors.enquiryType}
         />
-        <div className="grid gap-7 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextField
+            form={FORM}
+            name="name"
+            label="Your name"
+            value={values.name}
+            onChange={(v) => set("name", v)}
+            autoComplete="name"
+            maxLength={120}
+            required={!hydrated}
+            error={errors.name}
+          />
           <TextField
             form={FORM}
             name="email"
@@ -218,50 +248,50 @@ export function ContactForm({
             optional
             error={errors.phone}
           />
+          <TextField
+            form={FORM}
+            name="suburb"
+            label="Property suburb"
+            value={values.suburb}
+            onChange={(v) => set("suburb", v)}
+            autoComplete="address-level2"
+            maxLength={80}
+            optional
+            error={errors.suburb}
+          />
         </div>
-        <SelectField
-          form={FORM}
-          name="enquiryType"
-          label="What's this about?"
-          value={values.enquiryType}
-          onChange={(v) => set("enquiryType", v)}
-          options={ENQUIRY_TYPES}
-          required={!hydrated}
-          error={errors.enquiryType}
-        />
         <TextAreaField
           form={FORM}
           name="message"
-          label="Your message"
+          label="Tell us about your property"
           value={values.message}
           onChange={(v) => set("message", v)}
           maxLength={2000}
+          rows={4}
           required={!hydrated}
           error={errors.message}
-          hint="Tell us about your property or what you'd like to know."
+          hint="Or whatever you’d like to ask."
         />
 
         {turnstileSiteKey && (
           <div>
-            <Turnstile siteKey={turnstileSiteKey} options={{ size: "flexible", theme: "light" }} />
+            <Turnstile siteKey={turnstileSiteKey} options={{ size: "flexible", theme: dark ? "dark" : "light" }} />
           </div>
         )}
       </div>
 
-      <div className="mt-12">
-        <SubmitButton pending={pending} pendingLabel="Sending your message…">
-          Send Enquiry
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-5">
+        <SubmitButton pending={pending} pendingLabel="Sending your enquiry…" variant={dark ? "lime" : "primary"}>
+          Send enquiry
         </SubmitButton>
+        <p className="m-0 max-w-[18rem] text-[0.8125rem] leading-relaxed text-muted">
+          We use what you send here to respond to your enquiry. Nothing else. See our{" "}
+          <Link href="/privacy" className="underline underline-offset-4">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
-
-      <p className="mt-8 text-[0.8125rem] leading-relaxed text-ink-muted">
-        We use what you send here to respond to your enquiry. Nothing else. How we handle your
-        details is set out in our{" "}
-        <Link href="/privacy" className="underline underline-offset-4">
-          Privacy Policy
-        </Link>
-        .
-      </p>
     </form>
   );
 }

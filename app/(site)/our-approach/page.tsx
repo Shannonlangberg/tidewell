@@ -139,23 +139,28 @@ export default function OurApproachPage() {
       </Section>
 
       {/* ── 3. Feature image ────────────────────────────────── */}
-      <section className="on-dark relative flex min-h-[32rem] items-center overflow-hidden bg-charcoal py-28 md:min-h-[40rem]">
-        <Image
-          src="/photos/wallaroo.jpg"
-          alt="A heritage sandstone house on a Copper Coast street, with a wide verandah, iron lace brackets, two chimneys and a low stone fence, photographed in late afternoon light"
-          fill
-          sizes="100vw"
-          className="img-cover object-[center_60%]"
-        />
-        <div aria-hidden="true" className="absolute inset-0 bg-black/55" />
-        <div className="shell relative z-10">
-          <div className="max-w-3xl">
-            <p className="display display-lg text-ivory">
-              A house on the Copper Coast asks something of whoever looks after it.
-            </p>
-            <p className="label label-light mt-10">
-              Salt air. Older stock. Weather that finds every gap.
-            </p>
+      {/* Framed in the 2026 style: a 28px-radius plate inside the page, not full bleed. */}
+      <section className="bg-ivory pb-[var(--section-y)]">
+        <div className="shell">
+          <div className="on-dark relative flex min-h-[32rem] items-center overflow-hidden rounded-[var(--radius-lg)] bg-forest py-28 md:min-h-[40rem]">
+            <Image
+              src="/photos/wallaroo.jpg"
+              alt="A heritage sandstone house on a Copper Coast street, with a wide verandah, iron lace brackets, two chimneys and a low stone fence, photographed in late afternoon light"
+              fill
+              sizes="100vw"
+              className="img-cover object-[center_60%]"
+            />
+            <div aria-hidden="true" className="absolute inset-0 bg-forest/60" />
+            <div className="relative z-10 px-[clamp(1.5rem,5vw,4rem)]">
+              <div className="max-w-3xl">
+                <p className="display display-lg text-ivory">
+                  A house on the Copper Coast asks something of whoever looks after it.
+                </p>
+                <p className="label label-light mt-10">
+                  Salt air. Older stock. Weather that finds every gap.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -193,7 +198,7 @@ export default function OurApproachPage() {
       </Section>
 
       {/* ── 5. Call to action ───────────────────────────────── */}
-      <Section tone="white" className="rule">
+      <Section tone="forest" rounded>
         <div className="shell">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="display display-lg">Start at step one.</h2>
@@ -202,10 +207,10 @@ export default function OurApproachPage() {
               none of it commits you to anything.
             </p>
             <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button href="/rental-appraisal" variant="primary">
-                Request a Rental Appraisal
+              <Button href="/rental-appraisal" variant="light">
+                Request a rental appraisal
               </Button>
-              <Button href="/contact" variant="outline">
+              <Button href="/contact" variant="ghost-light">
                 Contact {BRAND.name}
               </Button>
             </div>

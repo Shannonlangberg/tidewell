@@ -51,7 +51,7 @@ export default function EnquiryReceivedPage() {
 
             <div className="reveal reveal-4 mt-14 flex flex-col gap-4 sm:flex-row">
               <Button href="/" variant="outline">
-                Back to the Homepage
+                Back to the homepage
               </Button>
             </div>
 
