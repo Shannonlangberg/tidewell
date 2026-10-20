@@ -39,6 +39,8 @@ export const HQ_ROUTES = {
   portfolio: `${HQ_BASE}/portfolio`,
   /** The Business Decisions Register: what was decided, why, and whether it still stands. */
   decisions: `${HQ_BASE}/decisions`,
+  /** The Knowledge base: procedures, policies, checklists and how PLANTED. speaks (approved versions for staff). */
+  knowledge: `${HQ_BASE}/knowledge`,
   /** Website enquiries and branded emails, one tab each (the old /hq/email and /hq/growth/enquiries lists redirect here). */
   communications: COMMS_BASE,
   /** Old address of the email list; redirects to Communications > Emails. Email pages (/hq/email/<id>, /new) stay. */
@@ -77,7 +79,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "communications" | "portfolio" | "partners" | "operations" | "people" | "reports" | "decisions" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "communications" | "portfolio" | "partners" | "operations" | "people" | "reports" | "decisions" | "knowledge" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -120,6 +122,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
   { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },
   { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", mobile: "more" },
+  { key: "knowledge", label: "Knowledge", href: HQ_ROUTES.knowledge, icon: "book", requires: "knowledge.read", mobile: "more" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */

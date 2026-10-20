@@ -33,6 +33,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   property_handover_step: "Handover step",
   email_draft: "Email",
   enquiry: "Website enquiry",
+  knowledge_document: "Knowledge document",
 };
 
 export const ACTION_LABEL: Record<string, string> = {
@@ -71,6 +72,9 @@ export const ACTION_LABEL: Record<string, string> = {
   auto_reply_sent: "Thank-you sent",
   auto_reply_failed: "Thank-you not sent",
   auto_reply_skipped: "Thank-you not sent",
+  edit: "New draft saved",
+  discard_draft: "Draft discarded",
+  restore_version: "Older version brought back as a draft",
 };
 
 const fallback = (s: string) => {

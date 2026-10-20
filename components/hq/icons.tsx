@@ -43,7 +43,8 @@ export type IconName =
   | "building"
   | "link"
   | "clock"
-  | "inbox";
+  | "inbox"
+  | "book";
 
 const GLYPHS: Record<IconName, ReactNode> = {
   // Four panels of different heights: a layout, not a gauge.
@@ -131,6 +132,13 @@ const GLYPHS: Record<IconName, ReactNode> = {
       <path d="M7 3.5h7l5 5V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5Z" />
       <path d="M14 3.5V9h5" />
       <path d="M9 13h6M9 16.5h4" />
+    </>
+  ),
+  // An open book: the knowledge base.
+  book: (
+    <>
+      <path d="M12 6.5C10.5 5.2 8.3 4.5 4.5 4.5v13c3.8 0 6 .7 7.5 2 1.5-1.3 3.7-2 7.5-2v-13c-3.8 0-6 .7-7.5 2Z" />
+      <path d="M12 6.5v13" />
     </>
   ),
   task: (

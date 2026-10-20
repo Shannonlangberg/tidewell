@@ -1355,6 +1355,182 @@ export type Database = {
           },
         ]
       }
+      knowledge_documents: {
+        Row: {
+          approved_version: number | null
+          category: Database["hq"]["Enums"]["knowledge_category"]
+          created_at: string
+          created_by: string | null
+          current_version: number
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          is_template: boolean
+          name_key: string | null
+          owner_id: string | null
+          ref_number: number
+          review_due: string | null
+          status: Database["hq"]["Enums"]["knowledge_status"]
+          summary: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approved_version?: number | null
+          category: Database["hq"]["Enums"]["knowledge_category"]
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          is_template?: boolean
+          name_key?: string | null
+          owner_id?: string | null
+          ref_number?: never
+          review_due?: string | null
+          status?: Database["hq"]["Enums"]["knowledge_status"]
+          summary?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approved_version?: number | null
+          category?: Database["hq"]["Enums"]["knowledge_category"]
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          is_template?: boolean
+          name_key?: string | null
+          owner_id?: string | null
+          ref_number?: never
+          review_due?: string | null
+          status?: Database["hq"]["Enums"]["knowledge_status"]
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_versions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_by_name: string | null
+          approved_via: string | null
+          based_on_version: number | null
+          body: string
+          change_note: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          document_id: string
+          edited_at: string
+          edited_by: string | null
+          edited_by_name: string | null
+          id: number
+          mcp_client_id: string | null
+          status: Database["hq"]["Enums"]["knowledge_version_status"]
+          summary: string | null
+          title: string
+          version: number
+          via: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
+          approved_via?: string | null
+          based_on_version?: number | null
+          body: string
+          change_note?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          document_id: string
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string | null
+          id?: never
+          mcp_client_id?: string | null
+          status?: Database["hq"]["Enums"]["knowledge_version_status"]
+          summary?: string | null
+          title: string
+          version: number
+          via?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
+          approved_via?: string | null
+          based_on_version?: number | null
+          body?: string
+          change_note?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          document_id?: string
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string | null
+          id?: never
+          mcp_client_id?: string | null
+          status?: Database["hq"]["Enums"]["knowledge_version_status"]
+          summary?: string | null
+          title?: string
+          version?: number
+          via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_versions_discarded_by_fkey"
+            columns: ["discarded_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_versions_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       managed_properties: {
         Row: {
           address_key: string | null
@@ -2742,6 +2918,45 @@ export type Database = {
           },
         ]
       }
+      knowledge_overview: {
+        Row: {
+          approved_at: string | null
+          approved_by_name: string | null
+          approved_version: number | null
+          body: string | null
+          category: Database["hq"]["Enums"]["knowledge_category"] | null
+          created_at: string | null
+          created_by: string | null
+          current_version: number | null
+          deleted_at: string | null
+          has_pending_draft: boolean | null
+          id: string | null
+          is_template: boolean | null
+          owner_id: string | null
+          owner_name: string | null
+          reading_is_draft: boolean | null
+          reading_version: number | null
+          ref: string | null
+          ref_number: number | null
+          review_due: string | null
+          review_overdue: boolean | null
+          review_state: string | null
+          status: Database["hq"]["Enums"]["knowledge_status"] | null
+          status_label: string | null
+          summary: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunity_overview: {
         Row: {
           assigned_to: string | null
@@ -3368,6 +3583,10 @@ export type Database = {
         Returns: Json
       }
       approve_email_draft: { Args: { p_id: string }; Returns: Json }
+      approve_knowledge_version: {
+        Args: { p_document: string; p_version: number }
+        Returns: Json
+      }
       archive_record: {
         Args: { p_entity: string; p_id: string; p_reason?: string }
         Returns: Json
@@ -3433,6 +3652,18 @@ export type Database = {
         Returns: Json
       }
       create_expiry_tasks: { Args: never; Returns: Json }
+      create_knowledge_document: {
+        Args: {
+          p_body: string
+          p_category: Database["hq"]["Enums"]["knowledge_category"]
+          p_change_note?: string
+          p_owner?: string
+          p_review_due?: string
+          p_summary?: string
+          p_title: string
+        }
+        Returns: Json
+      }
       create_opportunity: {
         Args: {
           p_assigned_to?: string
@@ -3462,6 +3693,21 @@ export type Database = {
       }
       discard_email_draft: {
         Args: { p_id: string; p_reason?: string }
+        Returns: Json
+      }
+      discard_knowledge_draft: {
+        Args: { p_document: string; p_reason?: string; p_version: number }
+        Returns: Json
+      }
+      edit_knowledge_document: {
+        Args: {
+          p_base_version: number
+          p_body?: string
+          p_change_note: string
+          p_document: string
+          p_summary?: string
+          p_title?: string
+        }
         Returns: Json
       }
       finish_email_send: {
@@ -3607,6 +3853,15 @@ export type Database = {
         Args: { p_contractor: string; p_note?: string }
         Returns: Json
       }
+      restore_knowledge_version: {
+        Args: {
+          p_base_version: number
+          p_change_note?: string
+          p_document: string
+          p_version: number
+        }
+        Returns: Json
+      }
       restore_record: {
         Args: { p_entity: string; p_id: string }
         Returns: Json
@@ -3642,6 +3897,17 @@ export type Database = {
           p_property_id: string
           p_status: Database["hq"]["Enums"]["handover_step_status"]
           p_step: Database["hq"]["Enums"]["handover_step"]
+        }
+        Returns: Json
+      }
+      set_knowledge_review: {
+        Args: {
+          p_category?: Database["hq"]["Enums"]["knowledge_category"]
+          p_change_note?: string
+          p_clear_review?: boolean
+          p_document: string
+          p_owner?: string
+          p_review_due?: string
         }
         Returns: Json
       }
@@ -3867,6 +4133,21 @@ export type Database = {
         | "email"
         | "message"
         | "note"
+      knowledge_category:
+        | "company_procedure"
+        | "contractor_vetting"
+        | "referral_partner"
+        | "landlord_onboarding"
+        | "staff_policy"
+        | "operational_checklist"
+        | "brand_voice"
+        | "general"
+      knowledge_status: "draft" | "approved" | "archived"
+      knowledge_version_status:
+        | "draft"
+        | "approved"
+        | "superseded"
+        | "discarded"
       lead_source:
         | "website_enquiry"
         | "referral_partner"
@@ -4164,6 +4445,23 @@ export const Constants = {
         "email",
         "message",
         "note",
+      ],
+      knowledge_category: [
+        "company_procedure",
+        "contractor_vetting",
+        "referral_partner",
+        "landlord_onboarding",
+        "staff_policy",
+        "operational_checklist",
+        "brand_voice",
+        "general",
+      ],
+      knowledge_status: ["draft", "approved", "archived"],
+      knowledge_version_status: [
+        "draft",
+        "approved",
+        "superseded",
+        "discarded",
       ],
       lead_source: [
         "website_enquiry",
