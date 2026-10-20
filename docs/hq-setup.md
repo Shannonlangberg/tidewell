@@ -89,14 +89,14 @@ What was done, and how to repeat it for another project:
 6. **Research leads:** sign in, open **Growth → Import**, choose **Load the research leads file**, review, confirm.
 7. **Domain:** `hq.planted.com.au` needs the domain, a Netlify alias and a rewrite to `/hq`. Until then HQ lives at `/hq`.
 
-### Signing in until an email sender is connected
+### Sign-in codes by email (SendGrid)
 
-Supabase's built-in email sender cannot send our branded six-digit code on the free plan (it can neither change the template nor send to anyone outside the project team). Until a custom SMTP sender (for example Resend, with a verified domain) is connected:
+Sign-in codes are emailed through **SendGrid**. The domain **plantedproperty.com.au** is authenticated in SendGrid (DNS records added at the domain host), and the sender is **PLANTED. HQ <hq@plantedproperty.com.au>**. The settings live in `supabase/config.toml` under `[remotes.production.auth.email.smtp]` and were applied with `supabase config push`; the branded template in `supabase/templates/otp.html` is installed by the same push. The SendGrid API key is the SMTP password: it is read from the `SMTP_PASS` environment variable at push time and is never in the repository.
 
-- The person opens `/hq/sign-in` and enters their address, then goes on to the code screen.
-- A director with the project's secret key runs `npm run hq:code -- --email <their address> --confirm`. The six-digit code lands on the clipboard of the machine that ran it, and is given to the person. It is valid for ten minutes, works once, only for active HQ staff, and the person still has to pass multi-factor sign-in.
-
-To connect a sender: add an `[remotes.production.auth.email.smtp]` block to `supabase/config.toml` (host, port, user, `pass = "env(SMTP_PASS)"`, sender), put the password in the environment, run `supabase config push`, and the branded template in `supabase/templates/otp.html` is installed in the same push. Raise `[remotes.production.auth.rate_limit] email_sent` at the same time. Verify a sending domain before inviting anyone other than the account owner, because most providers only deliver to the owner's own address until then.
+- People sign in themselves at `/hq/sign-in`: enter the address, then type the six-digit code from the email (ten minutes, once).
+- **Break-glass:** if email is down, a director with the project's secret key can still issue a code with `npm run hq:code -- --email <address> --confirm`.
+- **Rotate the key:** create a new SendGrid key with **Mail Send only** (Restricted Access), update `SMTP_PASS` in `~/.planted-hq/secrets.env`, run `supabase config push`, then delete the old key in SendGrid. (The first key made for this setup had full account access; replace it.)
+- **HQ address:** `hq.plantedproperty.com.au` points at the Netlify site (CNAME). Add it as a domain alias in Netlify and update the site URL in the production config when you switch to it.
 
 ### What the free Supabase plan does not give you
 
