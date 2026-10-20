@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/planted/Logo";
 import type { ReactNode } from "react";
 import { ROLE_LABEL } from "@/lib/hq/constants";
 import { ActiveLink } from "./ActiveLink";
@@ -145,9 +146,8 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
 
           {/* ── mobile header ── */}
           <header className="hq-mheader hq-on-dark">
-            <Link href="/hq" className="hq-mheader__brand">
-              PLANTED.
-              <span className="sr-only"> HQ, today</span>
+            <Link href="/hq" className="hq-mheader__brand" aria-label="PLANTED. HQ, today">
+              <Logo tone="light" height={16} />
             </Link>
             <div className="hq-mheader__actions">
               <MobileSearchButton />

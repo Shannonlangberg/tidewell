@@ -1,4 +1,48 @@
-# PLANTED. Official brand design system, version 1.0
+# PLANTED. brand design system
+
+> **2026 redesign: this supersedes the visual sections of v1.0 below.** The approved
+> 2026 system comes from the Claude Design handoff (`design_handoff_planted_2026`, and the
+> "PLANTED. Design System" project it was built from). Where v1.0 says charcoal, DM Sans,
+> sharp corners or "never introduce green", the 2026 system below wins. v1.0's voice,
+> content rules and "never invent business facts" still apply unchanged.
+
+## 2026 system
+
+**Palette.** Deep forest `#14291F` (contrast moments, footer, contact band, primary button,
+HQ chrome), forest-2 `#1B3428` / forest-3 `#20392D` (raised surfaces and fields on forest),
+warm ivory `#F7F5EF` (page, about half of every surface), white `#FFFFFF` (fields on light,
+card hover), stone `#EAE7DF` (one secondary band, placeholders), sage `#A6B09B` (muted marks
+on forest), pale lime `#E4F0A5` (**accent only**: the logo's full stop on dark, button hover
+fill, the arrow disc, selected chips, focus on dark, text selection), ink `#1D241E` (text),
+muted `#5A635B` (secondary text on light, AA on ivory and stone), muted-dark `#B9C1AF`
+(secondary text on forest), error `#8A3A24` (`#E8B4A0` on forest). Hairlines are 12% ink on
+light and 14% ivory on forest. No gradients except photo scrims. HQ's `--status-*` colours
+are unchanged.
+
+**Type.** Hanken Grotesk for everything, headlines at weight 400 with tight negative
+tracking (hero `clamp(3.1rem,7.2vw,7.6rem)`, xl `clamp(2.6rem,5.6vw,5.6rem)`, lg
+`clamp(2.1rem,3.8vw,3.6rem)`). Cormorant Garamond italic (`.it`) for one or two accent words
+per headline only, never in UI or data. Eyebrows are 12px uppercase at 0.14em with a 6px dot.
+Buttons are sentence case.
+
+**Logo.** Outlined artwork (Cormorant Garamond 500 converted to paths), never live text:
+`components/planted/Logo.tsx` in code, `public/brand/logos/` for everything else. On forest
+or photography: ivory letters with a lime full stop.
+
+**Shape and motion.** Pills for every button, chip and the nav; 12px inputs; 20px tiles;
+28px images, cards and panels (HQ panels 16px for density). One float shadow, on the nav
+capsule only. Easing `cubic-bezier(.22,1,.36,1)`; headlines rise line by line from a mask,
+images reveal with a clip-path wipe, blocks fade up 28px; all of it off under
+`prefers-reduced-motion`.
+
+**Where it lives.** Public site: `app/(site)/planted.css`. HQ: `app/planted-tokens.css`
+(the role names HQ was built on, at 2026 values) and `app/hq/hq.css`.
+
+---
+
+# v1.0 (superseded visually; kept for voice, content rules and history)
+
+## PLANTED. Official brand design system, version 1.0
 
 **This is the source of truth for all visual work.** It applies to the public website, PLANTED HQ, and every future application. Where any other document, component or token disagrees with this file, this file wins.
 

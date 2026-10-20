@@ -22,7 +22,7 @@ import { hasCap, loadOpenStageCounts, loadRecentInteractions, loadTopPartners, t
  *    to do next, with a link to the right place.
  *  - A failure is contained. A loader that throws becomes a quiet error panel for that widget;
  *    the rest of the page carries on.
- *  - Figures are DM Sans (the kit's Stat); the only serif is an empty-state title.
+ *  - Figures are Hanken Grotesk (the kit's Stat); the display style appears only in empty-state titles.
  */
 
 // ── chrome ───────────────────────────────────────────────────

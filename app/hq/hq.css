@@ -10,11 +10,12 @@
  * never receive any of it. `source(none)` plus the two @source lines keep Tailwind
  * from scanning anything outside HQ.
  *
- * Source of truth: docs/brand-design-system.md and app/planted-tokens.css. This file
- * introduces no colour of its own: every colour is a `--planted-*` or `--status-*`
- * token, or a `color-mix()` of them. Radius is 4px (controls) or 6px (panels); the
- * only other shape is a full circle (avatars, the mobile floating button, the dots
- * in status chips and the spinner). Shadows are `--shadow-subtle` and appear only on
+ * Source of truth: docs/brand-design-system.md and app/planted-tokens.css (2026
+ * brand: forest, ivory, lime; Hanken Grotesk). This file introduces no colour of its
+ * own: every colour is a `--planted-*` or `--status-*` token, or a `color-mix()` of
+ * them. Radius: buttons and nav items are pills, inputs 12px, panels 16px, menus and
+ * tiles 10px; plus full circles (avatars, the mobile floating button, the dots in
+ * status chips and the spinner). Shadows are `--shadow-subtle` and appear only on
  * menus, drawers, the command palette and the mobile floating button.
  *
  * Structure: theme, base, then everything else in `@layer components` so Tailwind
@@ -80,7 +81,7 @@
   body {
     background: var(--planted-white);
     color: var(--planted-charcoal);
-    font-family: var(--font-dm-sans), "DM Sans", Arial, sans-serif;
+    font-family: var(--font-hanken), "Hanken Grotesk", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -92,8 +93,9 @@
 
   .hq-root {
     /* The tokens file names the families; next/font supplies the actual faces. */
-    --font-body: var(--font-hq-dm-sans), var(--font-dm-sans), "DM Sans", Arial, sans-serif;
-    --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+    /* 2026 brand: Hanken Grotesk for everything (the root layout loads 300-700). */
+    --font-body: var(--font-hanken), "Hanken Grotesk", Arial, sans-serif;
+    --font-display: var(--font-hanken), "Hanken Grotesk", Arial, sans-serif;
     --hq-ease: var(--ease-soft);
     --hq-sidebar-w: 248px;
     --hq-tabbar-h: 62px;
@@ -130,11 +132,11 @@
     outline-offset: 3px;
   }
   .hq-on-dark :focus-visible {
-    outline-color: var(--planted-stone);
+    outline-color: var(--planted-lime);
   }
   .hq-root ::selection {
-    background: var(--planted-stone);
-    color: var(--planted-charcoal);
+    background: var(--planted-lime);
+    color: var(--planted-forest);
   }
 }
 
@@ -163,7 +165,7 @@
 
   /* ── type helpers ── */
 
-  /* Small label: uppercase, tracked, 11px, DM Sans. Never a serif. */
+  /* Small label: uppercase, tracked, 11px, Hanken Grotesk. Never a serif. */
   .hq-label {
     display: block;
     font-size: 11px;
@@ -174,11 +176,12 @@
     color: var(--planted-grey-text);
   }
 
-  /* Cormorant, in only the four places the brand allows: wordmark, welcome, sign-in, empty-state titles. */
+  /* Brand headings (welcome, sign-in, empty-state titles): Hanken at weight 400 with the
+     2026 display tracking. The wordmark is outlined artwork (Wordmark.tsx), not this. */
   .hq-display {
     font-family: var(--font-display);
     font-weight: 400;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
   }
 
   .hq-muted {
@@ -196,13 +199,10 @@
     text-decoration: none;
     color: var(--planted-ivory);
   }
+  /* The outlined logo (Wordmark.tsx sets its height per size). */
   .hq-wordmark__name {
     display: block;
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 28px;
-    line-height: 1;
-    letter-spacing: 0.05em;
+    line-height: 0;
   }
   .hq-wordmark__row {
     display: flex;
@@ -225,9 +225,9 @@
     font-weight: 500;
     letter-spacing: 0.16em;
     border: 1px solid var(--planted-border-dark);
-    border-radius: 3px;
-    padding: 1px 6px;
-    color: var(--planted-stone);
+    border-radius: var(--radius-pill);
+    padding: 1px 7px;
+    color: var(--planted-lime);
   }
   .hq-wordmark--light {
     color: var(--planted-charcoal);
@@ -238,12 +238,6 @@
   .hq-wordmark--light .hq-wordmark__tag {
     border-color: var(--planted-border);
     color: var(--planted-grey-text);
-  }
-  .hq-wordmark--sm .hq-wordmark__name {
-    font-size: 22px;
-  }
-  .hq-wordmark--lg .hq-wordmark__name {
-    font-size: 44px;
   }
   .hq-wordmark--lg .hq-wordmark__desc {
     font-size: 10px;
@@ -264,7 +258,7 @@
     min-height: var(--btn-h);
     padding: 0 16px;
     border: 1px solid transparent;
-    border-radius: var(--radius-button);
+    border-radius: var(--radius-pill);
     background: transparent;
     color: var(--planted-charcoal);
     font: inherit;
@@ -587,7 +581,7 @@
     min-height: 40px;
     padding: 9px 14px;
     border-left: 2px solid transparent;
-    border-radius: var(--radius-button);
+    border-radius: var(--radius-pill);
     color: var(--planted-stone);
     font-size: 14px;
     font-weight: 500;
@@ -601,10 +595,14 @@
     background: color-mix(in srgb, var(--planted-charcoal-raised) 65%, transparent);
     color: var(--planted-ivory);
   }
+  /* Active: the raised forest pill, with the icon in lime (2026 accent on dark). */
   .hq-nav__item[aria-current="page"] {
     background: var(--planted-charcoal-raised);
-    border-left-color: var(--planted-clay);
+    border-left-color: transparent;
     color: var(--planted-ivory);
+  }
+  .hq-nav__item[aria-current="page"] .hq-nav__icon {
+    color: var(--planted-lime);
   }
   .hq-nav__icon {
     flex: none;
@@ -767,13 +765,9 @@
     gap: 8px;
   }
   .hq-mheader__brand {
+    display: inline-flex;
     text-decoration: none;
     color: inherit;
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 22px;
-    line-height: 1;
-    letter-spacing: 0.05em;
   }
 
   /* Bottom tab bar. */
@@ -969,10 +963,11 @@
   .hq-label + .hq-pageheader__title {
     margin-top: 9px;
   }
-  /* The welcome heading: Cormorant, the dashboard greeting only. */
+  /* The welcome heading: the dashboard greeting only, at display tracking. */
   .hq-pageheader__title--welcome {
     font-family: var(--font-display);
     font-weight: 400;
+    letter-spacing: -0.035em;
     font-size: clamp(34px, 5vw, 46px);
     line-height: 1.02;
   }
@@ -1165,7 +1160,7 @@
   .hq-empty--compact {
     padding: 6px 0 2px;
   }
-  /* Empty-state titles are one of the four places the brand allows Cormorant. */
+  /* Empty-state titles use the display style. */
   .hq-empty__title {
     margin-bottom: 6px;
     font-family: var(--font-display);

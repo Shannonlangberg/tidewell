@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { FlashFromSearchParams, ToastProvider } from "@/components/hq/Toast";
 import "./hq.css";
@@ -15,17 +14,9 @@ import "./hq.css";
  * ToastProvider and FlashFromSearchParams live here (not in AppShell) so the sign-in
  * pages can toast too, and a toast survives navigation between pages of one group.
  *
- * Font: the root layout loads DM Sans at weights 400 and 500 only. HQ needs 600 and
- * 700 (page titles, figures, table names), so this layout loads the variable font for
- * the /hq routes alone. If the root layout's weights are ever widened to 400-700 this
- * can be removed and hq.css will fall back to `--font-dm-sans`.
+ * Font: the root layout (app/layout.tsx) loads Hanken Grotesk at 300-700, the 2026
+ * brand face; hq.css reads it as --font-hanken. HQ loads no font of its own.
  */
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-hq-dm-sans",
-});
 
 export const metadata: Metadata = {
   title: { default: "Planted HQ", template: "%s | Planted HQ" },
@@ -34,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function HqLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`hq-root ${dmSans.variable}`}>
+    <div className="hq-root">
       <ToastProvider>
         {/* useSearchParams needs a Suspense boundary so it cannot block prerendering. */}
         <Suspense fallback={null}>
