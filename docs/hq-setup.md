@@ -13,7 +13,8 @@ Planted HQ is the private staff portal at `/hq`. It runs in the same Next.js app
 | Growth | `/hq/growth` | Referral partner CRM: contacts, organisations, call and meeting history, referrals sent and received, the opportunity pipeline, partner performance, reviewable import. |
 | Operations | `/hq/operations` | Tasks: mine, team, overdue, due today, upcoming, completed. |
 | People | `/hq/people` | Staff, roles, pods, invitations, deactivation. |
-| Settings, Profile, Audit | `/hq/settings`, `/hq/profile`, `/hq/settings/audit` | Timezone, MFA, dashboard layout, audit log for directors and administrators. |
+| Settings, Profile, Audit | `/hq/settings`, `/hq/profile`, `/hq/settings/audit` | Timezone, MFA, connected apps on Profile, audit log for directors and administrators. |
+| AI and connected apps | `/hq/settings/ai` | The ChatGPT/Claude connection on or off and the hourly limit (directors), and the log of every call (directors and administrators). |
 | Search | `Cmd/Ctrl + K`, `/hq/search` | One search across contacts, organisations, referrals and tasks, limited by what the person may see. |
 | Partners, Insights | `/hq/partners`, `/hq/insights` | Honest "planned" pages: contractors are Phase 2, insights Phase 4. |
 
@@ -74,6 +75,10 @@ npm run build            # the production build Netlify runs
 
 HQ runs on its own Supabase project, `planted-hq` (ref `wnejvqyqqfxdjkbmbrvs`), in **Sydney (ap-southeast-2)**, in a new organisation named PLANTED on the free plan. It holds HQ only: the parked Tidewell schema lives in `supabase/parked-tidewell/` and is never applied to it. The database password and keys are kept in `~/.planted-hq/` on the machine that set it up, outside the repository.
 
+The GitHub repository is now **private**.
+
+**Multi-factor sign-in is currently OFF on the live project** (`require_mfa` = false), by the owner's decision, so that ChatGPT and Claude can connect (see [the MFA limitation](#known-limitations-of-the-connection)). Until it is back on, an emailed code is the only factor for everyone. The planned fix: consent keeps requiring a full two-step HQ session, the database accepts connected-app tokens at the lower assurance level on the connector paths only, and `require_mfa` is switched back on.
+
 What was done, and how to repeat it for another project:
 
 1. **Create the project in Sydney** (`supabase projects create planted-hq --org-id <org> --region ap-southeast-2`). The region cannot be changed later.
@@ -128,10 +133,10 @@ Approving, preferring, suspending, reinstating or deactivating a contractor; arc
 
 ### Switching it on (production)
 
-1. **Supabase:** apply the `[remotes.production.auth.oauth_server]` block in `supabase/config.toml` (`supabase config push`, or Authentication > OAuth Server in the dashboard: enable, authorization path `/hq/oauth/consent`, dynamic registration on). The site URL must be `https://tidewellcc.netlify.app` (it is). **Not yet applied to the hosted project.**
+1. **Supabase:** the OAuth server is **enabled on the live project**, with authorization path `/hq/oauth/consent` and dynamic registration on. It is recorded in the `[remotes.production.auth.oauth_server]` block in `supabase/config.toml`, which must stay so a later `supabase config push` keeps it (for another project: push that block, or Authentication > OAuth Server in the dashboard). The site URL must be `https://tidewellcc.netlify.app` (it is).
 2. **Signing keys:** `/mcp` accepts only asymmetric tokens (ES256/RS256 from the JWKS) in production. Check Authentication > JWT Keys shows an asymmetric current key before connecting anything.
-3. **Second step (read this first):** see the MFA limitation below. With `require_mfa` on, connected apps are refused.
-4. **The on/off switch:** `hq.settings.ai_enabled` is `false` by default, and every tool call is refused ("switched off") until a director sets it to `true`. There is no screen for it yet: run `update hq.settings set value = 'true' where key = 'ai_enabled';` in the Supabase SQL editor (the settings trigger audits it). A director's own session may also make that update (policy `settings.admin`); the e2e script does it that way.
+3. **Second step (read this first):** see the MFA limitation below. With `require_mfa` on, connected apps are refused; it is currently off on the live project by the owner's decision (see [The live project](#the-live-project)).
+4. **The on/off switch:** `hq.settings.ai_enabled` is `false` by default, and every tool call is refused ("switched off") until a director switches it on. A director does this in **Settings > AI and connected apps** (`/hq/settings/ai`), which also sets the hourly limit and shows the log of every call (directors and administrators see everyone's calls; the database shows anyone else only their own). It writes the settings table as the director, like the other business settings, and the settings trigger audits it. The e2e script makes the same update from a director's session.
 5. Optional environment variables on Netlify: `HQ_PUBLIC_ORIGIN` (for example `https://tidewellcc.netlify.app`; the origin the metadata advertises, otherwise taken from the request's host) and `HQ_MCP_WRITE_HOURLY_LIMIT` (see Limits).
 
 ### Connecting (at the time of writing; menu names change)
@@ -141,18 +146,18 @@ Approving, preferring, suspending, reinstating or deactivating a contractor; arc
 
 ### Disconnecting
 
-Each person can see and disconnect their own apps on **Profile > Connected apps** in HQ. Disconnecting revokes the grant at Supabase: the app's refresh tokens stop working at once and it must ask again. An access token the app already holds keeps working **until it expires (one hour)**, because `/mcp` verifies tokens locally and cannot see a revocation sooner. To cut someone off immediately, deactivate them in People (their tokens then fail the staff check on the next call), or set `ai_enabled` to `false` for everyone.
+Each person can see and disconnect their own apps on **Profile > Connected apps** in HQ. Disconnecting revokes the grant at Supabase: the app's refresh tokens stop working at once and it must ask again. An access token the app already holds keeps working **until it expires (one hour)**, because `/mcp` verifies tokens locally and cannot see a revocation sooner. To cut someone off immediately, deactivate them in People (their tokens then fail the staff check on the next call), or switch the connection off for everyone in **Settings > AI and connected apps**. A director cannot disconnect another person's app; that screen says so too.
 
 ### Limits
 
-- **All calls:** `hq.settings.ai_hourly_limit` per person per rolling hour (default 40, 1 to 1000), enforced inside the database by `ai_begin_request`. Chat apps can call several tools per question, so a director may want to raise it. A refused call stores nothing.
+- **All calls:** `hq.settings.ai_hourly_limit` per person per rolling hour (default 40, 1 to 1000, set in **Settings > AI and connected apps**), enforced inside the database by `ai_begin_request`. Chat apps can call several tools per question, so a director may want to raise it. A refused call stores nothing.
 - **Writes:** a lower cap per person per rolling hour, default 15, set with `HQ_MCP_WRITE_HOURLY_LIMIT` (1 to 200). Counted from the person's own logged write calls. A safety bound, not a business figure.
 - Each tool must answer within 8 seconds; results are cut at 20,000 characters (with a note saying so); request bodies over 64 kB are refused; at most 200 argument elements per call.
 - **Netlify's synchronous function limit is short** (10 seconds by default). The endpoint is stateless and every tool is a few small queries, but a cold start plus a slow report could approach it.
 
 ### Known limitations of the connection
 
-- **Multi-factor sign-in blocks it today.** Supabase issues OAuth app tokens at `aal1` even when the person approved from a session that had completed the second step (checked locally: consent given at `aal2`, the token says `aal1` with method `oauth_provider/authorization_code`). HQ's database requires an `aal2` session when `require_mfa` is on, and `/mcp` follows it. So **with `require_mfa` on (the production default) every connected app gets `403`**. This needs a decision before going live: for example, the database could accept OAuth-app tokens at `aal1` for the `ai.use` paths (consent itself always happens in a full HQ session), or MFA stays off until Supabase supports it. Nothing has been changed to weaken MFA.
+- **Multi-factor sign-in blocks it today.** Supabase issues OAuth app tokens at `aal1` even when the person approved from a session that had completed the second step (checked locally: consent given at `aal2`, the token says `aal1` with method `oauth_provider/authorization_code`). HQ's database requires an `aal2` session when `require_mfa` is on, and `/mcp` follows it. So **with `require_mfa` on (the database default) every connected app gets `403`**. The owner's decision for now: `require_mfa` is off on the live project, so the connection works but HQ is single-factor for everyone. The planned fix is targeted: the database accepts OAuth-app tokens at `aal1` on the connector (`ai.use`) paths only, consent itself still needs a full two-step HQ session, and `require_mfa` goes back on. The AI screen warns when the connection is on while `require_mfa` is on.
 - **Not exercised from the real ChatGPT or Claude apps.** Everything was tested locally with the official MCP SDK client doing the same discovery, registration, PKCE and token exchange (`scripts/hq/mcp-e2e.mts`). A person must add the connector in each app and try it.
 - The token's audience is `authenticated` (Supabase does not bind tokens to a resource with RFC 8707 `resource`), so `/mcp` relies on the `client_id` claim and issuer to tell OAuth-app tokens from browser sessions. The token is passed on to Supabase (the same project that issued it) so RLS runs as the person.
 - Supabase's OAuth server is in beta; free-plan rate limits on registration and token endpoints apply.

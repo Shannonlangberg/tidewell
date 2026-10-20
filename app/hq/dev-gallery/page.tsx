@@ -401,7 +401,7 @@ export default async function DevGalleryPage({ searchParams }: { searchParams: P
             <Stat label="Contacts identified" value={27} hint="Across 19 organisations. None contacted yet." />
             <Stat label="Need verifying" value={27} hint="Research leads, not confirmed relationships." />
             <Stat label="Referrals received" value={0} hint="None recorded yet." />
-            <Stat label="Managed properties" value={null} hint="Appears once connected to Ailo or entered in Insights." />
+            <Stat label="Managed properties" value={null} hint="Appears once HQ is connected to Ailo. Nothing is entered here by hand." />
           </StatBand>
           <div className="mt-6">
             <StatBand columns={3} label="Linked sample figures">

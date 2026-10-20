@@ -139,6 +139,14 @@ export default async function ProfilePage() {
               </>
             ) : null}
           </p>
+          {can("settings.admin") || can("audit.read") ? (
+            <p className="mt-4 text-[14px]">
+              <Link href="/hq/settings/ai" className="underline underline-offset-2">
+                AI and connected apps
+              </Link>
+              : the connection for everyone, the hourly limit and every call made.
+            </p>
+          ) : null}
         </section>
       </div>
     </>

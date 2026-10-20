@@ -13,7 +13,8 @@
     "hq:session": "node --env-file=.env.local scripts/hq/dev-session.mts",
     "hq:shot": "node --env-file=.env.local scripts/hq/screenshot.mts",
     "hq:bootstrap": "node --env-file-if-exists=.env.production.local scripts/hq/bootstrap-director.mts",
-    "hq:code": "node --env-file-if-exists=.env.production.local scripts/hq/issue-code.mts"
+    "hq:code": "node --env-file-if-exists=.env.production.local scripts/hq/issue-code.mts",
+    "hq:backup": "scripts/hq/backup.sh"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.6.1",
@@ -27,6 +28,8 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",

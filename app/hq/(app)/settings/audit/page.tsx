@@ -8,6 +8,7 @@ import { Pagination } from "@/components/hq/Pagination";
 import { Select } from "@/components/hq/Select";
 import { requireStaff } from "@/lib/hq/auth";
 import { formatDateTime } from "@/lib/hq/format";
+import { ENTITY_LABEL, actionLabel, entityLabel } from "@/lib/hq/audit-labels";
 import { intParam, isUuid, strParam } from "@/lib/hq/forms";
 
 export const metadata: Metadata = { title: "Audit log" };
@@ -17,24 +18,6 @@ type SP = Record<string, string | string[] | undefined>;
 const PATH = "/hq/settings/audit";
 const PAGE_SIZE = 25;
 const SYSTEM = "system";
-
-/** The kinds of record the audit triggers and RPCs write (0105_hq_audit.sql, 0109, 0110). */
-const ENTITY_LABEL: Record<string, string> = {
-  organisation: "Organisation",
-  contact: "Contact",
-  interaction: "Interaction",
-  opportunity: "Opportunity",
-  referral: "Referral",
-  task: "Task",
-  staff: "Person",
-  pod: "Pod",
-  setting: "Setting",
-  role_capability: "Role capability",
-  import_batch: "Import",
-};
-
-const entityLabel = (e: string) => ENTITY_LABEL[e] ?? e.replace(/_/g, " ");
-const actionLabel = (a: string) => a.charAt(0).toUpperCase() + a.slice(1).replace(/_/g, " ");
 
 type Event = {
   id: number;
@@ -112,7 +95,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           label="Entity"
           hideLabel
           placeholder="Every kind of record"
-          options={Object.entries(ENTITY_LABEL).map(([value, label]) => ({ value, label }))}
+          options={Object.entries(ENTITY_LABEL)
+            .map(([value, label]) => ({ value, label }))
+            .sort((x, y) => x.label.localeCompare(y.label))}
           defaultValue={entity}
         />
         <Select
