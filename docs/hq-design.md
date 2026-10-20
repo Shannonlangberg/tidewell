@@ -15,7 +15,7 @@ This document is the plan and the shared contract for building HQ. Phase 1 is th
 | Parked product | `app/app`, `app/stay`, `supabase/migrations/0000-0020` (Tidewell holiday homes) | Stays where it is, noindexed. HQ does not depend on its tables. |
 | Auth | Supabase Auth: email six-digit code, TOTP, password sign-in refused by hook, sign-ups disabled, local JWT verification in Server Components, refresh confined to `/api/session` | **Reused.** HQ adds its own staff table and sign-in screens, not a second auth system. |
 | Database | Local Supabase stack (Postgres 17), pgTAP, `supabase test db` | Same tooling. HQ migrations are numbered `0100+`. |
-| Hosting | Netlify with `@netlify/plugin-nextjs` (load-bearing). Site `tidewellcc.netlify.app` | `/hq` deploys with the site. A subdomain can be added later. |
+| Hosting | Netlify with `@netlify/plugin-nextjs` (load-bearing). Site `hq.plantedproperty.com.au` | `/hq` deploys with the site. A subdomain can be added later. |
 | Secrets | `lib/supabase/secret.ts` is the only reader of the secret key, guarded by an ESLint boundary | HQ adds one more allowed file (staff invitation). |
 
 ## 2. Architectural decisions and trade-offs
