@@ -84,7 +84,7 @@ async function sendHint(ctx: ToolContext, e: { status: EmailStatus; createdVia: 
   const settings = await loadEmailSettings(ctx.db);
   const fresh = Date.now() - Date.parse(e.createdAt) < CHAT_SEND_WINDOW_MINUTES * 60_000;
   if (settings.ok && settings.data.chatSend && e.createdVia === "mcp" && e.createdBy === ctx.staff.id && fresh) {
-    return `Not sent yet. Chat sending is switched on in HQ, so it can be sent from here within ${CHAT_SEND_WINDOW_MINUTES} minutes of drafting: read the recipient's address back to the person, and only if they confirm it, call send_email_draft with confirm_recipient_email set to that exact address. Otherwise open it in HQ and tap Approve and send.`;
+    return `Not sent yet. Chat sending is switched on in HQ, so it can be sent from here within ${CHAT_SEND_WINDOW_MINUTES} minutes of drafting: show the person the recipient (name and address), the subject and the FULL email text, then ask "Send it?". When they say yes or send, call send_email_draft with confirm_recipient_email set to the exact address you showed: their yes is the confirmation, so do not make them retype the address or approve in HQ. If they ask for changes, use update_email_draft and show the new version first. Otherwise they can open it in HQ and tap Approve and send.`;
   }
   return NOT_SENT;
 }
