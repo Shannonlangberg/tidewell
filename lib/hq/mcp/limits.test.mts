@@ -1,7 +1,41 @@
 // Run with: npm test   (node --test, no extra dependencies)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_WRITE_HOURLY_LIMIT, MAX_WRITE_HOURLY_LIMIT, capStructured, capText, overWriteCap, withTimeout, writeHourlyLimit } from "./limits.ts";
+import {
+  DEFAULT_BULK_CALLS_PER_HOUR,
+  DEFAULT_BULK_ITEMS_PER_HOUR,
+  DEFAULT_WRITE_HOURLY_LIMIT,
+  MAX_BULK_ENTRIES,
+  MAX_REQUEST_BYTES,
+  MAX_TOOL_INPUT_ELEMENTS,
+  MAX_WRITE_HOURLY_LIMIT,
+  capStructured,
+  capText,
+  countsAgainstWriteCap,
+  overWriteCap,
+  withTimeout,
+  writeHourlyLimit,
+} from "./limits.ts";
+
+test("the documented defaults: 60 single writes an hour (raised from 15), bulk 6 calls / 300 items, 50 entries a call", () => {
+  assert.equal(DEFAULT_WRITE_HOURLY_LIMIT, 60);
+  assert.equal(MAX_WRITE_HOURLY_LIMIT, 200);
+  assert.equal(DEFAULT_BULK_CALLS_PER_HOUR, 6);
+  assert.equal(DEFAULT_BULK_ITEMS_PER_HOUR, 300);
+  assert.equal(MAX_BULK_ENTRIES, 50);
+});
+
+test("only single-record writes count against the write cap; bulk calls use the database's bulk budget", () => {
+  assert.equal(countsAgainstWriteCap("write"), true);
+  assert.equal(countsAgainstWriteCap("read"), false);
+  assert.equal(countsAgainstWriteCap("bulk"), false);
+});
+
+test("a full bulk plan fits the request bounds", () => {
+  // 50 entries x (16 fields + 10 dependencies + 12 checklist items), plus the call's own fields.
+  assert.ok(MAX_TOOL_INPUT_ELEMENTS >= 50 * (16 + 10 + 12) + 50 + 10);
+  assert.ok(MAX_REQUEST_BYTES >= 128 * 1024);
+});
 
 test("write cap from the environment: default, clamped, whole numbers only", () => {
   assert.equal(writeHourlyLimit(undefined), DEFAULT_WRITE_HOURLY_LIMIT);
@@ -9,6 +43,7 @@ test("write cap from the environment: default, clamped, whole numbers only", () 
   assert.equal(writeHourlyLimit("abc"), DEFAULT_WRITE_HOURLY_LIMIT);
   assert.equal(writeHourlyLimit("2.5"), DEFAULT_WRITE_HOURLY_LIMIT);
   assert.equal(writeHourlyLimit("3"), 3);
+  assert.equal(writeHourlyLimit("15"), 15, "the old default can still be set");
   assert.equal(writeHourlyLimit("0"), 1);
   assert.equal(writeHourlyLimit("100000"), MAX_WRITE_HOURLY_LIMIT);
 });

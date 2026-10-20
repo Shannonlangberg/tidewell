@@ -19,7 +19,7 @@ import type { RelatedRef, Result, TaskDetail, TaskListItem, TaskPage, TaskRelate
  */
 
 const LIST_COLUMNS =
-  "id, title, status, priority, due_date, assigned_to, related_contact_id, related_organisation_id, related_referral_id, related_opportunity_id, related_contractor_id, completed_at, created_at";
+  "id, title, status, priority, due_date, assigned_to, related_contact_id, related_organisation_id, related_referral_id, related_opportunity_id, related_contractor_id, project_id, completed_at, created_at";
 const DETAIL_COLUMNS = `${LIST_COLUMNS}, description, created_by, completed_by, updated_at, source`;
 
 type ListRow = {
@@ -34,6 +34,7 @@ type ListRow = {
   related_referral_id: string | null;
   related_opportunity_id: string | null;
   related_contractor_id: string | null;
+  project_id: string | null;
   completed_at: string | null;
   created_at: string;
 };
@@ -67,6 +68,8 @@ function filteredTasks(db: HqClient, p: TaskPredicate, options?: { count: "exact
       break;
   }
   if (p.createdBy) q = q.eq("created_by", p.createdBy);
+  if (p.project === "none") q = q.is("project_id", null);
+  else if (p.project && isUuid(p.project)) q = q.eq("project_id", p.project);
 
   if (p.due?.eq) q = q.eq("due_date", p.due.eq);
   if (p.due?.lt) q = q.lt("due_date", p.due.lt);
@@ -149,11 +152,15 @@ type Labels = {
   referrals: Map<string, string>;
   opportunities: Map<string, string>;
   contractors: Map<string, string>;
+  /** Project names (row level security returns them only to people with projects.read). */
+  projects: Map<string, string>;
+  /** Tasks on the page that wait on an open task. */
+  blocked: Set<string>;
 };
 
 const uniq = (values: (string | null)[]) => [...new Set(values.filter((v): v is string => !!v))];
 
-type LinkIds = { contacts: string[]; organisations: string[]; referrals: string[]; opportunities: string[]; contractors: string[] };
+type LinkIds = { contacts: string[]; organisations: string[]; referrals: string[]; opportunities: string[]; contractors: string[]; projects: string[]; tasks: string[] };
 
 function idsOf(rows: readonly ListRow[]): LinkIds {
   return {
@@ -162,6 +169,8 @@ function idsOf(rows: readonly ListRow[]): LinkIds {
     referrals: uniq(rows.map((r) => r.related_referral_id)),
     opportunities: uniq(rows.map((r) => r.related_opportunity_id)),
     contractors: uniq(rows.map((r) => r.related_contractor_id)),
+    projects: uniq(rows.map((r) => r.project_id ?? null)),
+    tasks: uniq(rows.map((r) => r.id)),
   };
 }
 
@@ -171,7 +180,7 @@ function idsOf(rows: readonly ListRow[]): LinkIds {
  * else the labels stay null.
  */
 async function relatedLabels(db: HqClient, ids: LinkIds, canGrowth: boolean, canContractors = false): Promise<Labels> {
-  const labels: Labels = { contacts: new Map(), organisations: new Map(), referrals: new Map(), opportunities: new Map(), contractors: new Map() };
+  const labels: Labels = { contacts: new Map(), organisations: new Map(), referrals: new Map(), opportunities: new Map(), contractors: new Map(), projects: new Map(), blocked: new Set() };
   const contactIds = canGrowth ? ids.contacts : [];
   const orgIds = canGrowth ? ids.organisations : [];
   const referralIds = canGrowth ? ids.referrals : [];
@@ -179,6 +188,27 @@ async function relatedLabels(db: HqClient, ids: LinkIds, canGrowth: boolean, can
   const contractorIds = canContractors ? ids.contractors : [];
 
   await Promise.all([
+    ids.projects.length === 0
+      ? null
+      : db
+          .from("projects")
+          .select("id, name")
+          .in("id", ids.projects)
+          .then(({ data, error }) => {
+            if (error) console.error("[hq] task project names failed:", logTag(error));
+            for (const p of data ?? []) labels.projects.set(p.id, p.name);
+          }),
+    ids.tasks.length === 0
+      ? null
+      : db
+          .from("task_dependencies")
+          .select("task_id")
+          .in("task_id", ids.tasks)
+          .eq("depends_on_open", true)
+          .then(({ data, error }) => {
+            if (error) console.error("[hq] task blocked flags failed:", logTag(error));
+            for (const d of data ?? []) labels.blocked.add(d.task_id);
+          }),
     contactIds.length === 0
       ? null
       : db
@@ -259,6 +289,9 @@ function toListItem(row: ListRow, names: Map<string, string>, labels: Labels): T
     completedAt: row.completed_at,
     createdAt: row.created_at,
     related: relatedOf(row, labels),
+    projectId: row.project_id ?? null,
+    projectName: row.project_id ? (labels.projects.get(row.project_id) ?? null) : null,
+    blocked: labels.blocked.has(row.id),
   };
 }
 
@@ -364,6 +397,8 @@ export async function prefillRelated(
       referrals: prefill.referral ? [prefill.referral] : [],
       opportunities: prefill.opportunity ? [prefill.opportunity] : [],
       contractors: prefill.contractor ? [prefill.contractor] : [],
+      projects: [],
+      tasks: [],
     },
     canGrowth,
     canContractors,

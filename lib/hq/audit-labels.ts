@@ -2,8 +2,8 @@
  * Plain-language names for the audit log (app/hq/(app)/settings/audit/page.tsx).
  *
  * ENTITY_LABEL covers every entity_type the database writes to hq.audit_events: the audit_row()
- * triggers (0105, 0113, 0123) and the one-off hq_private.audit_write() calls (0110, 0116, 0117,
- * 0120, 0123). ACTION_LABEL covers every action: the trigger's own (create, update, delete,
+ * triggers (0105, 0113, 0123, 0142) and the one-off hq_private.audit_write() calls (0110, 0116, 0117,
+ * 0120, 0123, 0144). ACTION_LABEL covers every action: the trigger's own (create, update, delete,
  * archive, restore, stage_change, status_change) and the ones RPCs set through audit_context() or
  * audit_write(). audit-labels.test.mts reads the migrations and fails if one is missing.
  *
@@ -35,6 +35,10 @@ export const ENTITY_LABEL: Record<string, string> = {
   enquiry: "Website enquiry",
   knowledge_document: "Knowledge document",
   meeting: "Meeting",
+  // projects (0142, 0144)
+  project: "Project",
+  project_milestone: "Milestone",
+  task_batch: "Batch of tasks",
 };
 
 export const ACTION_LABEL: Record<string, string> = {
@@ -83,6 +87,9 @@ export const ACTION_LABEL: Record<string, string> = {
   unlink: "Record unlinked",
   add_action: "Action added",
   promote_decision: "Decision added to the register",
+  // projects (0144): one event per bulk call through a connected app
+  bulk_create: "Tasks created in bulk",
+  bulk_update: "Tasks updated in bulk",
 };
 
 const fallback = (s: string) => {

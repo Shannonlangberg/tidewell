@@ -31,6 +31,8 @@ export const HQ_ROUTES = {
   /** One container per trade (industry), with the editable list of trades. */
   partnerTrades: `${HQ_BASE}/partners/trades`,
   operations: `${HQ_BASE}/operations`,
+  /** Projects: milestones, tasks, board and timeline for the larger pieces of work. */
+  projects: `${HQ_BASE}/projects`,
   taskNew: `${HQ_BASE}/operations/tasks/new`,
   people: `${HQ_BASE}/people`,
   /** Figures and trends: referral figures, partner performance, contractor coverage. */
@@ -82,7 +84,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "communications" | "portfolio" | "partners" | "operations" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -121,6 +123,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
   },
   { key: "portfolio", label: "Properties", href: HQ_ROUTES.portfolio, icon: "building", requires: "portfolio.read", mobile: "more" },
   { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", mobile: "tab" },
+  { key: "projects", label: "Projects", href: HQ_ROUTES.projects, icon: "projects", requires: "projects.read", mobile: "more" },
   { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", mobile: "more" },
   { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
   { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },

@@ -123,3 +123,16 @@ test("the linked-records filter is ignored for people who are not offered it", (
   assert.equal(q.related, null);
   assert.equal(q.filtered, false);
 });
+
+test("the Project filter: only with projects.read, a project id or 'none', anything else ignored, and it flows into the predicate", async () => {
+  const { buildPredicate } = await import("./rules.ts");
+  assert.equal(parseTaskListQuery({ project: OTHER }, { canReadAll: true }).project, null); // not offered by default
+  const q = parseTaskListQuery({ project: OTHER.toUpperCase() }, { canReadAll: true, canFilterProject: true });
+  assert.equal(q.project, OTHER);
+  assert.equal(q.filtered, true);
+  assert.equal(parseTaskListQuery({ project: "none" }, { canReadAll: true, canFilterProject: true }).project, "none");
+  assert.equal(parseTaskListQuery({ project: "PRJ-0001" }, { canReadAll: true, canFilterProject: true }).project, null);
+  assert.equal(plainQuery("mine").project, null);
+  const p = buildPredicate(q, { meId: OTHER, today: "2026-10-20", now: new Date("2026-10-20T00:00:00Z") });
+  assert.equal(p.project, OTHER);
+});

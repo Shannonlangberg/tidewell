@@ -109,10 +109,117 @@ async function main() {
   const ccounts = (cimp.data as { counts: Record<string, number> }).counts;
   console.log(`Contractor import: ${ccounts.contractors_created} contractors created, ${ccounts.skipped} skipped, ${ccounts.possible_duplicate} possible duplicates reported (${ccounts.rows} rows).`);
 
+  await seedSampleProjects(db, ids);
+
   console.log("\nLocal HQ logins (fake .test addresses; MFA is off locally):");
   for (const p of PEOPLE) console.log(`  ${p.email.padEnd(24)} ${p.role.padEnd(26)} ${p.full}`);
   console.log("\nSign in at http://localhost:3210/hq/sign-in (codes appear in Mailpit, http://127.0.0.1:54324),");
   console.log("or skip the email with: npm run hq:session -- shannon@planted.test");
+}
+
+/*
+ * Two clearly labelled SAMPLE projects so the project screens have something to show locally:
+ * milestones, subtasks, a dependency chain, checklists, an overdue task and tasks for the test
+ * personas (so the restricted views can be checked). The names say "Sample" and the tasks are
+ * generic placeholders, not Planted's real plan. Created through the same RPCs a person or a
+ * connected app uses (create_project, create_milestone, bulk_create_tasks). Dates are relative to
+ * today. Skipped when a project with that name already exists, so a rerun adds nothing.
+ */
+async function seedSampleProjects(db: ReturnType<typeof asUser>, ids: Map<string, string>) {
+  const day = (offset: number) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+  const shannon = ids.get("shannon@planted.test")!;
+  const courtney = ids.get("courtney@planted.test")!;
+  const va = ids.get("va@planted.test")!;
+
+  type Plan = {
+    name: string;
+    description: string;
+    status: string;
+    priority: string;
+    start: number;
+    target: number;
+    owner: string;
+    notes: string;
+    milestones: { name: string; due: number }[];
+    tasks: Record<string, unknown>[];
+  };
+  const plans: Plan[] = [
+    {
+      name: "Sample: launch preparation",
+      description: "Local sample data for trying the project screens. Not a real plan.",
+      status: "active",
+      priority: "high",
+      start: -21,
+      target: 40,
+      owner: shannon,
+      notes: "## About this sample\n\nCreated by `npm run hq:seed` so the **Overview**, **List**, **Board** and **Timeline** views have something to show.\n\n- Placeholder tasks only\n- Safe to archive",
+      milestones: [
+        { name: "Groundwork", due: -3 },
+        { name: "Ready to open", due: 21 },
+        { name: "First month", due: 40 },
+      ],
+      tasks: [
+        { ref: "a", title: "Sample task: write the opening checklist", milestone: "Groundwork", assignee: shannon, priority: "high", status: "completed", due_date: day(-10) },
+        { ref: "b", title: "Sample task: review the document templates", milestone: "Groundwork", assignee: courtney, priority: "normal", due_date: day(-5), checklist: ["First pass", "Second reader", "Final copy"] },
+        { ref: "b1", title: "Sample subtask: first template", parent_ref: "b", assignee: courtney, status: "completed", due_date: day(-6) },
+        { ref: "b2", title: "Sample subtask: second template", parent_ref: "b", assignee: courtney, due_date: day(-5) },
+        { ref: "c", title: "Sample task: set up the shared folder", milestone: "Ready to open", assignee: va, priority: "normal", status: "in_progress", due_date: day(3), checklist: ["Create the folder", "Share it with the team"] },
+        { ref: "d", title: "Sample task: confirm the opening date", milestone: "Ready to open", assignee: shannon, priority: "urgent", due_date: day(7), depends_on: ["b"] },
+        { ref: "e", title: "Sample task: prepare the welcome note", milestone: "Ready to open", assignee: va, priority: "normal", due_date: day(14), depends_on: ["d"] },
+        { ref: "f", title: "Sample task: plan the first-month check-in", milestone: "First month", assignee: courtney, priority: "low", due_date: day(35), depends_on: ["e"] },
+        { ref: "g", title: "Sample task: note ideas for later", assignee: shannon, priority: "low", status: "waiting" },
+      ],
+    },
+    {
+      name: "Sample: tidy the office systems",
+      description: "A second, smaller sample so the project list has more than one row.",
+      status: "planning",
+      priority: "normal",
+      start: 5,
+      target: 60,
+      owner: courtney,
+      notes: "",
+      milestones: [{ name: "Agreed approach", due: 30 }],
+      tasks: [
+        { ref: "a", title: "Sample task: list what we use today", milestone: "Agreed approach", assignee: courtney, due_date: day(12) },
+        { ref: "b", title: "Sample task: suggest what to change", milestone: "Agreed approach", assignee: va, due_date: day(25), depends_on: ["a"] },
+      ],
+    },
+  ];
+
+  for (const plan of plans) {
+    const have = await db.from("projects").select("id").eq("name", plan.name).is("deleted_at", null).maybeSingle();
+    if (have.data) continue;
+    const created = await db.rpc("create_project", {
+      p_name: plan.name,
+      p_description: plan.description,
+      p_owner: plan.owner,
+      p_status: plan.status,
+      p_priority: plan.priority,
+      p_start: day(plan.start),
+      p_target: day(plan.target),
+      p_notes: plan.notes || undefined,
+    } as never);
+    const projectId = (created.data as { project_id?: string } | null)?.project_id;
+    if (created.error || !projectId) throw new Error(`create_project ${plan.name}: ${created.error?.message}`);
+    for (const m of plan.milestones) {
+      const r = await db.rpc("create_milestone", { p_project: projectId, p_name: m.name, p_due: day(m.due) } as never);
+      if (r.error) throw new Error(`create_milestone ${m.name}: ${r.error.message}`);
+    }
+    const bulk = await db.rpc("bulk_create_tasks", {
+      p_tasks: plan.tasks,
+      p_idempotency_key: `seed-${projectId}`,
+      p_project: projectId,
+      p_atomic: true,
+    } as never);
+    if (bulk.error) throw new Error(`bulk_create_tasks ${plan.name}: ${bulk.error.message}`);
+    const out = bulk.data as { created_count?: number; failed_count?: number };
+    console.log(`Sample project "${plan.name}": ${plan.milestones.length} milestone(s), ${out.created_count ?? 0} task(s) (${out.failed_count ?? 0} failed).`);
+  }
 }
 
 main().catch((e) => {

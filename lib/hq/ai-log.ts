@@ -33,7 +33,8 @@ export function isAiStatus(v: unknown): v is AiStatus {
   return typeof v === "string" && (AI_STATUSES as readonly string[]).includes(v);
 }
 
-export type ParsedCall = { source: "mcp"; kind: "read" | "write"; tool: string; clientId: string | null } | { source: "other" };
+/** kind "bulk" is one call that changed many records (bulk_create_tasks, bulk_update_tasks): a change, like "write". */
+export type ParsedCall = { source: "mcp"; kind: "read" | "write" | "bulk"; tool: string; clientId: string | null } | { source: "other" };
 
 const TOOL = /^[a-z][a-z0-9_]{0,63}$/;
 const CLIENT = /^[A-Za-z0-9\-_.:]{1,100}$/;
@@ -41,10 +42,10 @@ const CLIENT = /^[A-Za-z0-9\-_.:]{1,100}$/;
 /** "mcp write update_task task_id=<id> via <client>" -> { kind: "write", tool: "update_task", clientId: "<client>" }. */
 export function parseAiQuestion(question: string): ParsedCall {
   const parts = question.trim().split(/\s+/);
-  if (parts[0] !== "mcp" || (parts[1] !== "read" && parts[1] !== "write") || !TOOL.test(parts[2] ?? "")) return { source: "other" };
+  if (parts[0] !== "mcp" || (parts[1] !== "read" && parts[1] !== "write" && parts[1] !== "bulk") || !TOOL.test(parts[2] ?? "")) return { source: "other" };
   const via = parts.lastIndexOf("via");
   const client = via > 2 && via === parts.length - 2 && CLIENT.test(parts[via + 1]) ? parts[via + 1] : null;
-  return { source: "mcp", kind: parts[1], tool: parts[2], clientId: client };
+  return { source: "mcp", kind: parts[1] as "read" | "write" | "bulk", tool: parts[2], clientId: client };
 }
 
 /** A client id short enough for a table cell: the first 8 characters of a long id. The full id goes in a title. */
@@ -59,7 +60,7 @@ export function shortClientId(id: string): string {
  */
 export function toolFilter(tool: string): string | null {
   if (!TOOL.test(tool)) return null;
-  return ["read", "write"].flatMap((k) => [`question.eq."mcp ${k} ${tool}"`, `question.like."mcp ${k} ${tool} *"`]).join(",");
+  return ["read", "write", "bulk"].flatMap((k) => [`question.eq."mcp ${k} ${tool}"`, `question.like."mcp ${k} ${tool} *"`]).join(",");
 }
 
 export const MIN_HOURLY_LIMIT = 1;

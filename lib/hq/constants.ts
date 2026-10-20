@@ -63,6 +63,9 @@ export const CAPABILITIES = [
   // Meetings (0140): read and record meetings (minutes, attendees, links, action tasks).
   "meetings.read",
   "meetings.write",
+  // Projects (0142): read projects (every role but junior PM) and create/manage them.
+  "projects.read",
+  "projects.write",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

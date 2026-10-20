@@ -18,7 +18,7 @@ import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { formatDateTime } from "@/lib/hq/format";
 import { intParam, isUuid, strParam } from "@/lib/hq/forms";
-import { writeHourlyLimit } from "@/lib/hq/mcp/limits";
+import { DEFAULT_BULK_CALLS_PER_HOUR, DEFAULT_BULK_ITEMS_PER_HOUR, writeHourlyLimit } from "@/lib/hq/mcp/limits";
 import { TOOLS } from "@/lib/hq/mcp/tools";
 
 export const metadata: Metadata = { title: "AI and connected apps" };
@@ -30,6 +30,9 @@ const PAGE_SIZE = 25;
 
 const TOOL_TITLE = new Map(TOOLS.map((t) => [t.name, t.title]));
 const TOOL_OPTIONS = [...TOOLS].sort((a, b) => a.title.localeCompare(b.title)).map((t) => ({ value: t.name, label: t.title }));
+
+/** How a call through an app is labelled: a bulk call is ONE call that changed many records (bulk_create_tasks, bulk_update_tasks). */
+const KIND_LABEL: Record<"read" | "write" | "bulk", string> = { read: "Read", write: "Change", bulk: "Bulk change" };
 
 type Row = { id: string; staff_id: string; asked_at: string; question: string; tools_used: string[]; status: string };
 
@@ -94,7 +97,7 @@ export default async function AiSettingsPage({ searchParams }: { searchParams: P
       ...r,
       who: names.get(r.staff_id) ?? "Former member of staff",
       toolLabel: toolName ? (TOOL_TITLE.get(toolName) ?? toolName.replace(/_/g, " ")) : "Not recorded",
-      kindLabel: parsed.source === "mcp" ? (parsed.kind === "write" ? "Change" : "Read") : "Other",
+      kindLabel: parsed.source === "mcp" ? KIND_LABEL[parsed.kind] : "Other",
       clientId: parsed.source === "mcp" ? parsed.clientId : null,
       statusKey: (isAiStatus(r.status) ? r.status : "error") as AiStatus,
     };
@@ -178,7 +181,8 @@ export default async function AiSettingsPage({ searchParams }: { searchParams: P
             </div>
           )}
           <p className="hq-muted mt-6 max-w-xl text-[13px]">
-            Changes made through an app have a lower limit of {writeHourlyLimit()} per person per hour, set on the server. Some things are never available through an app:
+            Changes made through an app have a lower limit of {writeHourlyLimit()} per person per hour, set on the server. Bulk changes (many tasks in one call) use their own budget instead, kept by the
+            database: by default {DEFAULT_BULK_CALLS_PER_HOUR} calls and {DEFAULT_BULK_ITEMS_PER_HOUR} tasks per person per hour. Some things are never available through an app:
             approving or suspending contractors, archiving or deleting (knowledge documents aside: approvers can archive and restore them), documents, imports, people, roles and settings.
           </p>
         </section>

@@ -19,7 +19,8 @@
  * at the end, which archives the lead, contact and task it made.
  * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions, meetings and managed properties too,
  * through archive_record('decision'), oldest first);
- * the interactions it logs are archived too. The secret key is used only to mint sessions and is
+ * the interactions it logs are archived too; projects (and their bulk-created tasks) through archive_record("project" / "task"), and the
+ * bulk budget settings it changes are restored. The secret key is used only to mint sessions and is
  * never given to a tool.
  */
 import { adminClient, asUser, requireLocal, sessionFor } from "./lib.mts";
@@ -66,6 +67,10 @@ const EXPECTED_TOOLS = [
   "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document",
   // meetings
   "list_meetings", "search_meetings", "get_meeting", "meeting_digest", "create_meeting", "update_meeting", "add_meeting_action", "promote_meeting_decision",
+  // projects, richer tasks, focus and bulk
+  "list_projects", "get_project", "create_project", "update_project", "create_milestone", "update_milestone", "complete_milestone",
+  "get_task", "complete_task", "add_task_dependency", "remove_task_dependency", "add_task_comment", "set_task_checklist",
+  "founder_priorities", "list_overdue", "what_is_blocking", "bulk_create_tasks", "bulk_update_tasks",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -140,14 +145,14 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[], meetings: [] as string[] };
+const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[], meetings: [] as string[], projects: [] as string[] };
 // The email settings this run changes (restored in the cleanup).
-const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled"]);
+const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled", "bulk_calls_per_hour", "bulk_items_per_hour"]);
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (75 tools, none missing, none extra)", EXPECTED_TOOLS.length === 75 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (93 tools, none missing, none extra)", EXPECTED_TOOLS.length === 93 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -1085,6 +1090,204 @@ try {
     check(`${who}: list_meetings is refused by the tool; forced, the database shows nothing (RLS)`, outcome(mt_lTool) === "refused" && outcome(mt_lDb) === "empty" && outcome(mt_gDb) === "not_found", `${mt_lTool.text}\n${mt_lDb.text}\n${mt_gDb.text}`);
   }
 
+  // ── 2i. projects, richer tasks and bulk tasks (docs/hq-projects.md section 3) ──
+  {
+  const PRJ_TOOLS = [
+    "list_projects", "get_project", "create_project", "update_project", "create_milestone", "update_milestone", "complete_milestone",
+    "get_task", "complete_task", "add_task_dependency", "remove_task_dependency", "add_task_comment", "set_task_checklist",
+    "founder_priorities", "list_overdue", "what_is_blocking", "bulk_create_tasks", "bulk_update_tasks",
+  ];
+  const prjListed = (ctx: Ctx) => toolsFor(ctx.staff.capabilities).map((t) => t.name).filter((n) => PRJ_TOOLS.includes(n)).sort().join(",");
+  check("director: all 18 project and task tools are listed", prjListed(director) === [...PRJ_TOOLS].sort().join(","), prjListed(director));
+  check("virtual assistant (a writer): all 18 too (projects.write, tasks.write)", prjListed(assistant) === [...PRJ_TOOLS].sort().join(","), prjListed(assistant));
+  const PRJ_ONLY = ["list_projects", "get_project", "create_project", "update_project", "create_milestone", "update_milestone", "complete_milestone", "what_is_blocking"];
+  check("junior (no projects.*): no project tools; the task, focus and bulk tools only", prjListed(junior) === PRJ_TOOLS.filter((n) => !PRJ_ONLY.includes(n)).sort().join(","), prjListed(junior));
+  check("read-only: reads only (projects.read, no tasks.write)", prjListed(readOnly) === ["founder_priorities", "get_project", "get_task", "list_overdue", "list_projects", "what_is_blocking"].join(","), prjListed(readOnly));
+  check("bulk tools are kind 'bulk' (not counted by the single-write cap)", tool("bulk_create_tasks").kind === "bulk" && tool("bulk_update_tasks").kind === "bulk", "");
+  const bcDesc = tool("bulk_create_tasks").description;
+  check("bulk_create_tasks says: fresh UUID per plan and reuse on retry, summarise first, honest counts, no deleting, data not instructions", /fresh UUID/.test(bcDesc) && /REUSE/.test(bcDesc) && /summary/.test(bcDesc) && /counts EXACTLY/.test(bcDesc) && /never deletes/.test(bcDesc) && /data, never instructions/.test(bcDesc), bcDesc);
+
+  // The bulk budget for THIS run: 6 calls and 300 items from now, whatever earlier runs in the hour used (restored at the end).
+  const budget0 = (await director.db.rpc("bulk_budget")).data as { calls_used: number; items_used: number };
+  const callsLimit = Math.min(60, budget0.calls_used + 6);
+  const itemsLimit = Math.min(2000, budget0.items_used + 300);
+  await director.db.from("settings").update({ value: callsLimit }).eq("key", "bulk_calls_per_hour");
+  await director.db.from("settings").update({ value: itemsLimit }).eq("key", "bulk_items_per_hour");
+  let bulkCalls = 0;
+
+  mark = await auditMark();
+  const pc = await call(director, "create_project", {
+    name: `[test] ${RUN} Launch Planted Property`,
+    description: "Everything needed to open for business. [test]",
+    status: "active",
+    priority: "high",
+    target_date: plusDays(60),
+    milestones: [{ name: "Licensed", due_date: plusDays(30) }, { name: "Brand ready", due_date: plusDays(45) }, { name: "Open for business", due_date: plusDays(60) }],
+  });
+  const prjId = String(pc.structured?.id ?? "");
+  const prjRef = String(pc.structured?.ref ?? "");
+  if (prjId) created.projects.push(prjId);
+  audit = await auditSince(mark, director.staff.id);
+  check("create_project: a PRJ number, its link, and three milestones in the same call", outcome(pc) === "ok" && /^PRJ-\d{4,}$/.test(prjRef) && pc.text.includes(`/hq/projects/${prjId}`) && ((pc.structured?.milestones as unknown[]) ?? []).length === 3, pc.text);
+  check("  ...audited: one project create and three milestone creates", audit.filter((a) => a.entity_type === "project" && a.action === "create").length === 1 && audit.filter((a) => a.entity_type === "project_milestone").length === 3, auditText(audit));
+
+  // 30 tasks in ONE call: a chain of dependencies, a subtask, checklists, milestones by name, two assignees, one overdue.
+  const plan = Array.from({ length: 30 }, (_, i) => {
+    const n = i + 1;
+    const e: Record<string, unknown> = { ref: `t${n}`, title: `${RUN} launch step ${n}`, milestone: n <= 10 ? "licensed" : n <= 20 ? "Brand ready" : "Open for business", due_date: plusDays(5 + n) };
+    if (n > 1 && n <= 10) e.depends_on = [`t${n - 1}`];
+    if (n === 12) e.parent_ref = "t11";
+    if (n === 15) e.depends_on = ["t3", "t14"];
+    if (n === 4) e.checklist = ["Pick a provider", "Pay the fee", "Book the exam"];
+    if (n === 20) e.assignee = assistant.staff.fullName;
+    if (n === 25) e.priority = "urgent";
+    if (n === 30) e.due_date = plusDays(-10);
+    return e;
+  });
+  const key30 = crypto.randomUUID();
+  mark = await auditMark();
+  const b30 = await call(director, "bulk_create_tasks", { project: prjRef, idempotency_key: key30, tasks: plan });
+  bulkCalls += 1;
+  audit = await auditSince(mark, director.staff.id);
+  const ids30 = (b30.structured?.task_ids as string[] | undefined) ?? [];
+  created.tasks.push(...ids30);
+  check("bulk_create_tasks: 30 tasks with intra-batch dependencies in ONE call", outcome(b30) === "ok" && b30.structured?.created_count === 30 && b30.structured?.failed_count === 0 && ids30.length === 30 && /^Created 30 of 30 tasks/.test(b30.text), b30.text.slice(0, 600));
+  const rows30 = await director.db.from("tasks").select("id, source, project_id, milestone_id, parent_task_id, assigned_to").in("id", ids30);
+  check("  ...all source 'bulk', in the project, in milestones; t12 a subtask of t11; t20 given to the assistant", (rows30.data ?? []).length === 30 && (rows30.data ?? []).every((t) => t.source === "bulk" && t.project_id === prjId && t.milestone_id) && (rows30.data ?? []).filter((t) => t.parent_task_id).length === 1 && (rows30.data ?? []).filter((t) => t.assigned_to === assistant.staff.id).length === 1, JSON.stringify(rows30.data?.slice(0, 3)));
+  const refId = (r: string) => String(((b30.structured?.created as Array<{ ref: string; id: string }>) ?? []).find((c) => c.ref === r)?.id ?? "");
+  const deps30 = await director.db.from("task_dependencies").select("task_id, depends_on_task_id").in("task_id", ids30);
+  check("  ...11 dependencies recorded (the chain t1..t10 and t15 on t3 and t14)", (deps30.data ?? []).length === 11 && (deps30.data ?? []).some((d) => d.task_id === refId("t15") && d.depends_on_task_id === refId("t14")), JSON.stringify(deps30.data?.length));
+  const act30 = await director.db.from("task_activity").select("task_id").in("task_id", ids30).eq("summary", "Created in bulk");
+  check("  ...each task has the activity row 'Created in bulk', and ONE batch audit event", (act30.data ?? []).length === 30 && audit.filter((a) => a.entity_type === "task_batch" && a.action === "bulk_create").length === 1, `${act30.data?.length} activity; ${audit.filter((a) => a.entity_type === "task_batch").length} batch events`);
+
+  const tasksCount = async () => (await director.db.from("tasks").select("id", { count: "exact", head: true }).like("title", `${RUN}%`)).count ?? 0;
+  const before30 = await tasksCount();
+  const replay = await call(director, "bulk_create_tasks", { project: prjRef, idempotency_key: key30, tasks: plan });
+  check("replay with the same key: says it is a duplicate and creates nothing", outcome(replay) === "unchanged" && replay.structured?.duplicate === true && /NOTHING new was created/.test(replay.text) && (await tasksCount()) === before30, replay.text.slice(0, 300));
+  const reused = await call(director, "bulk_create_tasks", { project: prjRef, idempotency_key: key30, tasks: plan.map((e, i) => (i === 0 ? { ...e, title: `${RUN} changed` } : e)) });
+  check("the same key with a different request is refused, nothing created", outcome(reused) === "refused" && /different request/.test(reused.text) && (await tasksCount()) === before30, reused.text);
+
+  const partial = await call(director, "bulk_create_tasks", {
+    project: prjRef,
+    idempotency_key: crypto.randomUUID(),
+    tasks: [
+      { ref: "p1", title: `${RUN} partial ok one` },
+      { ref: "p2", title: `${RUN} partial bad date`, due_date: "2099-01-01" },
+      { ref: "p3", title: `${RUN} partial depends on bad`, depends_on: ["p2"] },
+      { ref: "p4", title: `${RUN} partial ok two`, milestone: "Licensed" },
+    ],
+  });
+  bulkCalls += 1;
+  created.tasks.push(...((partial.structured?.task_ids as string[] | undefined) ?? []));
+  const pf = (partial.structured?.failed as Array<{ ref: string; errors: string[] }> | undefined) ?? [];
+  check("a partial-failure batch: the valid entries are created, the invalid one is reported with its errors", outcome(partial) === "ok" && partial.structured?.created_count === 2 && partial.structured?.failed_count === 2 && /five years/.test(pf.find((f) => f.ref === "p2")?.errors.join(" ") ?? ""), partial.text);
+  check("  ...and its dependant cascades: 'depends on p2, which failed'", /depends on p2, which failed/.test(pf.find((f) => f.ref === "p3")?.errors.join(" ") ?? "") && /Created 2 of 4/.test(partial.text) && /entry 3 \(p3\)/.test(partial.text), partial.text);
+
+  const atomic = await call(director, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), atomic: true, tasks: [{ ref: "a1", title: `${RUN} atomic ok` }, { ref: "a2", title: `${RUN} atomic bad`, due_date: "2099-01-01" }] });
+  bulkCalls += 1;
+  check("atomic: one invalid entry and NOTHING is written", outcome(atomic) === "invalid" && atomic.structured?.created_count === 0 && atomic.structured?.rolled_back === true && (await director.db.from("tasks").select("id", { count: "exact", head: true }).eq("title", `${RUN} atomic ok`)).count === 0, atomic.text);
+
+  const big = await call(director, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), tasks: Array.from({ length: 51 }, (_, i) => ({ title: `${RUN} too many ${i}` })) });
+  check("51 entries are refused before anything runs (no budget used)", outcome(big) === "invalid" && /At most 50 tasks in one call/.test(big.text) && (await director.db.from("tasks").select("id", { count: "exact", head: true }).like("title", `${RUN} too many%`)).count === 0, big.text);
+  const amb = await call(director, "bulk_create_tasks", { project: prjRef, idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} amb 1`, assignee: "Test" }, { title: `${RUN} amb 2`, milestone: "Licenced typo" }, { title: `${RUN} amb 3`, assignee: "Nobody Smokeperson" }] });
+  check("unclear names (a first name three people share, a milestone that does not exist, an unknown person): every problem at once, candidates, nothing created", outcome(amb) === "ambiguous" && /3 names in the plan/.test(amb.text) && /entry 1 \(1\), assignee: 3 active staff members match "Test"/.test(amb.text) && /its milestones are: Licensed/.test(amb.text) && (await director.db.from("tasks").select("id", { count: "exact", head: true }).like("title", `${RUN} amb%`)).count === 0, amb.text);
+
+  // the overview tools
+  const gp = await call(director, "get_project", { project: prjRef });
+  check("get_project: off track (a task 10 days overdue) with the reason, progress 0 of 31, milestones, blocked, next actions", outcome(gp) === "ok" && /Off track/.test(gp.text) && /10 days overdue/.test(gp.text) && /0 of 31 top-level tasks done/.test(gp.text) && /Licensed/.test(gp.text) && /Blocked:/.test(gp.text) && /Next actions:/.test(gp.text) && core.hasDataBlock(gp.text), gp.text.slice(0, 1200));
+  const lp = await call(director, "list_projects", { health: "off_track" });
+  check("list_projects (health off_track) lists it", outcome(lp) === "ok" && lp.text.includes(prjRef), lp.text.slice(0, 400));
+  const wb = await call(director, "what_is_blocking", { project: prjRef });
+  check("what_is_blocking: the chain's first open blocker is step 1 (it unblocks the most)", outcome(wb) === "ok" && new RegExp(`Do these first[^\\n]*${RUN} launch step 1 \\[`).test(wb.text) && ((wb.structured?.first_blockers as string[]) ?? [])[0] === refId("t1"), wb.text.slice(0, 900));
+  const fp = await call(director, "founder_priorities", {});
+  check("founder_priorities: three priorities, each with its why; the overdue one first", outcome(fp) === "ok" && ((fp.structured?.task_ids as string[]) ?? []).length === 3 && /why: Overdue by/.test(fp.text), fp.text.slice(0, 700));
+  const fpp = await call(director, "founder_priorities", { project: prjRef });
+  check("founder_priorities with the project: also what is holding it up", outcome(fpp) === "ok" && /What is holding up/.test(fpp.text) && /Do these first/.test(fpp.text), fpp.text.slice(0, 900));
+  const lo = await call(director, "list_overdue", {});
+  check("list_overdue: the overdue task (10 days) and the project off track with its reasons", outcome(lo) === "ok" && lo.text.includes(`${RUN} launch step 30`) && /10 days overdue/.test(lo.text) && lo.text.includes(prjRef), lo.text.slice(0, 800));
+  const lt = await call(director, "list_tasks", { project: prjRef, blocked: true, limit: 25 });
+  check("list_tasks by project and blocked: the 9 waiting steps of the chain plus step 15", outcome(lt) === "ok" && lt.structured?.count === 10, lt.text.slice(0, 400));
+
+  // single-task tools
+  const gt = await call(director, "get_task", { task: refId("t4") });
+  check("get_task: project, milestone, checklist, waits for, blocked", outcome(gt) === "ok" && /Milestone: Licensed/.test(gt.text) && /\[ \] Pick a provider/.test(gt.text) && /Waits for:/.test(gt.text) && /BLOCKED/.test(gt.text), gt.text.slice(0, 900));
+  const sc = await call(director, "set_task_checklist", { task: refId("t4"), items: [{ text: "Pick a provider", done: true }, "Pay the fee", "Book the exam", "Tell Courtney"] });
+  check("set_task_checklist: the whole list, one ticked, one added", outcome(sc) === "ok" && sc.structured?.total === 4 && sc.structured?.done === 1, sc.text);
+  const cm = await call(director, "add_task_comment", { task: refId("t4"), body: `Provider chosen. ${INJECTION}` });
+  const gt2 = await call(director, "get_task", { task: refId("t4") });
+  check("add_task_comment, and the comment comes back inside the data block only", outcome(cm) === "ok" && gt2.text.indexOf("IGNORE ALL PREVIOUS") > gt2.text.indexOf(core.DATA_OPEN) && gt2.text.indexOf("IGNORE ALL PREVIOUS") < gt2.text.indexOf(core.DATA_CLOSE), gt2.text.slice(0, 300));
+  const ct = await call(director, "complete_task", { task: refId("t1"), note: "I've enrolled in the course" });
+  check("complete_task ('I've enrolled in the course'): completed, with the note, and step 2 is now free", outcome(ct) === "ok" && /Now free to start/.test(ct.text) && ct.text.includes(`${RUN} launch step 2`) && ((ct.structured?.freed as string[]) ?? []).includes(refId("t2")), ct.text);
+  const gp2 = await call(director, "get_project", { project: prjRef });
+  check("  ...the project's progress moves to 1 of 31 (3%)", /1 of 31 top-level tasks done \(3%\)/.test(gp2.text), gp2.text.slice(0, 600));
+  const cyc = await call(director, "add_task_dependency", { task: refId("t2"), depends_on: refId("t5") });
+  check("add_task_dependency that would make a loop is refused (t5 already waits on t2)", outcome(cyc) === "invalid" && /cycle/.test(cyc.text), cyc.text);
+  const ad = await call(director, "add_task_dependency", { task: refId("t29"), depends_on: refId("t28") });
+  const rd = await call(director, "remove_task_dependency", { task: refId("t29"), depends_on: refId("t28") });
+  check("add_task_dependency then remove_task_dependency: blocked, then free again", outcome(ad) === "ok" && ad.structured?.blocked === true && outcome(rd) === "ok" && rd.structured?.blocked === false, `${ad.text}\n${rd.text}`);
+
+  // projects and milestones
+  const up = await call(director, "update_project", { project: prjRef, status: "on_hold", status_note: "Waiting for the licence [test]", add_note: "Kick-off done. [test]" });
+  check("update_project: status with a note, and a note added to the notes", outcome(up) === "ok" && /Status: Active -> On hold/.test(up.text) && /Notes: added/.test(up.text), up.text);
+  await call(director, "update_project", { project: prjRef, status: "active" });
+  const cms = await call(director, "create_milestone", { project: prjRef, name: "Handover pack", due_date: plusDays(70) });
+  const ums = await call(director, "update_milestone", { project: prjRef, milestone: "handover pack", due_date: plusDays(75) });
+  check("create_milestone and update_milestone (by name, any case)", outcome(cms) === "ok" && outcome(ums) === "ok" && /Due:/.test(ums.text), `${cms.text}\n${ums.text}`);
+  const cmOpen = await call(director, "complete_milestone", { project: prjRef, milestone: "Licensed" });
+  check("complete_milestone refuses while tasks are open, and lists them", outcome(cmOpen) === "refused" && /open task/.test(cmOpen.text), cmOpen.text.slice(0, 400));
+  const cmDone = await call(director, "complete_milestone", { project: prjRef, milestone: "Handover pack" });
+  check("complete_milestone with no open tasks marks it done", outcome(cmDone) === "ok" && /open -> done/.test(cmDone.text), cmDone.text);
+
+  // the extended single-task tools keep working, with a project
+  const ctp = await call(director, "create_task", { title: `${RUN} single in project`, project: prjRef, milestone: "Brand ready" });
+  if (ctp.structured?.id) created.tasks.push(String(ctp.structured.id));
+  const utp = await call(director, "update_task", { task: String(ctp.structured?.id ?? ""), project: "none" });
+  check("create_task with a project and milestone, then update_task out of the project", outcome(ctp) === "ok" && /Milestone: Brand ready/.test(ctp.text) && outcome(utp) === "ok" && /Project: .* -> \(none\)/.test(utp.text), `${ctp.text}\n${utp.text}`);
+
+  const bu = await call(director, "bulk_update_tasks", { idempotency_key: crypto.randomUUID(), updates: [{ task: refId("t21"), due_date: plusDays(40) }, { task: refId("t22"), priority: "high" }, { task: `${RUN} launch step 23`, complete: true }] });
+  bulkCalls += 1;
+  check("bulk_update_tasks: three changes (one by exact title) in one call", outcome(bu) === "ok" && bu.structured?.updated_count === 3, bu.text);
+
+  // a writer role (the virtual assistant): its own bulk budget; counts only what it can see
+  const vb = await call(assistant, "bulk_create_tasks", { project: prjRef, idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} VA one` }, { title: `${RUN} VA two`, depends_on: ["1"] }] });
+  created.tasks.push(...((vb.structured?.task_ids as string[] | undefined) ?? []));
+  check("virtual assistant: bulk_create_tasks in the project (a writer role)", outcome(vb) === "ok" && vb.structured?.created_count === 2, vb.text);
+  const vgp = await call(assistant, "get_project", { project: prjRef });
+  check("  ...and get_project counts only the tasks the assistant can see (and says so)", outcome(vgp) === "ok" && /0 of 3 top-level tasks done|of 3 top-level/.test(vgp.text) && /only the tasks you can see/.test(vgp.text), vgp.text.slice(0, 500));
+
+  // forged roles
+  mark = await auditMark();
+  const jcp = await call(junior, "create_project", { name: `[test] ${RUN} junior forged` });
+  const jcpDb = await forced(junior, "create_project", { name: `[test] ${RUN} junior forged` });
+  const jbk = await call(junior, "bulk_create_tasks", { project: prjRef, idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} junior forged bulk` }] });
+  const jbkDb = await forced(junior, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} junior forged bulk`, project: prjId }] });
+  audit = await auditSince(mark, junior.staff.id);
+  check("junior: create_project refused by the tool and, forced, by the database", outcome(jcp) === "refused" && outcome(jcpDb) === "refused", `${jcp.text}\n${jcpDb.text}`);
+  check("junior: a bulk create into a project refused by the tool and, forced, by the database (nothing written)", outcome(jbk) === "refused" && outcome(jbkDb) === "refused" && audit.length === 0 && (await director.db.from("tasks").select("id", { count: "exact", head: true }).eq("title", `${RUN} junior forged bulk`)).count === 0, `${jbk.text}\n${jbkDb.text}\n${auditText(audit)}`);
+  mark = await auditMark();
+  const rbk = await call(readOnly, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} ro forged bulk` }] });
+  const rbkDb = await forced(readOnly, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} ro forged bulk` }] });
+  const rct = await forced(readOnly, "complete_task", { task: refId("t2") });
+  audit = await auditSince(mark, readOnly.staff.id);
+  check("read-only: bulk_create_tasks refused by the tool and the database; complete_task forced is refused too", outcome(rbk) === "refused" && outcome(rbkDb) === "refused" && outcome(rct) !== "ok" && audit.length === 0, `${rbk.text}\n${rbkDb.text}\n${rct.text}`);
+  const rgp = await call(readOnly, "get_project", { project: prjRef });
+  check("read-only: get_project works (projects.read)", outcome(rgp) === "ok", rgp.text.slice(0, 200));
+
+  // the bulk budget: this run's calls so far, then use up the rest, then the next call is refused honestly
+  const b1 = (await director.db.rpc("bulk_budget")).data as { calls_remaining: number; items_remaining: number; calls_per_hour: number };
+  check(`the bulk budget counted this run's ${bulkCalls} bulk calls (replays, refusals before the database and 51 entries used none)`, b1.calls_remaining === 6 - bulkCalls, JSON.stringify(b1));
+  for (let i = 0; i < b1.calls_remaining; i += 1) await director.db.rpc("consume_bulk_budget", { p_calls: 1, p_items: 1 });
+  const over = await call(director, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), tasks: [{ title: `${RUN} over the budget` }] });
+  check("the 7th bulk call this hour is refused: rate_limited, how many are used and left, and when to retry; nothing written", outcome(over) === "rate_limited" && new RegExp(`${b1.calls_per_hour} of ${b1.calls_per_hour} used in the last hour \\(0 left\\)`).test(over.text) && /Try again after/.test(over.text) && (await director.db.from("tasks").select("id", { count: "exact", head: true }).eq("title", `${RUN} over the budget`)).count === 0, over.text);
+  // items: plenty of calls, but only 2 items left of this run's 300
+  await director.db.from("settings").update({ value: Math.min(60, callsLimit + 6) }).eq("key", "bulk_calls_per_hour");
+  const b2 = (await director.db.rpc("bulk_budget")).data as { items_remaining: number };
+  if (b2.items_remaining > 2) await director.db.rpc("consume_bulk_budget", { p_calls: 0, p_items: b2.items_remaining - 2 });
+  const overItems = await call(director, "bulk_create_tasks", { idempotency_key: crypto.randomUUID(), tasks: [1, 2, 3].map((n) => ({ title: `${RUN} items ${n}` })) });
+  check(`300 items: a call of 3 with 2 left is refused, saying a batch of at most 2 would fit`, outcome(overItems) === "rate_limited" && /2 left/.test(overItems.text) && /at most 2 would fit/.test(overItems.text), overItems.text);
+
+  }
+
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
   const jWrites: Array<[string, Record<string, unknown>]> = [
@@ -1190,6 +1393,8 @@ try {
   await archive("meeting", created.meetings);
   await archive("interaction", created.interactions);
   await archive("task", created.tasks);
+  // projects after their tasks (archive_record entity project; milestones stay with the archived project)
+  await archive("project", created.projects);
   await archive("referral", created.referrals);
   // a live managed property keeps its lead live, so the properties go first
   await archive("managed_property", created.managedProperties);

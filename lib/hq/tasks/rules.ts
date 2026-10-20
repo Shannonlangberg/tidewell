@@ -422,6 +422,8 @@ export type TaskListQuery = {
   related: RelatedFilter | null;
   /** "me", "none", or a staff id. Only some views honour it. */
   assignee: string | null;
+  /** Projects: "none" (not in a project) or a project id. Offered only with projects.read. */
+  project: string | null;
   sort: SortKey;
   dir: SortDir;
   page: number;
@@ -444,7 +446,16 @@ export function defaultDirFor(sort: SortKey): SortDir {
   return sort === "due" ? "asc" : "desc";
 }
 
-export function parseTaskListQuery(sp: SearchParamsObject, opts: { canReadAll: boolean; /** Whether the "linked records" filter is offered (growth.read). Default true. */ canFilterRelated?: boolean }): TaskListQuery {
+export function parseTaskListQuery(
+  sp: SearchParamsObject,
+  opts: {
+    canReadAll: boolean;
+    /** Whether the "linked records" filter is offered (growth.read). Default true. */
+    canFilterRelated?: boolean;
+    /** Whether the Project filter is offered (projects.read). Default false. */
+    canFilterProject?: boolean;
+  },
+): TaskListQuery {
   const view = resolveView(sp.view, opts.canReadAll);
   const def = TASK_VIEWS[view];
 
@@ -456,6 +467,9 @@ export function parseTaskListQuery(sp: SearchParamsObject, opts: { canReadAll: b
   const rawAssignee = first(sp.assignee).trim().toLowerCase();
   const assignee = rawAssignee === "me" || rawAssignee === "none" ? rawAssignee : isUuid(rawAssignee) ? rawAssignee : null;
 
+  const rawProject = first(sp.project).trim().toLowerCase();
+  const project = opts.canFilterProject !== true ? null : rawProject === "none" ? "none" : isUuid(rawProject) ? rawProject : null;
+
   const sort = allowed(SORT_KEYS, first(sp.sort)) ?? def.defaultSort;
   const dir = allowed(["asc", "desc"] as const, first(sp.dir)) ?? defaultDirFor(sort);
   const page = intParam(sp.page, 1, 1, 10_000);
@@ -464,9 +478,9 @@ export function parseTaskListQuery(sp: SearchParamsObject, opts: { canReadAll: b
   // Only the filters this view actually offers count as "applied".
   const statusApplies = status !== null && def.statusChoices.includes(status);
   const assigneeApplies = assignee !== null && def.assigneeFilter;
-  const filtered = q !== "" || priority !== null || statusApplies || related !== null || assigneeApplies;
+  const filtered = q !== "" || priority !== null || statusApplies || related !== null || assigneeApplies || project !== null;
 
-  return { view, q, priority, status, related, assignee, sort, dir, page, older, filtered };
+  return { view, q, priority, status, related, assignee, project, sort, dir, page, older, filtered };
 }
 
 /** The query for a view with nothing chosen: what its tab count is computed from. */
@@ -479,6 +493,7 @@ export function plainQuery(view: TaskViewKey): TaskListQuery {
     status: null,
     related: null,
     assignee: null,
+    project: null,
     sort: def.defaultSort,
     dir: defaultDirFor(def.defaultSort),
     page: 1,
@@ -510,6 +525,8 @@ export type TaskPredicate = {
   related: RelatedFilter | null;
   /** Raw title text; the query layer escapes it. */
   title: string | null;
+  /** "none" = not in a project; a uuid = in that project; null = any. */
+  project?: string | null;
 };
 
 export type PredicateContext = {
@@ -565,6 +582,7 @@ export function buildPredicate(query: TaskListQuery, ctx: PredicateContext): Tas
     priority: query.priority,
     related: query.related,
     title: query.q || null,
+    project: query.project,
   };
 }
 

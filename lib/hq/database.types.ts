@@ -89,6 +89,38 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_usage: {
+        Row: {
+          at: string
+          calls: number
+          id: number
+          items: number
+          staff_id: string
+        }
+        Insert: {
+          at?: string
+          calls: number
+          id?: never
+          items: number
+          staff_id: string
+        }
+        Update: {
+          at?: string
+          calls?: number
+          id?: never
+          items?: number
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_usage_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][]
@@ -699,6 +731,13 @@ export type Database = {
             foreignKeyName: "decision_tasks_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -1160,7 +1199,52 @@ export type Database = {
             foreignKeyName: "enquiries_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idempotency_keys: {
+        Row: {
+          created_at: string
+          id: number
+          key: string
+          request_hash: string
+          result: Json
+          scope: string
+          staff_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          key: string
+          request_hash: string
+          result: Json
+          scope: string
+          staff_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          key?: string
+          request_hash?: string
+          result?: Json
+          scope?: string
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idempotency_keys_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1366,6 +1450,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "open_meeting_actions"
             referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "interactions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "interactions_task_id_fkey"
@@ -1736,6 +1827,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "open_meeting_actions"
             referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "meeting_actions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "meeting_actions_task_id_fkey"
@@ -2455,6 +2553,356 @@ export type Database = {
         }
         Relationships: []
       }
+      project_activity: {
+        Row: {
+          actor_id: string | null
+          at: string
+          detail: Json
+          id: number
+          kind: string
+          project_id: string
+          summary: string
+        }
+        Insert: {
+          actor_id?: string | null
+          at?: string
+          detail?: Json
+          id?: never
+          kind: string
+          project_id: string
+          summary: string
+        }
+        Update: {
+          actor_id?: string | null
+          at?: string
+          detail?: Json
+          id?: never
+          kind?: string
+          project_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_documents: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          id: number
+          project_id: string
+          title: string
+          url: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: never
+          project_id: string
+          title: string
+          url: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: never
+          project_id?: string
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_links: {
+        Row: {
+          contact_id: string | null
+          contractor_id: string | null
+          id: number
+          linked_at: string
+          linked_by: string | null
+          opportunity_id: string | null
+          organisation_id: string | null
+          project_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          contractor_id?: string | null
+          id?: never
+          linked_at?: string
+          linked_by?: string | null
+          opportunity_id?: string | null
+          organisation_id?: string | null
+          project_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          contractor_id?: string | null
+          id?: never
+          linked_at?: string
+          linked_by?: string | null
+          opportunity_id?: string | null
+          organisation_id?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "project_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "project_links_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "project_links_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "project_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_milestones: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          name: string
+          project_id: string
+          sort_order: number
+          status: Database["hq"]["Enums"]["milestone_status"]
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          project_id: string
+          sort_order?: number
+          status?: Database["hq"]["Enums"]["milestone_status"]
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          sort_order?: number
+          status?: Database["hq"]["Enums"]["milestone_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string | null
+          priority: Database["hq"]["Enums"]["task_priority"]
+          ref_number: number
+          start_date: string | null
+          status: Database["hq"]["Enums"]["project_status"]
+          target_date: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id?: string | null
+          priority?: Database["hq"]["Enums"]["task_priority"]
+          ref_number?: never
+          start_date?: string | null
+          status?: Database["hq"]["Enums"]["project_status"]
+          target_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string | null
+          priority?: Database["hq"]["Enums"]["task_priority"]
+          ref_number?: never
+          start_date?: string | null
+          status?: Database["hq"]["Enums"]["project_status"]
+          target_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_handover_steps: {
         Row: {
           completed_at: string | null
@@ -2816,9 +3264,246 @@ export type Database = {
           },
         ]
       }
+      task_activity: {
+        Row: {
+          actor_id: string | null
+          at: string
+          detail: Json
+          id: number
+          kind: string
+          summary: string
+          task_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          at?: string
+          detail?: Json
+          id?: never
+          kind: string
+          summary: string
+          task_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          at?: string
+          detail?: Json
+          id?: never
+          kind?: string
+          summary?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_checklist_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          id: number
+          sort_order: number
+          task_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: never
+          sort_order?: number
+          task_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: never
+          sort_order?: number
+          task_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          edited_at: string | null
+          id: number
+          task_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          edited_at?: string | null
+          id?: never
+          task_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: never
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_dependencies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          depends_on_open: boolean
+          depends_on_task_id: string
+          id: number
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          depends_on_open?: boolean
+          depends_on_task_id: string
+          id?: never
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          depends_on_open?: boolean
+          depends_on_task_id?: string
+          id?: never
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
+          blocked_reason: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -2828,13 +3513,17 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          milestone_id: string | null
+          parent_task_id: string | null
           priority: Database["hq"]["Enums"]["task_priority"]
+          project_id: string | null
           related_contact_id: string | null
           related_contractor_id: string | null
           related_opportunity_id: string | null
           related_organisation_id: string | null
           related_referral_id: string | null
           reminder_key: string | null
+          sort_order: number
           source: string
           status: Database["hq"]["Enums"]["task_status"]
           title: string
@@ -2842,6 +3531,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          blocked_reason?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -2851,13 +3541,17 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          milestone_id?: string | null
+          parent_task_id?: string | null
           priority?: Database["hq"]["Enums"]["task_priority"]
+          project_id?: string | null
           related_contact_id?: string | null
           related_contractor_id?: string | null
           related_opportunity_id?: string | null
           related_organisation_id?: string | null
           related_referral_id?: string | null
           reminder_key?: string | null
+          sort_order?: number
           source?: string
           status?: Database["hq"]["Enums"]["task_status"]
           title: string
@@ -2865,6 +3559,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          blocked_reason?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -2874,13 +3569,17 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          milestone_id?: string | null
+          parent_task_id?: string | null
           priority?: Database["hq"]["Enums"]["task_priority"]
+          project_id?: string | null
           related_contact_id?: string | null
           related_contractor_id?: string | null
           related_opportunity_id?: string | null
           related_organisation_id?: string | null
           related_referral_id?: string | null
           reminder_key?: string | null
+          sort_order?: number
           source?: string
           status?: Database["hq"]["Enums"]["task_status"]
           title?: string
@@ -2892,6 +3591,55 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["next_milestone_id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -3412,6 +4160,13 @@ export type Database = {
             foreignKeyName: "enquiries_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -3864,6 +4619,81 @@ export type Database = {
           },
         ]
       }
+      project_overview: {
+        Row: {
+          blocked_count: number | null
+          cancelled_count: number | null
+          completed_at: string | null
+          completed_count: number | null
+          created_at: string | null
+          created_by: string | null
+          days_to_target: number | null
+          deleted_at: string | null
+          description: string | null
+          health: string | null
+          health_reasons: string[] | null
+          id: string | null
+          in_progress_count: number | null
+          max_overdue_days: number | null
+          milestone_count: number | null
+          milestones_done: number | null
+          name: string | null
+          next_milestone_due: string | null
+          next_milestone_id: string | null
+          next_milestone_name: string | null
+          notes: string | null
+          open_count: number | null
+          overdue_count: number | null
+          overdue_milestone_count: number | null
+          owner_id: string | null
+          owner_name: string | null
+          priority: Database["hq"]["Enums"]["task_priority"] | null
+          progress_done: number | null
+          progress_pct: number | null
+          progress_total: number | null
+          ref: string | null
+          ref_number: number | null
+          start_date: string | null
+          status: Database["hq"]["Enums"]["project_status"] | null
+          target_date: string | null
+          task_count: number | null
+          to_do_count: number | null
+          updated_at: string | null
+          version: number | null
+          waiting_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_timeline: {
+        Row: {
+          assigned_to: string | null
+          assignee_name: string | null
+          depends_on: string[] | null
+          end_date: string | null
+          is_blocked: boolean | null
+          is_done: boolean | null
+          is_overdue: boolean | null
+          item_id: string | null
+          kind: string | null
+          milestone_id: string | null
+          milestone_name: string | null
+          parent_task_id: string | null
+          project_id: string | null
+          sort_order: number | null
+          start_date: string | null
+          status: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       referral_overview: {
         Row: {
           assigned_to: string | null
@@ -4068,6 +4898,216 @@ export type Database = {
         }
         Relationships: []
       }
+      task_overview: {
+        Row: {
+          assigned_to: string | null
+          assignee_name: string | null
+          blocked_reason: string | null
+          blocking_count: number | null
+          checklist_done: number | null
+          checklist_total: number | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          deleted_at: string | null
+          dependency_count: number | null
+          description: string | null
+          due_date: string | null
+          id: string | null
+          is_blocked: boolean | null
+          is_overdue: boolean | null
+          milestone_due_date: string | null
+          milestone_id: string | null
+          milestone_name: string | null
+          open_dependency_count: number | null
+          open_subtask_count: number | null
+          overdue_days: number | null
+          parent_task_id: string | null
+          parent_title: string | null
+          priority: Database["hq"]["Enums"]["task_priority"] | null
+          project_id: string | null
+          project_name: string | null
+          project_priority: Database["hq"]["Enums"]["task_priority"] | null
+          project_ref: string | null
+          project_status: Database["hq"]["Enums"]["project_status"] | null
+          related_contact_id: string | null
+          related_contractor_id: string | null
+          related_opportunity_id: string | null
+          related_organisation_id: string | null
+          related_referral_id: string | null
+          sort_order: number | null
+          source: string | null
+          status: Database["hq"]["Enums"]["task_status"] | null
+          subtask_count: number | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["next_milestone_id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "task_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contractor_id_fkey"
+            columns: ["related_contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_contractor_id_fkey"
+            columns: ["related_contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_organisation_id_fkey"
+            columns: ["related_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_organisation_id_fkey"
+            columns: ["related_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_organisation_id_fkey"
+            columns: ["related_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_referral_id_fkey"
+            columns: ["related_referral_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["credited_referral_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_referral_id_fkey"
+            columns: ["related_referral_id"]
+            isOneToOne: false
+            referencedRelation: "referral_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_referral_id_fkey"
+            columns: ["related_referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_contractor_document: {
@@ -4123,6 +5163,14 @@ export type Database = {
         }
         Returns: Json
       }
+      add_project_document: {
+        Args: { p_project: string; p_title: string; p_url: string }
+        Returns: Json
+      }
+      add_project_link: {
+        Args: { p_id: string; p_kind: string; p_project: string }
+        Returns: Json
+      }
       add_staff: {
         Args: {
           p_email: string
@@ -4135,6 +5183,14 @@ export type Database = {
           p_timezone?: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      add_task_comment: {
+        Args: { p_body: string; p_task: string }
+        Returns: Json
+      }
+      add_task_dependency: {
+        Args: { p_depends_on: string; p_task: string }
         Returns: Json
       }
       ai_begin_request: { Args: { p_question: string }; Returns: string }
@@ -4188,8 +5244,31 @@ export type Database = {
         }
         Returns: Json
       }
+      bulk_budget: { Args: never; Returns: Json }
+      bulk_create_tasks: {
+        Args: {
+          p_atomic?: boolean
+          p_idempotency_key: string
+          p_project?: string
+          p_tasks: Json
+        }
+        Returns: Json
+      }
+      bulk_update_tasks: {
+        Args: { p_atomic?: boolean; p_idempotency_key: string; p_updates: Json }
+        Returns: Json
+      }
       business_summary: { Args: never; Returns: Json }
       can: { Args: { p_capability: string }; Returns: boolean }
+      complete_milestone: {
+        Args: { p_force?: boolean; p_id: string; p_note?: string }
+        Returns: Json
+      }
+      complete_task: { Args: { p_id: string; p_note?: string }; Returns: Json }
+      consume_bulk_budget: {
+        Args: { p_calls: number; p_items: number }
+        Returns: Json
+      }
       contractor_summary: { Args: never; Returns: Json }
       convert_to_managed_property: {
         Args: {
@@ -4265,6 +5344,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_milestone: {
+        Args: {
+          p_description?: string
+          p_due?: string
+          p_name: string
+          p_project: string
+          p_sort_order?: number
+        }
+        Returns: Json
+      }
       create_opportunity: {
         Args: {
           p_assigned_to?: string
@@ -4281,6 +5370,37 @@ export type Database = {
           p_prospect_name: string
           p_prospect_phone?: string
           p_source?: Database["hq"]["Enums"]["lead_source"]
+        }
+        Returns: Json
+      }
+      create_project: {
+        Args: {
+          p_description?: string
+          p_name: string
+          p_notes?: string
+          p_owner?: string
+          p_priority?: Database["hq"]["Enums"]["task_priority"]
+          p_start?: string
+          p_status?: Database["hq"]["Enums"]["project_status"]
+          p_target?: string
+        }
+        Returns: Json
+      }
+      create_project_task: {
+        Args: {
+          p_assignee?: string
+          p_blocked_reason?: string
+          p_checklist?: string[]
+          p_depends_on?: string[]
+          p_description?: string
+          p_due_date?: string
+          p_milestone?: string
+          p_parent?: string
+          p_priority?: Database["hq"]["Enums"]["task_priority"]
+          p_project?: string
+          p_sort_order?: number
+          p_status?: Database["hq"]["Enums"]["task_status"]
+          p_title: string
         }
         Returns: Json
       }
@@ -4309,6 +5429,10 @@ export type Database = {
           p_summary?: string
           p_title?: string
         }
+        Returns: Json
+      }
+      edit_task_comment: {
+        Args: { p_body: string; p_comment: number }
         Returns: Json
       }
       finish_email_send: {
@@ -4384,6 +5508,41 @@ export type Database = {
         Returns: Json
       }
       my_access: { Args: never; Returns: Json }
+      my_focus: {
+        Args: { p_limit?: number }
+        Returns: {
+          due_date: string
+          milestone_name: string
+          overdue_days: number
+          priority: Database["hq"]["Enums"]["task_priority"]
+          project_id: string
+          project_name: string
+          project_ref: string
+          rank: number
+          status: Database["hq"]["Enums"]["task_status"]
+          task_id: string
+          title: string
+          unblocks: number
+          why: string
+        }[]
+      }
+      overdue_tasks: {
+        Args: { p_project?: string; p_scope?: string }
+        Returns: {
+          assigned_to: string
+          assignee_name: string
+          due_date: string
+          is_blocked: boolean
+          overdue_days: number
+          priority: Database["hq"]["Enums"]["task_priority"]
+          project_id: string
+          project_name: string
+          project_ref: string
+          status: Database["hq"]["Enums"]["task_status"]
+          task_id: string
+          title: string
+        }[]
+      }
       preview_contractor_approval: {
         Args: { p_contractor: string }
         Returns: Json
@@ -4474,6 +5633,23 @@ export type Database = {
         Args: { p_attendee: number; p_meeting: string }
         Returns: Json
       }
+      remove_project_document: {
+        Args: { p_document: number; p_project: string }
+        Returns: Json
+      }
+      remove_project_link: {
+        Args: { p_id: string; p_kind: string; p_project: string }
+        Returns: Json
+      }
+      remove_task_dependency: {
+        Args: { p_depends_on: string; p_task: string }
+        Returns: Json
+      }
+      reopen_milestone: { Args: { p_id: string }; Returns: Json }
+      reorder_milestones: {
+        Args: { p_ids: string[]; p_project: string }
+        Returns: Json
+      }
       restore_knowledge_version: {
         Args: {
           p_base_version: number
@@ -4530,6 +5706,18 @@ export type Database = {
           p_owner?: string
           p_review_due?: string
         }
+        Returns: Json
+      }
+      set_project_status: {
+        Args: {
+          p_id: string
+          p_note?: string
+          p_status: Database["hq"]["Enums"]["project_status"]
+        }
+        Returns: Json
+      }
+      set_task_checklist: {
+        Args: { p_items: Json; p_task: string }
         Returns: Json
       }
       set_trade_active: {
@@ -4639,6 +5827,16 @@ export type Database = {
         }
         Returns: Json
       }
+      update_milestone: {
+        Args: {
+          p_clear?: string[]
+          p_description?: string
+          p_due?: string
+          p_id: string
+          p_name?: string
+        }
+        Returns: Json
+      }
       update_opportunity: {
         Args: {
           p_assigned_to?: string
@@ -4658,6 +5856,27 @@ export type Database = {
           p_prospect_phone?: string
           p_source?: Database["hq"]["Enums"]["lead_source"]
         }
+        Returns: Json
+      }
+      update_project: {
+        Args: {
+          p_clear?: string[]
+          p_description?: string
+          p_expected_version?: number
+          p_id: string
+          p_name?: string
+          p_note?: string
+          p_notes?: string
+          p_owner?: string
+          p_priority?: Database["hq"]["Enums"]["task_priority"]
+          p_start?: string
+          p_status?: Database["hq"]["Enums"]["project_status"]
+          p_target?: string
+        }
+        Returns: Json
+      }
+      update_project_task: {
+        Args: { p_id: string; p_patch: Json }
         Returns: Json
       }
       update_staff: {
@@ -4814,6 +6033,7 @@ export type Database = {
         | "supplier_other"
         | "planning_strategy"
         | "other"
+      milestone_status: "open" | "done"
       opportunity_stage:
         | "introduction_received"
         | "contacted"
@@ -4837,6 +6057,12 @@ export type Database = {
         | "financial_adviser"
         | "other"
       priority_level: "high" | "medium" | "low"
+      project_status:
+        | "planning"
+        | "active"
+        | "on_hold"
+        | "completed"
+        | "cancelled"
       referral_direction: "received" | "sent"
       relationship_status:
         | "identified"
@@ -5140,6 +6366,7 @@ export const Constants = {
         "planning_strategy",
         "other",
       ],
+      milestone_status: ["open", "done"],
       opportunity_stage: [
         "introduction_received",
         "contacted",
@@ -5165,6 +6392,13 @@ export const Constants = {
         "other",
       ],
       priority_level: ["high", "medium", "low"],
+      project_status: [
+        "planning",
+        "active",
+        "on_hold",
+        "completed",
+        "cancelled",
+      ],
       referral_direction: ["received", "sent"],
       relationship_status: [
         "identified",
