@@ -46,8 +46,7 @@ const KIND: Record<Kind, { icon: IconName; noun: string; href: ((id: string) => 
   contact: { icon: "user", noun: "Contact", href: (id) => `/hq/growth/contacts/${id}` },
   organisation: { icon: "building", noun: "Organisation", href: (id) => `/hq/growth/organisations/${id}` },
   referral: { icon: "link", noun: "Referral", href: (id) => `/hq/growth/referrals/${id}` },
-  // Opportunities have no page of their own: they live on the pipeline board.
-  opportunity: { icon: "growth", noun: "Opportunity", href: null },
+  opportunity: { icon: "growth", noun: "Lead", href: (id) => `/hq/growth/opportunities/${id}` },
   contractor: { icon: "partners", noun: "Contractor", href: (id) => `/hq/partners/${id}` },
 };
 

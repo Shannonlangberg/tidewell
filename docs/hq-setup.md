@@ -200,6 +200,76 @@ The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && su
 
 **Not yet:** a link to **projects** (HQ has no projects yet; add a nullable `project_id` to `hq.decisions`, or a `decision_projects` table like `decision_tasks`, when it does); decisions in the global search (`Cmd/Ctrl+K`) and on Reports (left out to keep this change small; the register's own search covers it).
 
+## Portfolio (managed properties and the Ailo handover)
+
+**What it is.** `/hq/portfolio` (nav: **Properties**) lists the properties Planted manages. Each gets a number (`MP-0001`), a light record and a nine-step handover checklist. The page header reads "Managed 3 of 20" from the goal.
+
+**What HQ stores, and what stays in Ailo.** Ailo is the system of record for rent, trust accounting, tenancies, maintenance, inspections and owner communications. HQ does not copy any of that, has no connection to Ailo, builds no sync and stores no Ailo credentials (no public Ailo API is known; see `lib/hq/integrations/ailo.ts`). For each property HQ holds only: the address and suburb, the owner (a contact, or a typed name), the service (**long-term residential** or **short-term accommodation**, always counted separately), the fee basis (a percentage of rent, a flat fee, or other, with notes), the agreement date, managed-from and ended-on dates, the status (`Onboarding`, `Active`, `Offboarding`, `Ended`), the **Ailo reference** (typed by a person, exactly as Ailo shows it) and the **Ailo status** (`Not set up`, `Set up`, `Live`), plus business notes.
+
+**How a property gets in.**
+
+- **From a signed lead:** on the lead's page (`/hq/growth/opportunities/[id]`), **Make this a managed property** (shown only once the lead is at Management signed, to people with `portfolio.write`). The address, suburb and owner come from the lead unless changed, so nothing is typed twice. One property per lead. While the property is live, the lead cannot be moved out of Management signed or archived (archive the property first).
+- **Signed before HQ:** Properties, **Add a property signed before HQ**. Needs the address, the owner and a note saying where it came from.
+
+**Rules (the database enforces them).** Active needs the managed-from date (today or earlier: keep a future start onboarding). Ended needs the end date; an end date is only for an ended property. Ailo **Live** needs the Ailo reference, and a reference is used by one property only. The same address cannot be managed twice at once. Reopening an ended property needs a director or administrator. Edits are refused if someone else changed the property since it was opened.
+
+**The handover checklist** (nine steps, created with the property): Owner onboarded; Management agreement signed; Owner ID verified; Bank and payment details in Ailo; Property created in Ailo; Owner invited to Ailo; Condition report or inspection booked; Keys and access arranged; Welcome pack sent. Each is Not started, In progress, Done or Not applicable (which needs a note); Done and Not applicable record who and when. Finishing every step never changes the property's status: mark it active yourself. HQ never stores bank details: that step only records that they were entered in Ailo.
+
+**The goal.** Settings, **Business goal** (directors, `settings.admin`): the number of managed properties (20 to start) and the date to reach it. **The date is empty until the owner sets it**; HQ never invents one, and without it no pace is shown.
+
+**Business at a glance** (top of Reports; one line on Today for directors and administrators; `business_summary` over MCP), from `hq.business_summary()`. Every figure is labelled: **Actual** (counted from HQ records: managed means active or onboarding, split long-term / short-term accommodation; open leads; leads needing attention), **Signed** (managements marked signed in HQ this month and this financial year, from HQ records), **Estimate** (the yearly values people typed on open leads; never income), and the **pace** (needed per month to reach the goal by its date, against managements signed per month over the last three months) only when a goal date is set. With nothing recorded it says "No managed properties recorded yet".
+
+**Who can do what** (data in `hq.role_capabilities`; **an assumption for the owner to confirm**): `portfolio.read` director, administrator, senior property manager, property manager, BDM, read-only; `portfolio.write` (create, edit, checklist, archive, restore) director, administrator, senior property manager. Junior property managers and virtual assistants do not see Properties (a virtual assistant still sees the signed and pipeline figures in Business at a glance, through `growth.read`).
+
+**Through ChatGPT or Claude:** `list_managed_properties`, `get_managed_property` (portfolio.read), `create_managed_property` (from a signed lead), `update_managed_property`, `set_handover_step` (portfolio.write), `business_summary` (growth.read or portfolio.read). Not through chat: archiving, restoring, adding a property signed before HQ, setting the goal. See [hq-mcp.md](hq-mcp.md#testing-the-portfolio-tools-from-chatgpt).
+
+**How it is protected.** Tables `hq.managed_properties`, `hq.property_handover_steps`; view `hq.portfolio_overview` (security invoker). RLS enabled and forced; the API may only read; every write goes through `convert_to_managed_property`, `add_existing_managed_property`, `update_managed_property`, `set_handover_step`, `set_business_goal` and `archive_record` / `restore_record` (entity `managed_property`), which check the capability and the second sign-in step, validate and write audit events (`managed_property`, `property_handover_step`, `setting`). Migrations `0129_hq_managed_properties.sql`, `0130_hq_portfolio_rpc.sql`, `0131_hq_function_acl_portfolio.sql`; tests `supabase/tests/hq_11_portfolio.sql`.
+
+**Not yet:** fee run-rate or income forecasts (needs the owner's fee figures; the summary deliberately shows only estimates people typed), properties in the global search, any Ailo integration (only if Ailo confirms an authorised route).
+
+## Leads pipeline (Day 2: leads that are not referrals)
+
+**What changed.** The pipeline (`/hq/growth/pipeline`, title "Pipeline") now runs every lead, not only partner referrals. **Add a lead** (`/hq/growth/pipeline/new`) records a landlord or owner from our own marketing, the website, a direct approach or other; a partner's introduction is still **Record a referral**, so the partner is credited and a signed management is counted once. Each lead has a page (`/hq/growth/opportunities/[id]`, shown as `LEAD-0007`): the landlord and how to reach them, the stage with the same Move stage drawer as before, the **next step** (owner, next action, follow-up date, editable), where it came from, expected close, the estimated yearly value (labelled an estimate), the credited partner if any, and one timeline of calls, meetings, notes, stage changes and tasks. **Log a call or note** records activity on the lead (optionally a new next step and a follow-up task linked to the lead); **Create follow-up task** opens the task form already linked to the lead (tasks now link back to the lead's page). Board cards show the owner's initials, the next action and its date (overdue in red) and open the lead's page; the board filters by source and "needs attention".
+
+**Lead rules (the database enforces them, migration `0127_hq_leads_pipeline.sql`).**
+- An **open** lead (any stage but Management signed or Lost) always has an **owner**, a **next action** (up to 300 characters) and a **follow-up date**. This holds for every writer: a lead created without them gets the caller as owner, "Make first contact" and tomorrow (that is how `record_referral` keeps working), and clearing one on an open lead is refused. A follow-up date set by a person is today to two years ahead; an expected close date today to three years ahead.
+- **Source** is one of website enquiry, referral partner, our own marketing, direct approach, other. A lead added by hand cannot claim referral partner; a lead introduced by a referral keeps it.
+- **Lost** needs a reason from the list (price or fees, chose another manager, managing it themselves, not ready yet, stopped responding, outside our area, other) **and** a few words. Reopening clears both and keeps the next step.
+- **Duplicates:** adding a lead with the same phone (0400 and +61 400 match), the same email, or the same name in the same suburb as a live lead or landlord contact is refused with a link to the existing record; "This is someone else" adds it anyway.
+- Stage still moves only through Move stage, and signing only there.
+
+**Landlord contacts.** Contacts now have a **kind**: Partner (the default, every existing contact), Landlord, Other. Adding a lead adds the person as a Landlord contact (flagged to verify), or links the contact that already has that email. Landlords appear in the contacts list only when asked (Contacts, filter **Kind of contact**: Landlords / Other contacts / Everyone; the default is partners), with a Landlord chip, and their page lists their leads. **A landlord is never a referral partner:** the Referral partners page, its counts, Today's "Gone quiet", `who_to_contact`, the partner pickers and the Growth overview's contact figures (by status, not contacted in 30 days) count partner contacts only, so no partner number changes.
+
+**Today.** "Call today" also lists your own leads whose follow-up date is today or past (name, next action, overdue, suburb) with Call, Log (opens the lead with the call form open) and Snooze (a week). One quiet line says how many leads need attention (no owner, no next step, overdue) and links to the pipeline filtered; nothing is shown when none do.
+
+**Through ChatGPT or Claude:** `create_opportunity`, `get_opportunity`, `list_opportunities`, `update_opportunity`, `log_opportunity_activity`, `list_interactions`; `move_opportunity` still refuses signed and lost. Prompts to try: [hq-mcp.md section 8](hq-mcp.md#8-testing-the-pipeline-tools-from-chatgpt).
+
+**How it is protected.** New RPCs `create_opportunity`, `update_opportunity`, `log_opportunity_activity` and the seven-argument `move_opportunity` (all security definer, growth.write checked inside with the second sign-in step, pinned search path, audited, execute for `authenticated` only: `0128_hq_function_acl_leads.sql`); views `opportunity_overview` and `overdue_opportunities` (security invoker). Tests `supabase/tests/hq_10_leads.sql` (135 tests: forged callers, the open-lead rule, duplicates, source and lost-reason rules, partner views unchanged by landlords, overdue boundaries, RLS).
+
+**Not yet:** website enquiries arriving as leads automatically (next builder); leads in the global search (`Cmd/Ctrl+K`); a conversion figure for direct leads (the Growth overview's conversion is still managements signed over referrals received, and now includes signed direct leads in the numerator).
+
+## Email (branded drafts, approved sending)
+
+**What it sends.** One branded PLANTED. email at a time, to ONE person HQ already holds an address for: a live contact with an email on record, or an active member of staff. There is no field anywhere (HQ screens or chat) to type an address, and no cc, bcc or attachments. The address is copied from the record when the draft is made and checked against the record again at approval and at send; if the record changed, the send is refused (discard and redraft). The look matches the sign-in code email (`lib/hq/email/render.ts`): charcoal header with the wordmark, a soft-white card, plain-text paragraphs, a signature of the sender's name, HQ role and "PLANTED. Property Management" (no phone, address, ABN or licence is added), and a footer that identifies the sender and says how to opt out. No remote images, no tracking pixel; SendGrid's open, click and subscription tracking are switched off in each request. Both an HTML and a plain-text part are sent.
+
+**From and replies.** From **PLANTED. HQ <hq@plantedproperty.com.au>** (override with `EMAIL_FROM_ADDRESS` / `EMAIL_FROM_NAME`). Reply-To is the drafter's own HQ address, so answers go to them.
+
+**Approval model.** `email.draft` (director, administrator, senior property manager, property manager, business development manager, virtual assistant) drafts, edits and discards their own drafts. `email.send` (director, administrator, business development manager) approves and sends: **Approve and send** on the email's page or on Today, after a dialog naming the exact recipient and address. The creator may approve their own draft (the person tapping is the human check). A draft is approved only in HQ: the database refuses an approval made with a connected-app token. Sent emails appear on the contact's timeline ("Email sent: <subject>"). Status machine and double-send protection: migration `0132_hq_email.sql`; a failed send (including a timeout, when it may have been delivered) is retried only by a new approval.
+
+**Limits.** At most `email_daily_limit` sends per person per business day (default 20, 1 to 200, failed attempts count) and 30 drafts per person per hour, both enforced in the database. Chat writes also count against the hourly write cap.
+
+**Chat sending (warning).** `email_chat_send_enabled` is **off** by default. A director can switch it on in **Settings > AI and connected apps > Email**. When on, ChatGPT or Claude can send a draft it made in the last 30 minutes, for the same person through the same app, without anyone tapping Approve and send in HQ, once the person confirms the address in the chat. It is still limited to record-held addresses, one recipient, the daily limit and roles with `email.send`, but nobody in HQ reviews the wording first. Leave it off unless the owner decides otherwise.
+
+**Netlify environment variables.** `SENDGRID_API_KEY` (mark it **secret**; a key with Mail Send access only), optionally `EMAIL_FROM_ADDRESS` and `EMAIL_FROM_NAME`. Redeploy after changing them. Without the key, production refuses to send ("Email sending is not set up"). `lib/hq/email/sendgrid.ts` is the only file that reads the key (ESLint refuses `process.env.SENDGRID_API_KEY` elsewhere, and only `lib/hq/email/send.ts` may import that file); the key is never logged or returned.
+
+**Local development** never sends: outside production the **fake provider** is used unless `HQ_EMAIL_PROVIDER=sendgrid` is set explicitly. It writes each email (JSON and the rendered HTML) to `HQ_EMAIL_OUTBOX_DIR` (default `<os temp dir>/planted-hq-email-outbox`). `HQ_EMAIL_FAKE_FAIL=timeout` (or another failure code) makes it fail, to see the failed screens.
+
+**Legal review needed.** The footer wording ("Sent by PLANTED. Property Management on behalf of <name>. Reply to this email to reach <name>. If you would rather not receive emails from us, reply with the word unsubscribe.") is a Spam Act 2003 style identification and opt-out, written without legal advice. Have it reviewed before relying on it. HQ has no unsubscribe list yet: when someone replies "unsubscribe", remove the email address from their record (HQ then refuses to draft to them) and note why.
+
+**Not verified:** a real send through SendGrid. Everything was tested locally with the fake provider; the live send is unverified until deployed and tried with a real address the owner controls.
+
+Tables, RPCs and tests: `hq.email_drafts`, `create_email_draft`, `update_email_draft`, `discard_email_draft`, `approve_email_draft`, `begin_email_send`, `finish_email_send` (0132, privileges 0133); `supabase/tests/hq_12_email.sql`; unit tests in `lib/hq/email/*.test.mts`.
+
 ## Known limitations and open decisions
 
 - **`update_staff` cannot clear a field.** A null argument means "leave unchanged", so responsibilities and start date can be changed but not blanked.
@@ -209,7 +279,7 @@ The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && su
 - **`partner_performance` is per organisation.** Referrals from independent contacts with no organisation appear in the register and pipeline but not there.
 - **Global search matches names only.** Categories are not searched.
 - **Prospect picker** shows the 300 newest prospects, not a server-side search.
-- **Ailo:** not connected. See `lib/hq/integrations/ailo.ts` for the proposed interface and the questions to put to Ailo.
+- **Ailo:** not connected, and no public API is known. HQ stores only the Ailo reference and set-up status typed by a person (see Portfolio above and `lib/hq/integrations/ailo.ts`).
 
 ## What was verified, and what was not
 

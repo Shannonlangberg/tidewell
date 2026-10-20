@@ -38,6 +38,8 @@ export type Contact = {
   updatedAt: string | null;
   referralsReceived: number;
   referralsSent: number;
+  /** partner | landlord | other (hq.contact_kind). */
+  kind: "partner" | "landlord" | "other";
 };
 
 export function toContact(r: ViewRow<"contact_directory">): Contact | null {
@@ -70,6 +72,7 @@ export function toContact(r: ViewRow<"contact_directory">): Contact | null {
     updatedAt: r.updated_at,
     referralsReceived: Number(r.referrals_received ?? 0),
     referralsSent: Number(r.referrals_sent ?? 0),
+    kind: r.contact_kind ?? "partner",
   };
 }
 

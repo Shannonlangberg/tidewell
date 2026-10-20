@@ -23,7 +23,9 @@ Reports (read): `daily_brief` (overdue and due-today tasks, follow-ups due, cont
 
 Writes (each re-validated server-side with the existing HQ validators and run through the existing RPCs or RLS-governed writes **as the person**, audited, returning what changed): `create_task`, `update_task` (status, due date, priority, assignee, description), `log_interaction` (call/meeting/email/note on a contact, organisation or contractor, with optional follow-up date and task, via `record_interaction` / `record_contractor_contact`), `create_contact`, `update_contact` (phone, email, position, status, priority, next follow-up, notes: appended), `create_organisation`, `update_contractor` (contact details, service areas, rates, notes appended, only the columns the form allows), `record_contractor_review`, `record_contractor_job` (last used date via `mark_contractor_used`; added with the trades change, see hq-phase-2.md 11.10), `set_vetting_step`, `record_referral`, `move_opportunity` (**not** to `management_signed`, which stays a deliberate action in the HQ screens), `create_decision` and `update_decision` (`decisions.write`; through the `create_decision` / `update_decision` RPCs, validated with the HQ decision form's own reader; superseding needs `superseded_by` and a note, reversing needs a note; never archive or delete).
 
-**35 tools in all** (`lib/hq/mcp/tools/index.ts`): 13 read, 3 decision reads, 4 reports, 15 writes (13 + the 2 decision writes). Each person sees only the tools their capabilities allow.
+**35 tools before the portfolio** (`lib/hq/mcp/tools/index.ts`): 13 read, 3 decision reads, 4 reports, 15 writes (13 + the 2 decision writes). **The portfolio adds 6** (section 7): 2 property reads, `business_summary`, 3 property writes. **The leads pipeline adds 6** (section 8): `list_opportunities`, `get_opportunity` and `list_interactions` (reads, `growth.read`), `create_opportunity`, `update_opportunity` and `log_opportunity_activity` (writes, `growth.write`). **47 tools in all.** Each person sees only the tools their capabilities allow.
+
+Leads (Day 2): `create_opportunity` adds a lead that did not come through a referral partner (source own_marketing, website_enquiry, direct_approach or other; a partner's introduction stays `record_referral` so the partner is credited), needs a next action and a follow-up date, defaults the owner to the caller, adds the person as a landlord contact, and refuses a likely duplicate (same phone, email, or name in the same suburb) unless the person confirms with `confirm_distinct`. `get_opportunity` / `list_opportunities` accept a name, `LEAD-0007`, `REF-0007` or an id; `list_opportunities` filters by stage, owner, source, needs attention and overdue. `update_opportunity` changes details, owner, next action, dates, estimate, landlord contact, or appends a note; it never moves the stage. `log_opportunity_activity` records a call or meeting notes on a lead, optionally with a new next step and a follow-up task linked to the lead. `list_interactions` pages the activity of one contact, organisation, contractor or lead. `move_opportunity` still refuses `management_signed` and `lost` (both HQ screen only).
 
 **Deliberately not available through chat** (HQ screens only): approving, preferring, suspending, reinstating or deactivating a contractor; archiving or deleting anything; document upload/download; imports; people and roles; settings; signing a management; anything with `people.admin` / `settings.admin`. Say so in the tool descriptions and in `docs/hq-setup.md`.
 
@@ -87,3 +89,88 @@ What should be refused (nothing is changed in each case):
 - **Read-only**: cannot connect a chat app at all (the role has no `ai.use`; the consent screen offers only Cancel), although the HQ screens show them the register.
 
 Locally the same behaviour is checked without ChatGPT by `node --env-file=.env.local scripts/hq/mcp-tools-smoke.mts` (as director, junior and read-only, including forced calls the database refuses; it archives what it creates).
+
+## 7. Testing the portfolio tools from ChatGPT
+
+Six tools (migrations 0129 to 0131; `lib/hq/mcp/tools/portfolio.ts`): `list_managed_properties` and `get_managed_property` (`portfolio.read`), `create_managed_property`, `update_managed_property` and `set_handover_step` (`portfolio.write`: director, administrator, senior property manager), and `business_summary` (growth.read **or** portfolio.read; the sections a role does not include are left out and said so). Ailo is the system of record: no tool reads from or writes to Ailo; HQ only records the Ailo reference a person types. Not through chat: archiving or restoring a property, adding a property signed before HQ, setting the business goal.
+
+Connect as in section 5, as a **director** for the writes, with a lead already at **Management signed** in HQ. Each prompt should lead to ONE tool call; every property result carries its HQ link and record text comes back inside the labelled data block.
+
+| # | Prompt (as a director) | Tool | What to expect |
+|---|---|---|---|
+| 1 | "Use Planted HQ: how is the business going against the goal?" | `business_summary` | One answer with labels: **Managed (actual)** "Managed N of 20" split long-term / short-term accommodation; **Signed (from HQ records)** this month and this financial year; **Open pipeline** count by stage and its yearly value marked **ESTIMATE, not income**; leads needing attention; **Pace** only if a goal date is set, otherwise "no goal date has been set". With nothing recorded: "no managed properties recorded yet". |
+| 2 | "List our managed properties whose handover isn't finished" | `list_managed_properties` with `handover_open: true` | MP number, address, owner, service, status, "handover n of 9", Ailo status. None: "No managed properties found (handover not finished)". |
+| 3 | "Make the signed lead [name] a managed property, long-term residential, 8.8% of rent" | `create_managed_property` | ChatGPT should say what it will record and ask first. Then "Made the signed lead a managed property: MP-00NN" with its link; address, suburb and owner taken from the lead; status Onboarding; handover 0 of 9. In HQ: the property, nine checklist rows, one audit event. |
+| 4 | "On MP-00NN mark 'property created in Ailo' done" | `set_handover_step` | "Set a handover step on MP-00NN", Handover 1 of 9. The property's status does not change. |
+| 5 | "MP-00NN is set up in Ailo, reference ABC-123, and management started on [date]; mark it active" | `update_managed_property` | "Updated managed property MP-00NN" with before -> after lines for Status, Managed from, Ailo reference, Ailo status. |
+| 6 | "Show me MP-00NN" | `get_managed_property` | The record, where it came from, the Ailo reference and status (with the reminder that Ailo holds rent, trust, tenancy and maintenance), and all nine steps. |
+
+What should be refused (nothing is changed in each case):
+
+- **An unsigned lead** ("Make [an open lead] a managed property"): "Not saved: only a signed management can become a managed property; this opportunity is at qualified."
+- **The same lead twice:** "Not saved: this opportunity is already a managed property (MP-00NN)."
+- **Active without a start date** ("Mark MP-00NN active"): "Not saved ... An active property needs the date management started." **Ended without an end date**, an **end date in the future**, **Ailo live without a reference**, an **Ailo reference already on another property**: the same plain refusals as the HQ form.
+- **Not applicable without a note** ("Mark keys and access not applicable on MP-00NN"): "Not saved: a step marked not applicable needs a note saying why."
+- **Reopening an ended property** as a senior property manager: "Refused by HQ: your role is not allowed to do that."
+- **Words that match several properties** ("Show me the Smith Street property" with two): the candidates with their MP numbers, and a question, never a guess.
+- **Archiving, deleting, adding a pre-HQ property or setting the goal** ("Delete MP-00NN", "Set our goal to 30 by June"): there is no tool; ChatGPT should say it is done in HQ.
+- **"What rent does MP-00NN collect?" / "Who is the tenant?"**: HQ does not hold it; it is in Ailo.
+- **Property manager or BDM:** prompts 1, 2 and 6 work; the three writes are not offered. Forced anyway: "Refused: your HQ role does not include portfolio.write".
+- **Virtual assistant:** no property tools listed except `business_summary`, which answers with the signed and pipeline figures and a note that managed properties need portfolio.read.
+- **Junior property manager:** `business_summary` is listed (its capability is either-or) but refuses: "Refused: your HQ role includes neither growth.read nor portfolio.read". No other property tools.
+- **Read-only:** cannot connect a chat app at all (no `ai.use`), although the HQ screens show them the portfolio.
+
+Locally the same behaviour is checked without ChatGPT by `node --env-file=.env.local scripts/hq/mcp-tools-smoke.mts` (as director, junior and read-only, including forced calls the database refuses; it archives the property it creates).
+
+## 8. Testing the pipeline tools from ChatGPT
+
+Connect HQ as in section 5, as a **director, administrator, BDM or virtual assistant** (they hold `growth.write`). Each prompt should lead to ONE tool call; every result carries the lead's HQ link (`/hq/growth/opportunities/<id>`) and record text comes back inside the labelled data block. Use clearly fake names when trying it on real data, and archive them afterwards on the lead's page (a director).
+
+| # | Prompt | Tool | What to expect |
+|---|---|---|---|
+| 1 | "Use Planted HQ to add a lead: Jane Citizen, 0400 000 000, owns a house in Wallaroo, came from our own marketing, call her tomorrow to book an appraisal" | `create_opportunity` (source `own_marketing`, `follow_up_date` = tomorrow, `next_action` "Call to book an appraisal") | ChatGPT should say what it will add and ask first. Then "Added 1 lead (LEAD-00NN)" with the link; owner you; stage Introduction received; "Added as a landlord contact (to verify)". In HQ: the card on the pipeline board, and tomorrow in your Today "Call today". |
+| 2 | Repeat prompt 1 | `create_opportunity` | "Not added: HQ already has a lead with the same phone number", with the existing lead, and a question whether it is the same person. Only after "No, it's a different Jane" should it call again with `confirm_distinct: true`. |
+| 3 | "Which leads need attention?" | `list_opportunities` with `needs_attention: true` | Open leads with no owner, no next step or a follow-up date that has passed, oldest first. With none: "No leads found (open, needing attention)". |
+| 4 | "Show me LEAD-0007" | `get_opportunity` | The lead in full: stage and days in it, source or credited partner, owner, next action and date, expected close, estimate, landlord contact, latest activity, open tasks. |
+| 5 | "I just met Jane Citizen at the property. Notes: three-bedroom house, tenant leaving in December, she wants our fee schedule. Next: send the fee schedule by Friday, and make me a task" | `log_opportunity_activity` (`type` office_meeting, `next_action`, `follow_up_date`, `create_task: true`) | "Logged 1 office meeting on the lead and created its follow-up task". In HQ: the meeting on the lead's timeline, the new next step, a task linked to the lead. |
+| 6 | "Move Jane Citizen's follow-up to next Monday and give the lead to Shannon" | `update_opportunity` (`follow_up_date`, `owner`) | "Updated 1 lead", listing Follow-up date: old -> new and Owner: you -> Shannon Langberg. |
+| 7 | "What have we said to Jane Citizen so far?" | `list_interactions` with `opportunity` | Her calls and meetings, newest first, page 1 of N. |
+| 8 | "List my leads from the website" | `list_opportunities` with `owner: "me"`, `source: "website_enquiry"` | Your open website leads. |
+
+What should be refused (nothing is changed in each case):
+
+- **A partner's introduction as a lead** ("Add a lead from Alpha Realty"): ChatGPT should use `record_referral` instead; `create_opportunity` offers no referral_partner source, and the database refuses it (`use_record_referral`).
+- **A follow-up date in the past**, a **next action left out**, an **unknown or inactive owner**: the same plain refusals as the HQ form.
+- **"Mark Jane Citizen as lost"** or **"Sign Jane Citizen"**: `move_opportunity` refuses both; they are done on the lead's page (lost needs a reason from the list and a few words).
+- **A name that matches two leads**: the candidates, never a guess.
+- **Junior property manager / property manager**: the write tools are not offered (a property manager can read); forced, "Refused: your HQ role does not include growth.write", and the database refuses too. **Read-only** cannot connect a chat app (no `ai.use`).
+
+Locally the same behaviour is checked without ChatGPT by `node --env-file=.env.local scripts/hq/mcp-tools-smoke.mts` (section 2d of the script).
+
+## 9. Testing email from ChatGPT
+
+Six tools (migrations 0132, 0133; `lib/hq/mcp/tools/email.ts`): `list_email_drafts`, `get_email_draft`, `draft_email`, `update_email_draft`, `discard_email_draft` (`email.draft`: director, administrator, senior property manager, property manager, business development manager, virtual assistant) and `send_email_draft` (`email.send`: director, administrator, business development manager). The writes count against the hourly write cap; drafts are also capped at 30 per person per hour and sends at `email_daily_limit` (default 20) per person per day, inside the database. There is **no way to type an address**, no cc or bcc, no attachments and no approving from chat: the database refuses an approval made with a connected-app token.
+
+Connect as in section 5, as a **director**, with a contact "Tim Hosking" who has an email address on record. Each prompt should lead to ONE tool call.
+
+| # | Prompt | Tool | What to expect |
+|---|---|---|---|
+| 1 | "Use Planted HQ to draft a thank-you email to Tim Hosking for meeting me today about referring landlords; do not send it" | `draft_email` | "Drafted email EML-00NN" with its HQ link, a plain-text preview (greeting, the message, your name and role, "PLANTED. Property Management", the footer) inside the data block, and "Not sent. It needs approval: open it in HQ and tap Approve and send." Nothing invented: no dates, prices or promises you did not say. |
+| 2 | "Show me the draft" | `get_email_draft` | Recipient and the address on Tim's record, status "Waiting for approval", the full preview. |
+| 3 | (in HQ) open the link, check the branded preview, tap **Approve and send**, confirm the dialog naming Tim and his address | (HQ) | Status Sent; an "Email sent: <subject>" entry on Tim's timeline. HQ approves and sends in one step; to try step 4, use a draft that was approved but held back (for example by the daily limit). |
+| 4 | "Now send it" (for an approved, unsent draft) | `send_email_draft` | "Sent email EML-00NN", To: Tim Hosking <address>, From: PLANTED. HQ <hq@plantedproperty.com.au>, Replies go to: your address. |
+
+What should be refused (nothing is sent in each case):
+
+- **Unapproved send while chat sending is off** ("Send EML-00NN now" straight after drafting): "Not sent: EML-00NN has not been approved. Not sent. It needs approval: open it in HQ and tap Approve and send."
+- **An address not on record** ("Email someone@example.com"): "Not done: an email can only go to someone HQ already holds an address for ..."
+- **No email on record** (a contact without an address): "Not drafted: there is no email address on record for <name>. Add it to their record in HQ first."
+- **Someone else's draft**: not found (a director or administrator can see it but cannot send another person's unapproved draft from chat).
+- **Over the daily limit**: "Not done: Daily email limit reached (20 per person per day)." The draft stays approved for tomorrow.
+- **A record whose address changed after drafting**: "not sent: the email address on the record has changed since this was drafted. Discard it and draft a new one."
+- **Sending twice**: "Not sent again: EML-00NN was already sent."
+- **Virtual assistant, senior property manager, property manager**: can draft; `send_email_draft` is not listed; forced: "Refused: your HQ role does not include email.send". **Junior property manager**: no email tools. **Read-only**: cannot connect a chat app.
+
+**Chat sending (off by default).** A director can switch it on in Settings > AI and connected apps > Email. Then a draft that the same person made through the same app in the last 30 minutes may be sent from chat without the HQ tap, and only with `confirm_recipient_email` equal to the draft's address (the model must read the address back and get a yes). Still record-held addresses only, one person, within the daily limit, and only for roles with `email.send`.
+
+Locally (fake provider, nothing leaves the machine): `node --env-file=.env.local scripts/hq/mcp-tools-smoke.mts` drafts, refuses, approves, sends, exercises chat-send mode and the daily limit as the director, the virtual assistant, the junior and read-only (it stands in for an app token by signing the session's claims plus `client_id` with the local JWT secret), and discards what it leaves unsent.

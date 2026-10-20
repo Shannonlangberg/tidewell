@@ -24,7 +24,7 @@ export const searchContacts = defineTool({
     const n = rowLimit(args.limit);
     let q = ctx.db
       .from("contact_directory")
-      .select("id, full_name, position, organisation_name, relationship_status, priority, next_follow_up_date, last_contact_at, relationship_owner_name", { count: "exact" });
+      .select("id, full_name, position, organisation_name, relationship_status, priority, next_follow_up_date, last_contact_at, relationship_owner_name, contact_kind", { count: "exact" });
     const filter = orIlike(["full_name", "position", "email", "organisation_name"], args.query ?? "");
     if (filter) q = q.or(filter);
     const notes: string[] = [];
@@ -51,7 +51,7 @@ export const searchContacts = defineTool({
     const t = today(ctx);
     const lines = rows.map(
       (r) =>
-        `- ${clean(r.full_name)} [id: ${r.id}]${r.position ? `, ${clean(r.position)}` : ""} - ${clean(r.organisation_name ?? "independent")} - ${relLabel(r.relationship_status)}${r.priority ? `, ${PRIORITY_LABEL[r.priority as Priority].toLowerCase()} priority` : ""} - last contact ${r.last_contact_at ? when(ctx, r.last_contact_at) : "never"}${r.next_follow_up_date ? ` - follow up ${day(ctx, r.next_follow_up_date)}${r.next_follow_up_date < t ? " (overdue)" : ""}` : ""}`,
+        `- ${clean(r.full_name)} [id: ${r.id}]${r.contact_kind && r.contact_kind !== "partner" ? ` (${r.contact_kind})` : ""}${r.position ? `, ${clean(r.position)}` : ""} - ${clean(r.organisation_name ?? "independent")} - ${relLabel(r.relationship_status)}${r.priority ? `, ${PRIORITY_LABEL[r.priority as Priority].toLowerCase()} priority` : ""} - last contact ${r.last_contact_at ? when(ctx, r.last_contact_at) : "never"}${r.next_follow_up_date ? ` - follow up ${day(ctx, r.next_follow_up_date)}${r.next_follow_up_date < t ? " (overdue)" : ""}` : ""}`,
     );
     return respond("ok", `${plural(total, "contact")}${what ? ` (${what})` : ""}${total > rows.length ? `, showing ${rows.length}` : ""}.`, lines, { count: total, ids: rows.map((r) => r.id) });
   },
@@ -187,7 +187,7 @@ export const whoToContact = defineTool({
   name: "who_to_contact",
   title: "Who to contact",
   description:
-    "Lists partner contacts to get in touch with: follow-ups that are overdue or due today, then active contacts not contacted in the last N days (default 30; never contacted first). Inactive contacts are left out. Read-only.",
+    "Lists partner contacts to get in touch with: follow-ups that are overdue or due today, then active contacts not contacted in the last N days (default 30; never contacted first). Inactive contacts and landlords are left out (lead follow-ups: list_opportunities with needs_attention). Read-only.",
   inputSchema: whoToContactShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: "growth.read",
@@ -201,11 +201,13 @@ export const whoToContact = defineTool({
       .from("contact_directory")
       .select("id, full_name, organisation_name, next_follow_up_date, last_contact_at, relationship_status", { count: "exact" })
       .lte("next_follow_up_date", t)
-      .neq("relationship_status", "inactive");
+      .neq("relationship_status", "inactive")
+      .eq("contact_kind", "partner");
     let stale = ctx.db
       .from("contact_directory")
       .select("id, full_name, organisation_name, last_contact_at, relationship_status", { count: "exact" })
       .neq("relationship_status", "inactive")
+      .eq("contact_kind", "partner")
       .or(`last_contact_at.is.null,last_contact_at.lt.${cutoff}`);
     if (args.mine_only) {
       due = due.eq("relationship_owner_id", ctx.staff.id);

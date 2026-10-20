@@ -92,6 +92,7 @@ export type Database = {
       contacts: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][]
+          contact_kind: Database["hq"]["Enums"]["contact_kind"]
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -122,6 +123,7 @@ export type Database = {
         }
         Insert: {
           categories?: Database["hq"]["Enums"]["partner_category"][]
+          contact_kind?: Database["hq"]["Enums"]["contact_kind"]
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -152,6 +154,7 @@ export type Database = {
         }
         Update: {
           categories?: Database["hq"]["Enums"]["partner_category"][]
+          contact_kind?: Database["hq"]["Enums"]["contact_kind"]
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -776,6 +779,191 @@ export type Database = {
           },
         ]
       }
+      email_drafts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body_text: string
+          created_at: string
+          created_by: string
+          created_via: string
+          discarded_at: string | null
+          discarded_by: string | null
+          error_code: string | null
+          id: string
+          interaction_id: string | null
+          mcp_client_id: string | null
+          opportunity_id: string | null
+          provider_message_id: string | null
+          recipient_contact_id: string | null
+          recipient_staff_id: string | null
+          ref_number: number
+          reply_to_email: string
+          send_started_at: string | null
+          send_via: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: Database["hq"]["Enums"]["email_status"]
+          subject: string
+          template: Database["hq"]["Enums"]["email_template"]
+          to_email: string
+          to_name: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_text: string
+          created_at?: string
+          created_by: string
+          created_via?: string
+          discarded_at?: string | null
+          discarded_by?: string | null
+          error_code?: string | null
+          id?: string
+          interaction_id?: string | null
+          mcp_client_id?: string | null
+          opportunity_id?: string | null
+          provider_message_id?: string | null
+          recipient_contact_id?: string | null
+          recipient_staff_id?: string | null
+          ref_number?: never
+          reply_to_email: string
+          send_started_at?: string | null
+          send_via?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: Database["hq"]["Enums"]["email_status"]
+          subject: string
+          template?: Database["hq"]["Enums"]["email_template"]
+          to_email: string
+          to_name: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_text?: string
+          created_at?: string
+          created_by?: string
+          created_via?: string
+          discarded_at?: string | null
+          discarded_by?: string | null
+          error_code?: string | null
+          id?: string
+          interaction_id?: string | null
+          mcp_client_id?: string | null
+          opportunity_id?: string | null
+          provider_message_id?: string | null
+          recipient_contact_id?: string | null
+          recipient_staff_id?: string | null
+          ref_number?: never
+          reply_to_email?: string
+          send_started_at?: string | null
+          send_via?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: Database["hq"]["Enums"]["email_status"]
+          subject?: string
+          template?: Database["hq"]["Enums"]["email_template"]
+          to_email?: string
+          to_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_drafts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_discarded_by_fkey"
+            columns: ["discarded_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "email_drafts_recipient_contact_id_fkey"
+            columns: ["recipient_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_recipient_contact_id_fkey"
+            columns: ["recipient_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_recipient_contact_id_fkey"
+            columns: ["recipient_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "email_drafts_recipient_contact_id_fkey"
+            columns: ["recipient_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "email_drafts_recipient_staff_id_fkey"
+            columns: ["recipient_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_drafts_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           applied_at: string
@@ -834,6 +1022,7 @@ export type Database = {
           interaction_type: Database["hq"]["Enums"]["interaction_type"]
           next_action: string | null
           occurred_at: string
+          opportunity_id: string | null
           organisation_id: string | null
           staff_id: string | null
           summary: string
@@ -852,6 +1041,7 @@ export type Database = {
           interaction_type: Database["hq"]["Enums"]["interaction_type"]
           next_action?: string | null
           occurred_at?: string
+          opportunity_id?: string | null
           organisation_id?: string | null
           staff_id?: string | null
           summary: string
@@ -870,6 +1060,7 @@ export type Database = {
           interaction_type?: Database["hq"]["Enums"]["interaction_type"]
           next_action?: string | null
           occurred_at?: string
+          opportunity_id?: string | null
           organisation_id?: string | null
           staff_id?: string | null
           summary?: string
@@ -920,6 +1111,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "interactions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
             foreignKeyName: "interactions_organisation_id_fkey"
             columns: ["organisation_id"]
             isOneToOne: false
@@ -956,6 +1168,143 @@ export type Database = {
           },
         ]
       }
+      managed_properties: {
+        Row: {
+          address_key: string | null
+          agreement_signed_on: string | null
+          ailo_reference: string | null
+          ailo_status: Database["hq"]["Enums"]["ailo_status"]
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          ended_on: string | null
+          fee_basis: Database["hq"]["Enums"]["fee_basis"] | null
+          fee_notes: string | null
+          fee_percent: number | null
+          id: string
+          managed_from: string | null
+          manual_origin_note: string | null
+          notes: string | null
+          opportunity_id: string | null
+          owner_contact_id: string | null
+          owner_name: string | null
+          property_address: string
+          ref_number: number
+          service_type: Database["hq"]["Enums"]["service_type"]
+          status: Database["hq"]["Enums"]["managed_status"]
+          suburb: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address_key?: string | null
+          agreement_signed_on?: string | null
+          ailo_reference?: string | null
+          ailo_status?: Database["hq"]["Enums"]["ailo_status"]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          ended_on?: string | null
+          fee_basis?: Database["hq"]["Enums"]["fee_basis"] | null
+          fee_notes?: string | null
+          fee_percent?: number | null
+          id?: string
+          managed_from?: string | null
+          manual_origin_note?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          owner_contact_id?: string | null
+          owner_name?: string | null
+          property_address: string
+          ref_number?: never
+          service_type: Database["hq"]["Enums"]["service_type"]
+          status?: Database["hq"]["Enums"]["managed_status"]
+          suburb?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address_key?: string | null
+          agreement_signed_on?: string | null
+          ailo_reference?: string | null
+          ailo_status?: Database["hq"]["Enums"]["ailo_status"]
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          ended_on?: string | null
+          fee_basis?: Database["hq"]["Enums"]["fee_basis"] | null
+          fee_notes?: string | null
+          fee_percent?: number | null
+          id?: string
+          managed_from?: string | null
+          manual_origin_note?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          owner_contact_id?: string | null
+          owner_name?: string | null
+          property_address?: string
+          ref_number?: never
+          service_type?: Database["hq"]["Enums"]["service_type"]
+          status?: Database["hq"]["Enums"]["managed_status"]
+          suburb?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "managed_properties_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
       opportunities: {
         Row: {
           assigned_to: string | null
@@ -965,16 +1314,23 @@ export type Database = {
           deleted_by: string | null
           display_number: number
           estimated_annual_value_cents: number | null
+          expected_close_date: string | null
           id: string
+          last_activity_at: string | null
           lost_reason: string | null
+          lost_reason_code: Database["hq"]["Enums"]["lost_reason"] | null
           management_reference: string | null
+          next_action: string | null
+          next_action_due: string | null
           notes: string | null
+          owner_contact_id: string | null
           property_address: string | null
           property_suburb: string | null
           prospect_email: string | null
           prospect_name: string
           prospect_phone: string | null
           signed_at: string | null
+          source: Database["hq"]["Enums"]["lead_source"]
           stage: Database["hq"]["Enums"]["opportunity_stage"]
           stage_changed_at: string
           updated_at: string
@@ -987,16 +1343,23 @@ export type Database = {
           deleted_by?: string | null
           display_number?: never
           estimated_annual_value_cents?: number | null
+          expected_close_date?: string | null
           id?: string
+          last_activity_at?: string | null
           lost_reason?: string | null
+          lost_reason_code?: Database["hq"]["Enums"]["lost_reason"] | null
           management_reference?: string | null
+          next_action?: string | null
+          next_action_due?: string | null
           notes?: string | null
+          owner_contact_id?: string | null
           property_address?: string | null
           property_suburb?: string | null
           prospect_email?: string | null
           prospect_name: string
           prospect_phone?: string | null
           signed_at?: string | null
+          source?: Database["hq"]["Enums"]["lead_source"]
           stage?: Database["hq"]["Enums"]["opportunity_stage"]
           stage_changed_at?: string
           updated_at?: string
@@ -1009,16 +1372,23 @@ export type Database = {
           deleted_by?: string | null
           display_number?: never
           estimated_annual_value_cents?: number | null
+          expected_close_date?: string | null
           id?: string
+          last_activity_at?: string | null
           lost_reason?: string | null
+          lost_reason_code?: Database["hq"]["Enums"]["lost_reason"] | null
           management_reference?: string | null
+          next_action?: string | null
+          next_action_due?: string | null
           notes?: string | null
+          owner_contact_id?: string | null
           property_address?: string | null
           property_suburb?: string | null
           prospect_email?: string | null
           prospect_name?: string
           prospect_phone?: string | null
           signed_at?: string | null
+          source?: Database["hq"]["Enums"]["lead_source"]
           stage?: Database["hq"]["Enums"]["opportunity_stage"]
           stage_changed_at?: string
           updated_at?: string
@@ -1030,6 +1400,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "staff_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
           },
         ]
       }
@@ -1068,6 +1466,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "opportunities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
           },
         ]
       }
@@ -1181,6 +1593,51 @@ export type Database = {
         }
         Relationships: []
       }
+      property_handover_steps: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          note: string | null
+          property_id: string
+          status: Database["hq"]["Enums"]["handover_step_status"]
+          step: Database["hq"]["Enums"]["handover_step"]
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          note?: string | null
+          property_id: string
+          status?: Database["hq"]["Enums"]["handover_step_status"]
+          step: Database["hq"]["Enums"]["handover_step"]
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          note?: string | null
+          property_id?: string
+          status?: Database["hq"]["Enums"]["handover_step_status"]
+          step?: Database["hq"]["Enums"]["handover_step"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_handover_steps_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "managed_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_handover_steps_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referrals: {
         Row: {
           assigned_to: string | null
@@ -1271,6 +1728,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "opportunities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "referrals_receiving_contact_id_fkey"
@@ -1611,6 +2082,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_opportunity_id_fkey"
+            columns: ["related_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
             foreignKeyName: "tasks_related_organisation_id_fkey"
             columns: ["related_organisation_id"]
             isOneToOne: false
@@ -1630,6 +2115,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "partner_performance"
             referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "tasks_related_referral_id_fkey"
+            columns: ["related_referral_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["credited_referral_id"]
           },
           {
             foreignKeyName: "tasks_related_referral_id_fkey"
@@ -1697,6 +2189,7 @@ export type Database = {
       contact_directory: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][] | null
+          contact_kind: Database["hq"]["Enums"]["contact_kind"] | null
           created_at: string | null
           email: string | null
           follow_up_overdue: boolean | null
@@ -1926,6 +2419,135 @@ export type Database = {
           },
         ]
       }
+      opportunity_overview: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_name: string | null
+          created_at: string | null
+          created_by: string | null
+          credited_ref_label: string | null
+          credited_referral_id: string | null
+          days_in_stage: number | null
+          display_number: number | null
+          estimated_annual_value_cents: number | null
+          expected_close_date: string | null
+          id: string | null
+          is_open: boolean | null
+          last_activity_at: string | null
+          lost_reason: string | null
+          lost_reason_code: Database["hq"]["Enums"]["lost_reason"] | null
+          management_reference: string | null
+          needs_attention: boolean | null
+          next_action: string | null
+          next_action_due: string | null
+          next_action_overdue: boolean | null
+          notes: string | null
+          other_claims: number | null
+          owner_contact_id: string | null
+          owner_contact_name: string | null
+          partner_contact_id: string | null
+          partner_contact_name: string | null
+          partner_organisation_id: string | null
+          partner_organisation_name: string | null
+          property_address: string | null
+          property_suburb: string | null
+          prospect_email: string | null
+          prospect_name: string | null
+          prospect_phone: string | null
+          ref: string | null
+          signed_at: string | null
+          source: Database["hq"]["Enums"]["lead_source"] | null
+          stage: Database["hq"]["Enums"]["opportunity_stage"] | null
+          stage_changed_at: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "opportunities_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["partner_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["partner_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referring_organisation_id_fkey"
+            columns: ["partner_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
       organisation_directory: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][] | null
@@ -2007,6 +2629,37 @@ export type Database = {
           },
         ]
       }
+      overdue_opportunities: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_name: string | null
+          days_overdue: number | null
+          display_number: number | null
+          last_activity_at: string | null
+          missing_next_action: boolean | null
+          missing_owner: boolean | null
+          next_action: string | null
+          next_action_due: string | null
+          opportunity_id: string | null
+          overdue: boolean | null
+          owner_inactive: boolean | null
+          property_suburb: string | null
+          prospect_name: string | null
+          reason: string | null
+          ref: string | null
+          source: Database["hq"]["Enums"]["lead_source"] | null
+          stage: Database["hq"]["Enums"]["opportunity_stage"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_performance: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][] | null
@@ -2021,6 +2674,94 @@ export type Database = {
           signed: number | null
         }
         Relationships: []
+      }
+      portfolio_overview: {
+        Row: {
+          agreement_signed_on: string | null
+          ailo_reference: string | null
+          ailo_status: Database["hq"]["Enums"]["ailo_status"] | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          ended_on: string | null
+          fee_basis: Database["hq"]["Enums"]["fee_basis"] | null
+          fee_notes: string | null
+          fee_percent: number | null
+          handover_done: number | null
+          handover_open_steps: string[] | null
+          handover_total: number | null
+          id: string | null
+          managed_from: string | null
+          manual_origin_note: string | null
+          notes: string | null
+          opportunity_id: string | null
+          opportunity_number: number | null
+          opportunity_prospect_name: string | null
+          opportunity_signed_at: string | null
+          owner_contact_id: string | null
+          owner_display_name: string | null
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          property_address: string | null
+          ref: string | null
+          ref_number: number | null
+          service_type: Database["hq"]["Enums"]["service_type"] | null
+          status: Database["hq"]["Enums"]["managed_status"] | null
+          suburb: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "managed_properties_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "managed_properties_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+        ]
       }
       referral_overview: {
         Row: {
@@ -2077,6 +2818,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "opportunities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "referrals_receiving_contact_id_fkey"
@@ -2227,6 +2982,26 @@ export type Database = {
         }
         Returns: Json
       }
+      add_existing_managed_property: {
+        Args: {
+          p_agreement_signed_on?: string
+          p_ailo_reference?: string
+          p_ailo_status?: Database["hq"]["Enums"]["ailo_status"]
+          p_fee_basis?: Database["hq"]["Enums"]["fee_basis"]
+          p_fee_notes?: string
+          p_fee_percent?: number
+          p_managed_from?: string
+          p_manual_origin_note: string
+          p_notes?: string
+          p_owner_contact_id?: string
+          p_owner_name?: string
+          p_property_address: string
+          p_service_type: Database["hq"]["Enums"]["service_type"]
+          p_status?: Database["hq"]["Enums"]["managed_status"]
+          p_suburb?: string
+        }
+        Returns: Json
+      }
       add_staff: {
         Args: {
           p_email: string
@@ -2269,10 +3044,12 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_email_draft: { Args: { p_id: string }; Returns: Json }
       archive_record: {
         Args: { p_entity: string; p_id: string; p_reason?: string }
         Returns: Json
       }
+      begin_email_send: { Args: { p_id: string; p_via: string }; Returns: Json }
       bootstrap_first_director: {
         Args: {
           p_email: string
@@ -2282,8 +3059,28 @@ export type Database = {
         }
         Returns: Json
       }
+      business_summary: { Args: never; Returns: Json }
       can: { Args: { p_capability: string }; Returns: boolean }
       contractor_summary: { Args: never; Returns: Json }
+      convert_to_managed_property: {
+        Args: {
+          p_agreement_signed_on?: string
+          p_ailo_reference?: string
+          p_fee_basis?: Database["hq"]["Enums"]["fee_basis"]
+          p_fee_notes?: string
+          p_fee_percent?: number
+          p_managed_from?: string
+          p_notes?: string
+          p_opportunity_id: string
+          p_owner_contact_id?: string
+          p_owner_name?: string
+          p_property_address?: string
+          p_service_type: Database["hq"]["Enums"]["service_type"]
+          p_status?: Database["hq"]["Enums"]["managed_status"]
+          p_suburb?: string
+        }
+        Returns: Json
+      }
       create_decision: {
         Args: {
           p_category: Database["hq"]["Enums"]["decision_category"]
@@ -2297,13 +3094,56 @@ export type Database = {
         }
         Returns: Json
       }
+      create_email_draft: {
+        Args: {
+          p_body: string
+          p_contact?: string
+          p_opportunity?: string
+          p_staff?: string
+          p_subject: string
+          p_template: Database["hq"]["Enums"]["email_template"]
+        }
+        Returns: Json
+      }
       create_expiry_tasks: { Args: never; Returns: Json }
+      create_opportunity: {
+        Args: {
+          p_assigned_to?: string
+          p_confirm_distinct?: boolean
+          p_create_contact?: boolean
+          p_estimated_annual_value_cents?: number
+          p_expected_close_date?: string
+          p_next_action?: string
+          p_next_action_due?: string
+          p_notes?: string
+          p_property_address?: string
+          p_property_suburb?: string
+          p_prospect_email?: string
+          p_prospect_name: string
+          p_prospect_phone?: string
+          p_source?: Database["hq"]["Enums"]["lead_source"]
+        }
+        Returns: Json
+      }
       create_trade: {
         Args: { p_description?: string; p_label: string }
         Returns: Json
       }
       deactivate_staff: {
         Args: { p_reason?: string; p_staff_id: string }
+        Returns: Json
+      }
+      discard_email_draft: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: Json
+      }
+      finish_email_send: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_message_id?: string
+          p_ok: boolean
+        }
         Returns: Json
       }
       global_search: {
@@ -2313,6 +3153,19 @@ export type Database = {
       growth_summary: { Args: { p_since?: string }; Returns: Json }
       link_decision_task: {
         Args: { p_decision: string; p_task: string }
+        Returns: Json
+      }
+      log_opportunity_activity: {
+        Args: {
+          p_create_task?: boolean
+          p_next_action?: string
+          p_next_action_due?: string
+          p_occurred_at?: string
+          p_opportunity: string
+          p_summary?: string
+          p_task_assignee?: string
+          p_type?: Database["hq"]["Enums"]["interaction_type"]
+        }
         Returns: Json
       }
       mark_contractor_used: {
@@ -2326,6 +3179,7 @@ export type Database = {
       move_opportunity: {
         Args: {
           p_lost_reason?: string
+          p_lost_reason_code?: Database["hq"]["Enums"]["lost_reason"]
           p_management_reference?: string
           p_note?: string
           p_opportunity: string
@@ -2421,11 +3275,24 @@ export type Database = {
         Args: { p_opportunity: string; p_referral: string }
         Returns: Json
       }
+      set_business_goal: {
+        Args: { p_date?: string; p_target: number }
+        Returns: Json
+      }
       set_contractor_status: {
         Args: {
           p_contractor: string
           p_note?: string
           p_status: Database["hq"]["Enums"]["contractor_status"]
+        }
+        Returns: Json
+      }
+      set_handover_step: {
+        Args: {
+          p_note?: string
+          p_property_id: string
+          p_status: Database["hq"]["Enums"]["handover_step_status"]
+          p_step: Database["hq"]["Enums"]["handover_step"]
         }
         Returns: Json
       }
@@ -2464,6 +3331,60 @@ export type Database = {
           p_status?: Database["hq"]["Enums"]["decision_status"]
           p_superseded_by?: string
           p_title?: string
+        }
+        Returns: Json
+      }
+      update_email_draft: {
+        Args: {
+          p_body?: string
+          p_id: string
+          p_subject?: string
+          p_template?: Database["hq"]["Enums"]["email_template"]
+        }
+        Returns: Json
+      }
+      update_managed_property: {
+        Args: {
+          p_agreement_signed_on?: string
+          p_ailo_reference?: string
+          p_ailo_status?: Database["hq"]["Enums"]["ailo_status"]
+          p_clear?: string[]
+          p_ended_on?: string
+          p_expected_updated_at?: string
+          p_fee_basis?: Database["hq"]["Enums"]["fee_basis"]
+          p_fee_notes?: string
+          p_fee_percent?: number
+          p_id: string
+          p_managed_from?: string
+          p_note?: string
+          p_notes?: string
+          p_owner_contact_id?: string
+          p_owner_name?: string
+          p_property_address?: string
+          p_service_type?: Database["hq"]["Enums"]["service_type"]
+          p_status?: Database["hq"]["Enums"]["managed_status"]
+          p_suburb?: string
+        }
+        Returns: Json
+      }
+      update_opportunity: {
+        Args: {
+          p_assigned_to?: string
+          p_clear?: string[]
+          p_estimated_annual_value_cents?: number
+          p_expected_close_date?: string
+          p_expected_updated_at?: string
+          p_next_action?: string
+          p_next_action_due?: string
+          p_notes?: string
+          p_opportunity: string
+          p_owner_contact?: string
+          p_property_address?: string
+          p_property_suburb?: string
+          p_prospect_email?: string
+          p_prospect_name?: string
+          p_prospect_phone?: string
+          p_source?: Database["hq"]["Enums"]["lead_source"]
         }
         Returns: Json
       }
@@ -2506,6 +3427,8 @@ export type Database = {
       }
     }
     Enums: {
+      ailo_status: "not_started" | "set_up" | "live"
+      contact_kind: "partner" | "landlord" | "other"
       contractor_document_type:
         | "licence"
         | "public_liability_insurance"
@@ -2541,7 +3464,31 @@ export type Database = {
         | "superseded"
         | "reversed"
       document_verification: "pending" | "verified" | "rejected"
+      email_status:
+        | "draft"
+        | "approved"
+        | "sending"
+        | "sent"
+        | "failed"
+        | "discarded"
+      email_template: "thank_you" | "follow_up" | "introduction" | "general"
       employment_status: "active" | "on_leave" | "ended"
+      fee_basis: "percent_of_rent" | "flat_fee" | "other"
+      handover_step:
+        | "owner_onboarded"
+        | "management_agreement_signed"
+        | "owner_id_verified"
+        | "bank_and_payment_details_in_ailo"
+        | "property_created_in_ailo"
+        | "owner_invited_to_ailo"
+        | "condition_report_or_inspection_scheduled"
+        | "keys_and_access_arranged"
+        | "welcome_pack_sent"
+      handover_step_status:
+        | "not_started"
+        | "in_progress"
+        | "done"
+        | "not_applicable"
       interaction_type:
         | "phone_call"
         | "coffee_meeting"
@@ -2549,6 +3496,21 @@ export type Database = {
         | "email"
         | "message"
         | "note"
+      lead_source:
+        | "website_enquiry"
+        | "referral_partner"
+        | "own_marketing"
+        | "direct_approach"
+        | "other"
+      lost_reason:
+        | "price"
+        | "chose_another_manager"
+        | "self_managing"
+        | "not_ready"
+        | "unresponsive"
+        | "out_of_area"
+        | "other"
+      managed_status: "onboarding" | "active" | "offboarding" | "ended"
       opportunity_stage:
         | "introduction_received"
         | "contacted"
@@ -2586,6 +3548,7 @@ export type Database = {
         | "acknowledged"
         | "converted"
         | "no_outcome"
+      service_type: "long_term_residential" | "short_term_accommodation"
       staff_role:
         | "director"
         | "administrator"
@@ -2745,6 +3708,8 @@ export type CompositeTypes<
 export const Constants = {
   hq: {
     Enums: {
+      ailo_status: ["not_started", "set_up", "live"],
+      contact_kind: ["partner", "landlord", "other"],
       contractor_document_type: [
         "licence",
         "public_liability_insurance",
@@ -2784,7 +3749,34 @@ export const Constants = {
         "reversed",
       ],
       document_verification: ["pending", "verified", "rejected"],
+      email_status: [
+        "draft",
+        "approved",
+        "sending",
+        "sent",
+        "failed",
+        "discarded",
+      ],
+      email_template: ["thank_you", "follow_up", "introduction", "general"],
       employment_status: ["active", "on_leave", "ended"],
+      fee_basis: ["percent_of_rent", "flat_fee", "other"],
+      handover_step: [
+        "owner_onboarded",
+        "management_agreement_signed",
+        "owner_id_verified",
+        "bank_and_payment_details_in_ailo",
+        "property_created_in_ailo",
+        "owner_invited_to_ailo",
+        "condition_report_or_inspection_scheduled",
+        "keys_and_access_arranged",
+        "welcome_pack_sent",
+      ],
+      handover_step_status: [
+        "not_started",
+        "in_progress",
+        "done",
+        "not_applicable",
+      ],
       interaction_type: [
         "phone_call",
         "coffee_meeting",
@@ -2793,6 +3785,23 @@ export const Constants = {
         "message",
         "note",
       ],
+      lead_source: [
+        "website_enquiry",
+        "referral_partner",
+        "own_marketing",
+        "direct_approach",
+        "other",
+      ],
+      lost_reason: [
+        "price",
+        "chose_another_manager",
+        "self_managing",
+        "not_ready",
+        "unresponsive",
+        "out_of_area",
+        "other",
+      ],
+      managed_status: ["onboarding", "active", "offboarding", "ended"],
       opportunity_stage: [
         "introduction_received",
         "contacted",
@@ -2834,6 +3843,7 @@ export const Constants = {
         "converted",
         "no_outcome",
       ],
+      service_type: ["long_term_residential", "short_term_accommodation"],
       staff_role: [
         "director",
         "administrator",

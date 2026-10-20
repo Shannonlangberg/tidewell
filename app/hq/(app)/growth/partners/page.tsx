@@ -98,7 +98,7 @@ export default async function ReferralPartnersPage({ searchParams }: { searchPar
       ? await organisationContacts(db, subject.id).then((r) => (r.ok ? r.data.map((c) => ({ value: c.id, label: c.fullName })) : []))
       : subject
         ? []
-        : await contactOptions(db);
+        : await contactOptions(db, 500, { partnersOnly: true });
 
   // Everything that keeps this list as it is (filters, group, sort, page), for links that come back here.
   const here = buildHref(PATH, sp, { log: null, partner: null });

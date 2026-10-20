@@ -60,3 +60,13 @@ export function followUpText(date: string | null, today: string): string | null 
   if (state.kind === "today") return "Follow up today";
   return `Follow up ${formatDay(date, today)}`;
 }
+
+/** A small "Landlord" / "Other" chip: shown only for a contact that is not a referral partner (the usual case says nothing). */
+export function KindChip({ kind, className }: { kind: "partner" | "landlord" | "other"; className?: string }) {
+  if (kind === "partner") return null;
+  return (
+    <StatusChip plain className={className} title={kind === "landlord" ? "A landlord or property owner, not a referral partner" : "Not a referral partner"}>
+      {kind === "landlord" ? "Landlord" : "Other contact"}
+    </StatusChip>
+  );
+}

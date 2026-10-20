@@ -108,6 +108,7 @@ begin
   update hq.interactions set deleted_at = now() where deleted_at is null;
   update hq.tasks set deleted_at = now() where deleted_at is null;
   update hq.referrals set deleted_at = now() where deleted_at is null;
+  update hq.managed_properties set deleted_at = now() where deleted_at is null; -- 0129: a live managed property keeps its opportunity live
   update hq.opportunities set deleted_at = now() where deleted_at is null;
   update hq.contacts set deleted_at = now() where deleted_at is null;
   update hq.organisations set deleted_at = now() where deleted_at is null;
@@ -139,6 +140,7 @@ begin
   update hq.interactions set deleted_at = now() where deleted_at is null;
   update hq.tasks set deleted_at = now() where deleted_at is null;
   update hq.referrals set deleted_at = now() where deleted_at is null;
+  update hq.managed_properties set deleted_at = now() where deleted_at is null; -- 0129: a live managed property keeps its opportunity live
   update hq.opportunities set deleted_at = now() where deleted_at is null;
   update hq.contacts set deleted_at = now() where deleted_at is null;
   update hq.organisations set deleted_at = now() where deleted_at is null;

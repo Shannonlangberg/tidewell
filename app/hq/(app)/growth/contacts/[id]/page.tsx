@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PRIORITIES, PRIORITY_LABEL, RELATIONSHIP_LABEL, RELATIONSHIP_STATUSES } from "@/lib/hq/constants";
+import { PRIORITIES, PRIORITY_LABEL, RELATIONSHIP_LABEL, RELATIONSHIP_STATUSES, STAGE_LABEL } from "@/lib/hq/constants";
 import { requireStaff } from "@/lib/hq/auth";
 import {
   firstInteractionAt,
@@ -29,7 +29,8 @@ import {
   type KeyValueItem,
 } from "@/components/hq";
 import { ArchiveButton } from "@/components/hq/features/contacts/ArchiveButton";
-import { CategoryTags, FollowUpCell, NeedsVerifyingChip } from "@/components/hq/features/contacts/Bits";
+import { CategoryTags, FollowUpCell, KindChip, NeedsVerifyingChip } from "@/components/hq/features/contacts/Bits";
+import { leadsForContact } from "@/lib/hq/leads/queries";
 import { InlineField } from "@/components/hq/features/contacts/InlineField";
 import { LogInteractionDrawer } from "@/components/hq/features/contacts/LogInteractionDrawer";
 import { MakePrimaryButton } from "@/components/hq/features/contacts/MakePrimary";
@@ -66,17 +67,21 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
   const canWrite = can("growth.write");
   const canDelete = can("growth.delete");
   const canTask = can("tasks.write");
+  const canEmail = can("email.draft") && Boolean(c.email);
   const today = todayInZone(staff.timezone);
   const tz = staff.timezone;
 
-  const [timeline, firstAt, sameOrg, referrals, tasks, staffList] = await Promise.all([
+  const partner = c.kind === "partner";
+  const [timeline, firstAt, sameOrg, referrals, tasks, staffList, leads] = await Promise.all([
     listInteractions(db, { contactId: id }),
     firstInteractionAt(db, id),
     c.organisationId ? sameOrganisationContacts(db, c.organisationId, id) : Promise.resolve(null),
     referralSummary(db, { contactId: id }),
     openTasksForContact(db, id),
     canWrite ? staffOptions(db) : Promise.resolve([]),
+    leadsForContact(db, id),
   ]);
+  const leadList = leads.ok ? leads.data : [];
 
   // ── links to the other builders' screens (see the cross-builder contract) ──
   const taskParams = new URLSearchParams({ contact: c.id, title: `Follow up with ${c.fullName}` });
@@ -200,8 +205,9 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
         }
         meta={
           <>
-            <RelationshipChip status={c.status} />
-            <PriorityChip priority={c.priority} />
+            <KindChip kind={c.kind} />
+            {partner ? <RelationshipChip status={c.status} /> : null}
+            {partner ? <PriorityChip priority={c.priority} /> : null}
             {c.needsVerification ? <NeedsVerifyingChip /> : null}
           </>
         }
@@ -222,14 +228,19 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
         }
       />
 
-      {canWrite || canDelete ? (
+      {canWrite || canDelete || canEmail ? (
         <div className="-mt-4 mb-8 flex flex-wrap items-center gap-2">
+          {canEmail ? (
+            <LinkButton href={`/hq/email/new?contact=${c.id}`} size="sm" icon="mail">
+              Draft an email
+            </LinkButton>
+          ) : null}
           {canTask ? (
             <LinkButton href={taskHref} size="sm" icon="task">
               Create follow-up task
             </LinkButton>
           ) : null}
-          {canWrite ? (
+          {canWrite && partner ? (
             <LinkButton href={referralHref} size="sm" icon="link">
               Record a referral
             </LinkButton>
@@ -309,7 +320,42 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
               addHref={canWrite ? `${BASE}/new?organisation=${c.organisationId}` : undefined}
             />
           ) : null}
-          <ReferralsBlock summary={referrals} who="this partner" recordHref={canWrite ? referralHref : undefined} />
+          {leadList.length > 0 || !partner ? (
+            <section aria-labelledby="leads-h">
+              <SectionLabel as="h2" id="leads-h" className="mb-3.5">
+                {leadList.length === 1 ? "Lead" : "Leads"}
+              </SectionLabel>
+              {!leads.ok ? (
+                <p className="hq-muted text-[14px]">The leads could not be loaded just now.</p>
+              ) : leadList.length === 0 ? (
+                <p className="hq-muted text-[14px]">
+                  Not linked to a lead.{" "}
+                  {canWrite ? (
+                    <Link href="/hq/growth/pipeline/new" className="underline underline-offset-2">
+                      Add a lead
+                    </Link>
+                  ) : null}
+                </p>
+              ) : (
+                <ul className="m-0 list-none p-0">
+                  {leadList.map((l) => (
+                    <li key={l.id} className="border-b border-line py-2.5 text-[14px]">
+                      <Link href={`/hq/growth/opportunities/${l.id}`}>
+                        {l.ref}
+                        {l.suburb ? `, ${l.suburb}` : ""}
+                      </Link>
+                      <span className="hq-muted block text-[13px]">
+                        {STAGE_LABEL[l.stage]}
+                        {l.open && l.nextAction ? ` · ${l.nextAction}` : ""}
+                        {l.open && l.nextActionDue ? ` · ${formatDate(l.nextActionDue, tz)}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
+          {partner ? <ReferralsBlock summary={referrals} who="this partner" recordHref={canWrite ? referralHref : undefined} /> : null}
           <OpenTasksBlock tasks={tasks} today={today} createHref={canTask ? taskHref : undefined} />
         </aside>
       </div>

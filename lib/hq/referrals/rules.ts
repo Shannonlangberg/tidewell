@@ -61,7 +61,7 @@ export function checkPartner(input: { contactId: string | null; organisationId: 
 
 // ── where a Server Action may send a person afterwards ───────
 
-const RETURN_PATH = /^\/hq\/growth\/(?:pipeline|referrals(?:\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?)(?:\?[A-Za-z0-9_=&%.,~+:-]{0,300})?$/i;
+const RETURN_PATH = /^\/hq\/growth\/(?:pipeline|(?:referrals|opportunities)(?:\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?)(?:\?[A-Za-z0-9_=&%.,~+:-]{0,300})?$/i;
 
 /**
  * Only the pipeline, the referral register and one referral's page are valid places to return to,

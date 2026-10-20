@@ -180,12 +180,18 @@ export type ReferralDetail = {
   createdAt: string | null;
 };
 
-/** One card on the pipeline board. */
+/** One card on the pipeline board: one lead (opportunity), however it came in. */
 export type PipelineCard = {
-  /** The attributed referral's id: the card links to its page. */
-  referralId: string;
+  /** The credited referral, when a partner introduced the lead; null for a direct lead. */
+  referralId: string | null;
+  /** The lead's reference, LEAD-0007. */
   refLabel: string;
   opportunityId: string;
+  source: string;
+  nextAction: string | null;
+  nextActionDue: string | null;
+  /** Open, and no owner, no next step or the follow-up date has passed. */
+  needsAttention: boolean;
   prospectName: string;
   propertySuburb: string | null;
   stage: Stage;

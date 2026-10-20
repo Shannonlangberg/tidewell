@@ -3538,3 +3538,168 @@
   }
 }
 /* === end Today / Reports (builder A) === */
+
+/* === Portfolio (builder B) === */
+/* Properties (/hq/portfolio), the handover progress, and "Business at a glance" on Reports and Today.
+   Hairlines, not cards; the service is a plain bordered tag (a kind, not a state, so no status dot). */
+@layer components {
+  .hq-pf-service {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--planted-border);
+    border-radius: var(--radius-button);
+    color: var(--planted-charcoal);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .hq-pf-service[data-service="short_term_accommodation"] {
+    background: var(--planted-ivory);
+  }
+  .hq-pf-progress {
+    color: var(--planted-grey-text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .hq-pf-progress[data-complete="true"] {
+    color: var(--planted-charcoal);
+    font-weight: 500;
+  }
+  /* "Actual", "Signed", "Estimate": a small uppercase label in front of each figure's hint. */
+  .hq-pf-kind {
+    display: inline-block;
+    margin-right: 4px;
+    color: var(--planted-charcoal);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .hq-pf-glance {
+    margin-top: 32px;
+  }
+  .hq-pf-glance__goal {
+    margin: 0;
+    color: var(--planted-grey-text);
+    font-size: 13px;
+  }
+  .hq-pf-glance__empty {
+    margin: 12px 0 0;
+    color: var(--planted-charcoal);
+    font-size: 15px;
+  }
+  .hq-pf-glance__pace {
+    margin: 12px 0 0;
+    max-width: 48rem;
+    color: var(--planted-grey-text);
+    font-size: 14px;
+  }
+  .hq-pf-glance__pace a,
+  .hq-pf-today__kinds a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--planted-charcoal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .hq-pf-today {
+    margin-top: 24px;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--planted-border);
+  }
+  .hq-pf-today__line {
+    margin: 6px 0 0;
+    color: var(--planted-charcoal);
+    font-size: 15px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .hq-pf-today__pace {
+    color: var(--planted-grey-text);
+    font-weight: 400;
+  }
+  .hq-pf-today__kinds {
+    margin: 2px 0 0;
+    color: var(--planted-grey-text);
+    font-size: 13px;
+  }
+}
+/* === end Portfolio (builder B) === */
+
+/* === Email (builder C) === */
+@layer components {
+  .hq-email-preview {
+    border: 1px solid var(--planted-border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--planted-ivory, #f5f1ea);
+  }
+  .hq-email-preview__frame {
+    display: block;
+    width: 100%;
+    height: 640px;
+    border: 0;
+  }
+  .hq-email-text {
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--planted-border);
+    border-radius: 6px;
+    background: var(--planted-white);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .hq-email-to {
+    padding: 14px 16px;
+    border: 1px solid var(--planted-border);
+    border-radius: 6px;
+  }
+  .hq-email-to__name {
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .hq-email-to__addr {
+    font-size: 14px;
+  }
+  .hq-email-pick {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--planted-border);
+  }
+  .hq-email-pick__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--planted-border);
+  }
+  .hq-email-pick__name {
+    display: block;
+    font-weight: 600;
+  }
+  .hq-email-pick__sub {
+    display: block;
+    font-size: 13px;
+    color: var(--planted-grey-text);
+  }
+  .hq-email-today {
+    margin-top: 24px;
+  }
+  @media (max-width: 767px) {
+    .hq-email-preview__frame {
+      height: 520px;
+    }
+    .hq-email-pick__row {
+      flex-wrap: wrap;
+    }
+  }
+}
+/* === end Email (builder C) === */

@@ -28,6 +28,32 @@ const secretImportPatterns = [
   },
 ];
 
+/**
+ * The email-provider boundary (docs/hq-setup.md, Email): SENDGRID_API_KEY is read ONLY in
+ * lib/hq/email/sendgrid.ts, and only lib/hq/email/send.ts (which sends an approved draft through
+ * begin_email_send / finish_email_send, as the signed-in person) may import that file.
+ */
+const EMAIL_PROVIDER_FILE = "lib/hq/email/sendgrid.ts";
+const EMAIL_PROVIDER_IMPORTERS = ["lib/hq/email/send.ts"];
+
+const emailProviderImportPatterns = [
+  {
+    group: ["**/email/sendgrid", "**/email/sendgrid.ts", "@/lib/hq/email/sendgrid", "./sendgrid", "./sendgrid.ts"],
+    message: "Only lib/hq/email/send.ts may import the SendGrid provider (it holds the API key). Send through sendDraft() in lib/hq/email/send.ts.",
+  },
+];
+
+const sendGridKeySyntax = [
+  {
+    selector: "MemberExpression[object.object.name='process'][object.property.name='env'][property.name='SENDGRID_API_KEY']",
+    message: "SENDGRID_API_KEY is read only in lib/hq/email/sendgrid.ts.",
+  },
+  {
+    selector: "MemberExpression[object.object.name='process'][object.property.name='env'][property.value='SENDGRID_API_KEY']",
+    message: "SENDGRID_API_KEY is read only in lib/hq/email/sendgrid.ts.",
+  },
+];
+
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -35,13 +61,26 @@ export default defineConfig([
   {
     files: ["**/*.{js,jsx,mjs,ts,tsx}"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: secretImportPatterns }],
+      "no-restricted-imports": ["error", { patterns: [...secretImportPatterns, ...emailProviderImportPatterns] }],
+      "no-restricted-syntax": ["error", ...sendGridKeySyntax],
     },
   },
   {
     files: SECRET_KEY_ALLOWED,
     rules: {
-      "no-restricted-imports": "off",
+      "no-restricted-imports": ["error", { patterns: emailProviderImportPatterns }],
+    },
+  },
+  {
+    files: EMAIL_PROVIDER_IMPORTERS,
+    rules: {
+      "no-restricted-imports": ["error", { patterns: secretImportPatterns }],
+    },
+  },
+  {
+    files: [EMAIL_PROVIDER_FILE],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
 ]);

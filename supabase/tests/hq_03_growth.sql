@@ -29,7 +29,7 @@ update hq.contacts set org_contact_role = 'primary' where id = pg_temp.fx('alice
 select throws_ok($$insert into hq.organisations (name, categories) values ('No Category Co', '{}')$$, '23514', null, 'an organisation needs at least one category');
 select throws_ok($$insert into hq.organisations (name, categories) values ('   ', '{other}')$$, '23514', null, 'a blank organisation name is refused');
 select throws_ok($$insert into hq.contacts (full_name, email) values ('Bad Email', 'not-an-email')$$, '23514', null, 'a malformed email is refused');
-select throws_ok($$insert into hq.opportunities (prospect_name, estimated_annual_value_cents) values ('Negative', -1)$$, '23514', null, 'a negative estimated value is refused');
+select throws_ok(format($$insert into hq.opportunities (prospect_name, estimated_annual_value_cents, assigned_to) values ('Negative', -1, %L)$$, pg_temp.fx('dir')), '23514', null, 'a negative estimated value is refused');
 select throws_ok($$insert into hq.interactions (summary, interaction_type) values ('Nobody', 'note')$$, '23514', null, 'an interaction must reference a contact or an organisation');
 
 -- ------------------------------------------------------------ soft deletion
@@ -246,7 +246,7 @@ select is(hq.move_opportunity(pg_temp.fx('rA_opportunity_id'), 'contacted') ->> 
 select is(hq.move_opportunity(pg_temp.fx('rA_opportunity_id'), 'qualified') ->> 'previous_stage', 'contacted', 'move_opportunity returns the previous stage');
 select throws_ok(format($$select hq.move_opportunity(%L, 'lost')$$, pg_temp.fx('rA_opportunity_id')), '22023', 'a lost opportunity needs a reason', 'lost needs a reason');
 select throws_ok(format($$select hq.move_opportunity(%L, 'lost', null, null, null, '   ')$$, pg_temp.fx('rA_opportunity_id')), '22023', null, 'a blank reason is not a reason');
-select is(hq.move_opportunity(pg_temp.fx('rA_opportunity_id'), 'lost', 'Pat went elsewhere', null, null, 'Went with another agency') ->> 'stage', 'lost', 'lost takes a reason');
+select is(hq.move_opportunity(pg_temp.fx('rA_opportunity_id'), 'lost', 'Pat went elsewhere', null, null, 'Went with another agency', 'chose_another_manager') ->> 'stage', 'lost', 'lost takes a reason');
 select pg_temp.unbecome();
 select is((select lost_reason from hq.opportunities where id = pg_temp.fx('rA_opportunity_id')), 'Went with another agency', 'the lost reason is stored');
 select pg_temp.become('bdm');
@@ -347,7 +347,7 @@ select pg_temp.become('bdm');
 select pg_temp.keep('rZ', hq.record_referral(p_direction := 'received', p_referring_organisation := pg_temp.fx('beta'), p_prospect_name := 'Zed Prospect'));
 select pg_temp.keep('rW', hq.record_referral(p_direction := 'received', p_referring_organisation := pg_temp.fx('beta'), p_prospect_name := 'Will Prospect'));
 select hq.move_opportunity(pg_temp.fx('rZ_opportunity_id'), 'qualified');
-select hq.move_opportunity(pg_temp.fx('rZ_opportunity_id'), 'lost', null, null, null, 'Not ready');
+select hq.move_opportunity(pg_temp.fx('rZ_opportunity_id'), 'lost', null, null, null, 'Not ready', 'not_ready');
 select hq.move_opportunity(pg_temp.fx('rW_opportunity_id'), 'contacted');
 select is((select qualified from hq.partner_performance where organisation_id = pg_temp.fx('beta')), 1::bigint, 'qualified counts opportunities that EVER reached qualified (the lost one), not the one still at contacted');
 select pg_temp.unbecome();

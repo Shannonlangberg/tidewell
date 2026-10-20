@@ -5,8 +5,10 @@ import { ErrorState } from "@/components/hq/EmptyState";
 import { PageHeader } from "@/components/hq/PageHeader";
 import { InlineNote, KeyValueList, SectionLabel } from "@/components/hq/Primitives";
 import { BusinessSettings } from "@/components/hq/features/people/BusinessSettings";
+import { GoalForm } from "@/components/hq/features/portfolio/GoalForm";
+import { setBusinessGoal } from "../portfolio/actions";
 import { requireStaff } from "@/lib/hq/auth";
-import { DEFAULT_TIMEZONE } from "@/lib/hq/format";
+import { DEFAULT_TIMEZONE, formatDate, todayIn } from "@/lib/hq/format";
 import { AU_TIMEZONES } from "@/lib/hq/timezones";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -29,6 +31,10 @@ export default async function SettingsPage() {
   const aiEnabled = byKey.get("ai_enabled") === true;
   const rawTz = byKey.get("timezone");
   const businessTimezone = typeof rawTz === "string" ? rawTz : DEFAULT_TIMEZONE;
+  const rawTarget = byKey.get("goal_managed_properties");
+  const goalTarget = typeof rawTarget === "number" ? rawTarget : 20;
+  const rawGoalDate = byKey.get("goal_date");
+  const goalDate = typeof rawGoalDate === "string" ? rawGoalDate : null;
   const tzLabel = AU_TIMEZONES.find((z) => z.value === businessTimezone)?.label ?? businessTimezone;
 
   return (
@@ -88,6 +94,27 @@ export default async function SettingsPage() {
             </div>
           )}
         </section>
+
+        {!settingsRes.error && (can("settings.admin") || can("portfolio.read") || can("growth.read")) ? (
+          <section aria-labelledby="goal-h" id="goal" className="max-w-xl scroll-mt-24">
+            <SectionLabel as="h2" id="goal-h" className="mb-3.5">
+              Business goal
+            </SectionLabel>
+            {can("settings.admin") ? (
+              <GoalForm action={setBusinessGoal} target={goalTarget} date={goalDate} today={todayIn(businessTimezone)} />
+            ) : (
+              <>
+                <KeyValueList
+                  items={[
+                    { label: "Managed properties", value: String(goalTarget) },
+                    { label: "By", value: goalDate ? formatDate(goalDate, staff.timezone) : "Not set yet" },
+                  ]}
+                />
+                <InlineNote className="mt-4">The goal is set by a director.</InlineNote>
+              </>
+            )}
+          </section>
+        ) : null}
 
         {can("settings.admin") || can("audit.read") ? (
           <section aria-labelledby="ai-h" className="max-w-xl">

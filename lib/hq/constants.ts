@@ -51,6 +51,11 @@ export const CAPABILITIES = [
   "ai.use",
   "decisions.read",
   "decisions.write",
+  "portfolio.read",
+  "portfolio.write",
+  // Email (0132): drafting a branded email, and approving and sending one.
+  "email.draft",
+  "email.send",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

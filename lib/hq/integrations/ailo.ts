@@ -1,99 +1,40 @@
 /*
- * PROPOSED internal interface for a future Ailo integration. NOTHING IN HERE CALLS AILO.
+ * Ailo, as HQ sees it: a REFERENCE, typed by a person. NOTHING IN HERE CALLS AILO.
  *
- * Ailo is intended to be the source of truth for property management records: properties,
- * landlords, tenancies, rent, owner payments, maintenance and inspections. Planted HQ runs
- * the company around it and does not duplicate any of that.
+ * Ailo is the system of record for property management: properties, owners, tenancies, rent, trust
+ * accounting, owner payments, maintenance and inspections. Planted HQ runs the company around it and
+ * does not duplicate any of that.
  *
  * What is known and not known:
- *  - It has NOT been confirmed that Ailo offers a public API, webhooks or an approved
- *    third-party integration route. Do not assume endpoints. Do not scrape Ailo. Do not
- *    store Ailo staff passwords or any Ailo credentials in HQ.
- *  - The method names below (readProperties, readMaintenanceJobs, ...) are THIS project's
- *    proposed internal contract. They are not Ailo API methods and imply no Ailo endpoint.
- *  - Until an authorised integration is confirmed, HQ runs independently and the only
- *    implementation is the manual workflow at the bottom of this file.
+ *  - No public Ailo API, webhooks, developer portal or approved third-party integration route is
+ *    known. Do not assume endpoints. Do not scrape Ailo. Do not store Ailo staff passwords or any
+ *    Ailo credentials in HQ. Build no sync.
+ *  - Until Ailo confirms an authorised route in writing, the only link between the two systems is the
+ *    managed-property record in HQ (hq.managed_properties, migration 0129): its ailo_reference (the
+ *    property's reference as shown in Ailo, typed by a person) and its ailo_status (not_started,
+ *    set_up, live), plus the nine-step handover checklist that gets a newly signed property set up
+ *    in Ailo by hand.
  *
- * To investigate with Ailo (a business conversation, not code): whether they offer API
- * access, webhooks, property and maintenance retrieval, landlord and tenancy data, a
- * growth/CRM route, or an approved integrations programme, and on what contractual terms.
+ * To investigate with Ailo (a business conversation, not code): whether they offer API access,
+ * webhooks or an approved integrations programme, and on what contractual terms.
  */
 
-/** Where a record came from, so a manual entry is never mistaken for synced data. */
-export type RecordSource = "manual" | "ailo";
+/** Where a value came from. Today everything is "manual": typed into HQ by a person. */
+export type RecordSource = "manual";
 
-/** The minimum HQ needs to refer to a property without owning it. Ailo holds the real record. */
+/** The minimum HQ holds to refer to a property without owning it. Ailo holds the real record. */
 export type PropertyRef = {
-  /** Planted's own identifier for the link. */
+  /** HQ's own number for the managed property, e.g. "MP-0001". */
   hqReference: string;
-  /** Ailo's identifier, once an authorised integration exists. Never invented. */
-  externalId: string | null;
+  /** The property's reference in Ailo, typed by a person; null until recorded. Never invented, never synced. */
+  ailoReference: string | null;
+  /** How far the property has been set up in Ailo, as a person recorded it. */
+  ailoStatus: "not_started" | "set_up" | "live";
   source: RecordSource;
-  /** Display only. */
+  /** Display only (the address). */
   label: string;
 };
 
-export type ManagementSummary = {
-  property: PropertyRef;
-  /** ISO date the management began, if known. */
-  managedFrom: string | null;
-};
-
-export type MaintenanceJobSummary = {
-  property: PropertyRef;
-  externalId: string | null;
-  source: RecordSource;
-  title: string;
-  status: string;
-};
-
-export type GrowthOpportunityRef = {
-  externalId: string | null;
-  source: RecordSource;
-  prospectLabel: string;
-};
-
-/** What an implementation must be able to do. All reads; HQ never writes property records. */
-export interface PropertyManagementSystem {
-  /** Which implementation this is, shown wherever data from it appears. */
-  readonly kind: "manual" | "ailo";
-  /** False until the integration is authorised and configured. Callers must check it. */
-  readonly connected: boolean;
-
-  readProperties(): Promise<PropertyRef[]>;
-  readMaintenanceJobs(): Promise<MaintenanceJobSummary[]>;
-  readManagements(): Promise<ManagementSummary[]>;
-  readGrowthOpportunities(): Promise<GrowthOpportunityRef[]>;
-  /** Record which Ailo id belongs to which HQ record, so the two can be linked. */
-  syncPropertyReferences(links: ReadonlyArray<{ hqReference: string; externalId: string }>): Promise<void>;
-}
-
-const NOT_CONNECTED =
-  "HQ is not connected to a property management system. Enter figures in HQ yourself, or connect Ailo once an authorised integration exists.";
-
-/**
- * The only implementation today. It holds nothing and says so: every read is empty and the
- * UI shows "not connected" rather than a number. Anything staff enter by hand is labelled
- * `source: "manual"`.
- */
-export const manualWorkflow: PropertyManagementSystem = {
-  kind: "manual",
-  connected: false,
-  async readProperties() {
-    return [];
-  },
-  async readMaintenanceJobs() {
-    return [];
-  },
-  async readManagements() {
-    return [];
-  },
-  async readGrowthOpportunities() {
-    return [];
-  },
-  async syncPropertyReferences() {
-    throw new Error(NOT_CONNECTED);
-  },
-};
-
-export const notConnectedMessage = NOT_CONNECTED;
+/** Shown wherever a person might expect live Ailo data in HQ. */
+export const AILO_REFERENCE_ONLY =
+  "Ailo is where rent, trust accounting and maintenance live; HQ only records the reference. HQ is not connected to Ailo.";

@@ -15,7 +15,7 @@
  *   - an ambiguous name returns candidates and changes nothing;
  *   - a note holding an instruction-like string comes back inside the labelled data block and
  *     nothing else happens.
- * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions too,
+ * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions and managed properties too,
  * through archive_record('decision'), oldest first);
  * the interactions it logs are archived too. The secret key is used only to mint sessions and is
  * never given to a tool.
@@ -51,6 +51,12 @@ const EXPECTED_TOOLS = [
   "record_contractor_review", "record_contractor_job", "set_vetting_step", "record_referral", "move_opportunity",
   // decisions
   "list_decisions", "search_decisions", "get_decision", "create_decision", "update_decision",
+  // portfolio
+  "list_managed_properties", "get_managed_property", "create_managed_property", "update_managed_property", "set_handover_step", "business_summary",
+  // leads
+  "create_opportunity", "get_opportunity", "list_opportunities", "update_opportunity", "log_opportunity_activity", "list_interactions",
+  // email
+  "list_email_drafts", "get_email_draft", "draft_email", "update_email_draft", "discard_email_draft", "send_email_draft",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -91,6 +97,24 @@ async function ctxFor(email: string): Promise<Ctx> {
 const director = await ctxFor("courtney@planted.test");
 const junior = await ctxFor("junior@planted.test");
 const readOnly = await ctxFor("readonly@planted.test");
+const assistant = await ctxFor("va@planted.test");
+
+/**
+ * The same person as `ctx`, but as a connected chat app: the session's own claims plus a client_id
+ * claim, signed with the LOCAL stack's JWT secret (requireLocal above). Supabase puts client_id only in
+ * tokens issued to an OAuth app, and the email RPCs read the channel from it (0132).
+ */
+async function asApp(ctx: Ctx, email: string): Promise<Ctx> {
+  const { SignJWT, decodeJwt } = await import("jose");
+  const s = await sessionFor(email);
+  const claims = decodeJwt(s.access_token);
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+  if (!jwtSecret) throw new Error("SUPABASE_JWT_SECRET is needed (local only) to stand in for a connected app's token");
+  const token = await new SignJWT({ ...claims, client_id: "mcp-tools-smoke-app" }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).sign(new TextEncoder().encode(jwtSecret));
+  return { ...ctx, db: asUser(token), clientId: "mcp-tools-smoke-app" };
+}
+const directorApp = await asApp(director, "courtney@planted.test");
+const assistantApp = await asApp(assistant, "va@planted.test");
 const today = todayIn(director.staff.timezone);
 const plusDays = (n: number) => new Date(Date.parse(`${today}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -107,12 +131,14 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[] };
+const created = { contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[] };
+// The email settings this run changes (restored in the cleanup).
+const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled"]);
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (35 tools, none missing, none extra)", EXPECTED_TOOLS.length === 35 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (53 tools, none missing, none extra)", EXPECTED_TOOLS.length === 53 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -458,6 +484,320 @@ try {
   const bAfter = await director.db.from("decisions").select("title").eq("id", decBId).single();
   check("read-only and junior: the decision's title is unchanged", bAfter.data?.title === `${RUN} Pricing review`, JSON.stringify(bAfter.data));
 
+  // ── 2c. the portfolio (managed properties, handover, business_summary) ──
+  const pSum0 = await call(director, "business_summary", {});
+  check("business_summary answers with labelled figures (actual / signed / estimate)", outcome(pSum0) === "ok" && /Managed \(actual/.test(pSum0.text) && /Signed \(from HQ records\)/.test(pSum0.text) && /ESTIMATE/.test(pSum0.text), pSum0.text.slice(0, 600));
+  const managedBefore = Number((pSum0.structured?.managed as { managed?: number } | null)?.managed ?? 0);
+  const pRef = await call(director, "record_referral", { direction: "received", partner_organisation: orgId, partner_contact: personId, prospect_name: `${RUN} Landlord`, property_suburb: "Moonta", estimated_annual_value: 3000 });
+  const pOppId = String(pRef.structured?.opportunity_id ?? "");
+  if (pRef.structured?.id) created.referrals.push(String(pRef.structured.id));
+  if (pOppId) created.opportunities.push(pOppId);
+  const notSigned = await call(director, "create_managed_property", { opportunity: pOppId, service_type: "long_term_residential", property_address: `${RUN} 1 Smoke Street` });
+  check("create_managed_property refuses a lead that is not signed", outcome(notSigned) === "invalid" && /signed management/.test(notSigned.text), notSigned.text);
+  // Signing stays a deliberate HQ-screen action (no tool signs); the script signs through the RPC as the director.
+  const signed = await director.db.rpc("move_opportunity", { p_opportunity: pOppId, p_stage: "management_signed", p_note: "mcp-tools-smoke" });
+  check("(setup) the director signs the lead through the RPC", !signed.error, JSON.stringify(signed.error));
+  mark = await auditMark();
+  const mp = await call(director, "create_managed_property", { opportunity: pOppId, service_type: "short_term_accommodation", property_address: `${RUN} 1 Smoke Street`, fee_percent: 12 });
+  audit = await auditSince(mark, director.staff.id);
+  const mpId = String(mp.structured?.id ?? "");
+  const mpRef = String(mp.structured?.ref ?? "");
+  if (mpId) created.managedProperties.push(mpId);
+  check("create_managed_property makes the signed lead a managed property (MP ref, link, 0 of 9)", outcome(mp) === "ok" && /^MP-\d{4,}$/.test(mpRef) && mp.text.includes(`/hq/portfolio/${mpId}`) && /0 of 9/.test(mp.text), mp.text);
+  check("  ...audited as one managed property create", audit.length === 1 && audit[0].entity_type === "managed_property" && audit[0].entity_id === mpId, auditText(audit));
+  const twice = await call(director, "create_managed_property", { opportunity: pOppId, service_type: "long_term_residential" });
+  check("create_managed_property refuses the same lead twice", outcome(twice) === "invalid" && /already a managed property/.test(twice.text), twice.text);
+  const pList = await call(director, "list_managed_properties", { query: mpRef });
+  check("list_managed_properties finds it by MP number, in a data block", outcome(pList) === "ok" && pList.text.includes(mpRef) && core.hasDataBlock(pList.text), pList.text.slice(0, 400));
+  const pGet = await call(director, "get_managed_property", { property: mpRef });
+  check("get_managed_property shows the nine steps and the Ailo reminder", outcome(pGet) === "ok" && /Welcome pack sent/.test(pGet.text) && /Ailo holds rent/.test(pGet.text), pGet.text.slice(0, 500));
+  const noDate = await call(director, "update_managed_property", { property: mpRef, status: "active" });
+  check("update_managed_property refuses active without a start date", outcome(noDate) === "invalid" && /managed_from|start/i.test(noDate.text), noDate.text);
+  const liveNoRef = await call(director, "update_managed_property", { property: mpRef, ailo_status: "live" });
+  check("update_managed_property refuses Ailo live without a reference", outcome(liveNoRef) === "invalid" && /Ailo reference/.test(liveNoRef.text), liveNoRef.text);
+  mark = await auditMark();
+  const pUpd = await call(director, "update_managed_property", { property: mpRef, status: "active", managed_from: today, ailo_reference: `${RUN}-AILO`, ailo_status: "set_up", note: "smoke" });
+  audit = await auditSince(mark, director.staff.id);
+  check("update_managed_property changes status, start date and Ailo, and says what changed", outcome(pUpd) === "ok" && /Status: Onboarding -> Active/.test(pUpd.text) && /Ailo reference/.test(pUpd.text), pUpd.text);
+  check("  ...audited as one status change", audit.length === 1 && audit[0].action === "status_change" && audit[0].entity_id === mpId, auditText(audit));
+  const pSame = await call(director, "update_managed_property", { property: mpRef, status: "active" });
+  check("update_managed_property with nothing new changes nothing", outcome(pSame) === "unchanged", pSame.text);
+  const naNoNote = await call(director, "set_handover_step", { property: mpRef, step: "keys_and_access_arranged", status: "not_applicable" });
+  check("set_handover_step refuses not applicable without a note", outcome(naNoNote) === "invalid", naNoNote.text);
+  mark = await auditMark();
+  const pStep = await call(director, "set_handover_step", { property: mpRef, step: "property_created_in_ailo", status: "done", note: INJECTION });
+  audit = await auditSince(mark, director.staff.id);
+  check("set_handover_step sets one step (1 of 9), the instruction-like note stays data", outcome(pStep) === "ok" && /1 of 9/.test(pStep.text) && core.hasDataBlock(pStep.text), pStep.text);
+  check("  ...audited as one step update under the property", audit.length === 1 && audit[0].entity_type === "property_handover_step" && audit[0].entity_id === mpId, auditText(audit));
+  const statusAfterStep = await director.db.from("managed_properties").select("status").eq("id", mpId).single();
+  check("a handover step never changes the property's status", statusAfterStep.data?.status === "active", JSON.stringify(statusAfterStep.data));
+  const pSum1 = await call(director, "business_summary", {});
+  check("business_summary counts the new managed property (+1, short-term accommodation)", Number((pSum1.structured?.managed as { managed?: number } | null)?.managed ?? -1) === managedBefore + 1, pSum1.text.slice(0, 400));
+  // restricted roles: the junior has no portfolio capability; read-only can read but not write
+  for (const [name, args] of [
+    ["list_managed_properties", {}],
+    ["create_managed_property", { opportunity: pOppId, service_type: "long_term_residential" }],
+    ["update_managed_property", { property: mpId, notes: "forged by junior" }],
+    ["set_handover_step", { property: mpId, step: "welcome_pack_sent", status: "done" }],
+    ["business_summary", {}],
+  ] as Array<[string, Record<string, unknown>]>) {
+    mark = await auditMark();
+    const r = await call(junior, name, args);
+    const fr = await forced(junior, name, args);
+    audit = await auditSince(mark, junior.staff.id);
+    check(`junior: ${name} is refused by the tool`, outcome(r) === "refused", r.text);
+    check(`junior: ${name} forced past the tool changes nothing (${outcome(fr)})`, outcome(fr) !== "ok" && audit.length === 0, `${fr.text}\n${auditText(audit)}`);
+  }
+  const roPList = await call(readOnly, "list_managed_properties", { query: mpRef });
+  check("read-only: list_managed_properties works", outcome(roPList) === "ok" && roPList.text.includes(mpRef), roPList.text.slice(0, 300));
+  for (const [name, args] of [
+    ["update_managed_property", { property: mpId, notes: "forged by read-only" }],
+    ["set_handover_step", { property: mpId, step: "welcome_pack_sent", status: "done" }],
+  ] as Array<[string, Record<string, unknown>]>) {
+    mark = await auditMark();
+    const r = await call(readOnly, name, args);
+    const fr = await forced(readOnly, name, args);
+    audit = await auditSince(mark, readOnly.staff.id);
+    check(`read-only: ${name} is refused by the tool`, outcome(r) === "refused" && /portfolio\.write/.test(r.text), r.text);
+    check(`read-only: ${name} forced past the tool is refused by the database, nothing changed (${outcome(fr)})`, outcome(fr) === "refused" && audit.length === 0, `${fr.text}\n${auditText(audit)}`);
+  }
+  const mpAfter = await director.db.from("managed_properties").select("notes").eq("id", mpId).single();
+  check("junior and read-only: the property's notes are unchanged", mpAfter.data?.notes === null, JSON.stringify(mpAfter.data));
+
+  // ── 2d. leads (direct leads, activity, the pipeline tools) ──
+  mark = await auditMark();
+  const lead = await call(director, "create_opportunity", {
+    prospect_name: `${RUN} Jane Citizen`,
+    prospect_phone: `0400 ${String(Math.floor(Math.random() * 900 + 100))} ${String(Math.floor(Math.random() * 900 + 100))}`,
+    property_suburb: "Wallaroo",
+    source: "own_marketing",
+    next_action: "Call to book an appraisal",
+    follow_up_date: plusDays(1),
+    estimated_annual_value: 3200,
+  });
+  audit = await auditSince(mark, director.staff.id);
+  const leadId = String(lead.structured?.id ?? "");
+  const leadRef = String(lead.structured?.ref ?? "");
+  const leadContact = String(lead.structured?.owner_contact_id ?? "");
+  if (leadId) created.opportunities.push(leadId);
+  if (leadContact) created.contacts.push(leadContact);
+  check("create_opportunity adds one direct lead with a LEAD number, owned by the caller", outcome(lead) === "ok" && /^LEAD-\d{4,}$/.test(leadRef) && /Owner: Courtney Langberg/.test(lead.text) && lead.text.includes(`/hq/growth/opportunities/${leadId}`), lead.text);
+  check("  ...audited as the lead and its landlord contact", audit.length === 2 && audit.some((a) => a.entity_type === "opportunity" && a.entity_id === leadId) && audit.some((a) => a.entity_type === "contact" && a.entity_id === leadContact), auditText(audit));
+  const kindRow = await director.db.from("contacts").select("contact_kind, needs_verification").eq("id", leadContact).single();
+  check("  ...the person is a landlord contact, flagged to verify", kindRow.data?.contact_kind === "landlord" && kindRow.data.needs_verification === true, JSON.stringify(kindRow.data));
+  const partnersNow = await director.db.from("referral_partner_overview").select("id").eq("id", leadContact);
+  check("  ...and never a referral partner", (partnersNow.data ?? []).length === 0, JSON.stringify(partnersNow.data));
+  mark = await auditMark();
+  const dupLead = await call(director, "create_opportunity", { prospect_name: `${RUN} Jane Citizen`, property_suburb: "wallaroo", source: "direct_approach", next_action: "Call", follow_up_date: plusDays(2) });
+  audit = await auditSince(mark, director.staff.id);
+  check("create_opportunity refuses a likely duplicate (same name in the same suburb), adds nothing, and says how to confirm", outcome(dupLead) === "unchanged" && /confirm_distinct/.test(dupLead.text) && audit.length === 0, `${dupLead.text}\n${auditText(audit)}`);
+  const partnerSource = await call(director, "create_opportunity", { prospect_name: `${RUN} Via partner`, source: "referral_partner", next_action: "Call", follow_up_date: plusDays(1) });
+  check("create_opportunity refuses source referral_partner (the schema offers only direct sources)", outcome(partnerSource) === "invalid", partnerSource.text);
+  const pastDue = await call(director, "create_opportunity", { prospect_name: `${RUN} Past`, source: "other", next_action: "Call", follow_up_date: plusDays(-1) });
+  check("create_opportunity refuses a follow-up date in the past (form validator)", outcome(pastDue) === "invalid" && /today or a later date/.test(pastDue.text), pastDue.text);
+  const gl = await call(director, "get_opportunity", { opportunity: leadRef });
+  check("get_opportunity by LEAD number shows the next step, source and link in a data block", outcome(gl) === "ok" && /Next action: Call to book an appraisal/.test(gl.text) && /Our own marketing/.test(gl.text) && core.hasDataBlock(gl.text), gl.text.slice(0, 600));
+  const ll = await call(director, "list_opportunities", { query: RUN, source: "own_marketing" });
+  check("list_opportunities finds it by words and source", outcome(ll) === "ok" && ll.text.includes(leadRef), ll.text.slice(0, 400));
+  mark = await auditMark();
+  const ul = await call(director, "update_opportunity", { opportunity: leadId, next_action: "Do the appraisal", follow_up_date: plusDays(5), expected_close_date: plusDays(30), add_note: "Owner prefers mornings." });
+  audit = await auditSince(mark, director.staff.id);
+  check("update_opportunity changes the next step, dates and appends a note, and says what changed", outcome(ul) === "ok" && /Next action: Call to book an appraisal -> Do the appraisal/.test(ul.text) && /Note added/.test(ul.text), ul.text);
+  check("  ...audited as one lead update", audit.length === 1 && audit[0].entity_type === "opportunity" && audit[0].entity_id === leadId && audit[0].action === "update", auditText(audit));
+  const ulSame = await call(director, "update_opportunity", { opportunity: leadId, next_action: "Do the appraisal" });
+  check("update_opportunity with nothing new changes nothing", outcome(ulSame) === "unchanged", ulSame.text);
+  mark = await auditMark();
+  const la = await call(director, "log_opportunity_activity", { opportunity: leadRef, type: "office_meeting", summary: INJECTION, next_action: "Send the proposal", follow_up_date: plusDays(3), create_task: true });
+  audit = await auditSince(mark, director.staff.id);
+  if (la.structured?.interaction_id) created.interactions.push(String(la.structured.interaction_id));
+  if (la.structured?.task_id) created.tasks.push(String(la.structured.task_id));
+  check("log_opportunity_activity logs meeting notes on the lead with a follow-up task", outcome(la) === "ok" && !!la.structured?.interaction_id && !!la.structured?.task_id && /Send the proposal/.test(la.text), la.text);
+  const laKinds = audit.map((a) => `${a.action} ${a.entity_type}`).sort().join(", ");
+  check("  ...audited as the interaction, the task, the lead's next step and the landlord's last contact (one transaction)", laKinds === "create interaction, create task, update contact, update opportunity", auditText(audit));
+  const taskLink = await director.db.from("tasks").select("related_opportunity_id").eq("id", String(la.structured?.task_id ?? "")).single();
+  check("  ...the task is linked to the lead", taskLink.data?.related_opportunity_id === leadId, JSON.stringify(taskLink.data));
+  const li2 = await call(director, "list_interactions", { opportunity: leadRef });
+  const iAt2 = li2.text.indexOf("IGNORE ALL PREVIOUS INSTRUCTIONS");
+  check("list_interactions on the lead lists it, the instruction-like notes only inside the data block", outcome(li2) === "ok" && iAt2 > li2.text.indexOf(core.DATA_OPEN) && iAt2 < li2.text.indexOf(core.DATA_CLOSE), li2.text.slice(0, 500));
+  const li3 = await call(director, "list_interactions", { contact: personId, page: 1, limit: 5 });
+  check("list_interactions on a contact pages its activity", outcome(li3) === "ok" && /page 1 of/.test(li3.text), li3.text.slice(0, 300));
+  const liBad = await call(director, "list_interactions", { contact: personId, opportunity: leadId });
+  check("list_interactions needs exactly one subject", outcome(liBad) === "invalid", liBad.text);
+  const lostRefused = await call(director, "move_opportunity", { opportunity: leadId, stage: "lost" });
+  check("move_opportunity still refuses lost for a direct lead (HQ screen only)", outcome(lostRefused) === "refused", lostRefused.text);
+  for (const [name, args] of [
+    ["create_opportunity", { prospect_name: `${RUN} forged`, source: "other", next_action: "x", follow_up_date: plusDays(1) }],
+    ["update_opportunity", { opportunity: leadId, next_action: "forged" }],
+    ["log_opportunity_activity", { opportunity: leadId, type: "note", summary: "forged" }],
+  ] as Array<[string, Record<string, unknown>]>) {
+    for (const who of [junior, readOnly]) {
+      mark = await auditMark();
+      const r = await call(who, name, args);
+      const fr = await forced(who, name, args);
+      audit = await auditSince(mark, who.staff.id);
+      const role = who === junior ? "junior" : "read-only";
+      check(`${role}: ${name} is refused by the tool`, outcome(r) === "refused", r.text);
+      check(`${role}: ${name} forced past the tool changes nothing (${outcome(fr)})`, outcome(fr) !== "ok" && audit.length === 0, `${fr.text}\n${auditText(audit)}`);
+    }
+  }
+  const jLeads = await forced(junior, "list_opportunities", {});
+  check("junior: list_opportunities forced past the tool shows no lead", ["empty", "refused"].includes(outcome(jLeads)) && !jLeads.text.includes(leadId), jLeads.text.slice(0, 200));
+  const roLeads = await call(readOnly, "list_opportunities", { query: RUN });
+  check("read-only: list_opportunities works", outcome(roLeads) === "ok" && roLeads.text.includes(leadRef), roLeads.text.slice(0, 200));
+  const leadAfter = await director.db.from("opportunities").select("next_action").eq("id", leadId).single();
+  check("junior and read-only: the lead's next action is unchanged", leadAfter.data?.next_action === "Send the proposal", JSON.stringify(leadAfter.data));
+
+  // ── 2e. email (draft, approve in HQ, send; the fake provider: nothing leaves this machine) ──
+  const { toolsFor } = (await import("../../lib/hq/mcp/tools/index.ts")) as unknown as { toolsFor: (c: readonly string[]) => Tool[] };
+  const EMAIL_TOOLS = ["list_email_drafts", "get_email_draft", "draft_email", "update_email_draft", "discard_email_draft", "send_email_draft"];
+  const listed = (ctx: Ctx) => toolsFor(ctx.staff.capabilities).map((t) => t.name).filter((n) => EMAIL_TOOLS.includes(n)).sort().join(",");
+  check("director: all six email tools are listed", listed(director) === [...EMAIL_TOOLS].sort().join(","), listed(director));
+  check("virtual assistant: the five drafting tools, not send_email_draft", listed(assistant) === EMAIL_TOOLS.filter((n) => n !== "send_email_draft").sort().join(","), listed(assistant));
+  check("junior and read-only: no email tool is listed", listed(junior) === "" && listed(readOnly) === "", `${listed(junior)} | ${listed(readOnly)}`);
+
+  const mailbox = `mcp-smoke-${RUN.slice(-8)}@example.test`;
+  const tim = await call(director, "create_contact", { full_name: `${RUN} Tim Email`, categories: ["real_estate_sales"], email: mailbox });
+  const timId = String(tim.structured?.id ?? "");
+  if (timId) created.contacts.push(timId);
+  const noMail = await call(director, "create_contact", { full_name: `${RUN} Nora Nomail`, categories: ["lawyer"] });
+  const noMailId = String(noMail.structured?.id ?? "");
+  if (noMailId) created.contacts.push(noMailId);
+  check("email: two test contacts (one with an address, one without)", !!timId && !!noMailId, `${tim.text}\n${noMail.text}`);
+
+  mark = await auditMark();
+  const d1 = await call(directorApp, "draft_email", {
+    recipient: `${RUN} Tim Email`,
+    template: "thank_you",
+    subject: "Thank you for meeting me today",
+    body: `Hi Tim,\n\nThank you for meeting me today about referring landlords.\n\n${INJECTION}`,
+  });
+  exercised.add("draft_email");
+  audit = await auditSince(mark, director.staff.id);
+  const d1Id = String(d1.structured?.id ?? "");
+  const d1Ref = String(d1.structured?.ref ?? "");
+  if (d1Id) created.emails.push(d1Id);
+  check(
+    "draft_email (as a connected app) drafts ONE email, says it is not sent, links it, and previews the branded signature and footer",
+    outcome(d1) === "ok" && /^EML-\d{4,}$/.test(d1Ref) && d1.text.includes("Not sent. It needs approval: open it in HQ and tap Approve and send") && d1.text.includes(`/hq/email/${d1Id}`) && d1.text.includes("PLANTED. Property Management") && /reply with the word unsubscribe/.test(d1.text),
+    d1.text,
+  );
+  const injAt = d1.text.indexOf("IGNORE ALL PREVIOUS INSTRUCTIONS");
+  check("  ...the message (with an instruction-like line) comes back only inside the data block", injAt > d1.text.indexOf(core.DATA_OPEN) && injAt < d1.text.indexOf(core.DATA_CLOSE), d1.text.slice(0, 400));
+  check("  ...audited as one email_draft create", audit.length === 1 && audit[0].entity_type === "email_draft" && audit[0].action === "create" && audit[0].entity_id === d1Id, auditText(audit));
+  const d1Row = await director.db.from("email_drafts").select("to_email, created_via, mcp_client_id, status, reply_to_email").eq("id", d1Id).single();
+  check("  ...to the address on the record, marked as made through the app, Reply-To the drafter", d1Row.data?.to_email === mailbox && d1Row.data?.created_via === "mcp" && d1Row.data?.mcp_client_id === "mcp-tools-smoke-app" && d1Row.data?.reply_to_email === "courtney@planted.test" && d1Row.data?.status === "draft", JSON.stringify(d1Row.data));
+
+  const noAddr = await call(director, "draft_email", { recipient: noMailId ? `contact:${noMailId}` : "x", template: "general", subject: "Hi", body: "Hi" });
+  check("draft_email refuses a contact with no email on record", outcome(noAddr) === "invalid" && /no email address on record/.test(noAddr.text), noAddr.text);
+  const typed = await call(director, "draft_email", { recipient: "someone@elsewhere.test", template: "general", subject: "Hi", body: "Hi" });
+  check("draft_email refuses a typed address (records only)", outcome(typed) === "invalid" && /already holds an address for/.test(typed.text), typed.text);
+  const vague = await call(director, "draft_email", { recipient: RUN, template: "general", subject: "Hi", body: "Hi" });
+  check("draft_email with a name matching several people returns candidates and drafts nothing", outcome(vague) === "ambiguous" && Array.isArray(vague.structured?.candidates), vague.text.slice(0, 300));
+
+  const g1 = await call(director, "get_email_draft", { draft: d1Ref });
+  check("get_email_draft by EML number shows the recipient, status and full preview", outcome(g1) === "ok" && g1.text.includes(mailbox) && /Waiting for approval/.test(g1.text) && /Thank you for meeting me today about referring landlords/.test(g1.text) && core.hasDataBlock(g1.text), g1.text.slice(0, 500));
+  const l1 = await call(director, "list_email_drafts", {});
+  check("list_email_drafts lists it as waiting", outcome(l1) === "ok" && l1.text.includes(d1Ref), l1.text.slice(0, 300));
+  mark = await auditMark();
+  const u1 = await call(director, "update_email_draft", { draft: d1Ref, subject: "Thank you for your time today" });
+  audit = await auditSince(mark, director.staff.id);
+  check("update_email_draft changes the subject of a waiting draft (one audit row)", outcome(u1) === "ok" && /changed subject/.test(u1.text) && audit.length === 1 && audit[0].action === "update", `${u1.text}\n${auditText(audit)}`);
+
+  // sending: refused until approved in HQ
+  const s0 = await call(directorApp, "send_email_draft", { draft: d1Ref });
+  exercised.add("send_email_draft");
+  check("send_email_draft refuses an unapproved draft (chat sending off)", outcome(s0) === "refused" && /has not been approved/.test(s0.text), s0.text);
+  const s0b = await call(directorApp, "send_email_draft", { draft: d1Ref, confirm_recipient_email: mailbox });
+  const st0 = await director.db.from("email_drafts").select("status").eq("id", d1Id).single();
+  check("  ...even with the address confirmed: the database refuses while chat sending is off, nothing sent", outcome(s0b) === "refused" && /tap Approve and send/.test(s0b.text) && st0.data?.status === "draft", s0b.text);
+  const appApprove = await directorApp.db.rpc("approve_email_draft", { p_id: d1Id });
+  check("a connected app cannot approve (the database refuses)", appApprove.error?.code === "42501", JSON.stringify(appApprove.error));
+  const approve = await director.db.rpc("approve_email_draft", { p_id: d1Id });
+  check("the director approves it in HQ (a browser session)", !approve.error, JSON.stringify(approve.error));
+  mark = await auditMark();
+  const s1 = await call(directorApp, "send_email_draft", { draft: d1Ref });
+  audit = await auditSince(mark, director.staff.id);
+  check(
+    "send_email_draft sends the APPROVED draft and says exactly what went where",
+    outcome(s1) === "ok" && /^Sent email EML-/.test(s1.text) && s1.text.includes(`To: ${RUN} Tim Email <${mailbox}>`) && s1.text.includes("From: PLANTED. HQ <hq@plantedproperty.com.au>") && s1.text.includes("Replies go to: courtney@planted.test"),
+    s1.text,
+  );
+  check("  ...audited as send_start, sent and the contact's email interaction", audit.some((a) => a.action === "send_start") && audit.some((a) => a.action === "sent") && audit.some((a) => a.entity_type === "interaction" && a.action === "create"), auditText(audit));
+  const sentRow = await director.db.from("email_drafts").select("status, send_via, provider_message_id, interaction_id").eq("id", d1Id).single();
+  check("  ...status sent, through chat, with a fake message id (no real email)", sentRow.data?.status === "sent" && sentRow.data.send_via === "chat" && /^fake-/.test(sentRow.data.provider_message_id ?? ""), JSON.stringify(sentRow.data));
+  if (sentRow.data?.interaction_id) created.interactions.push(sentRow.data.interaction_id);
+  const timeline = await director.db.from("interactions").select("interaction_type, summary").eq("id", sentRow.data?.interaction_id ?? "").single();
+  check("  ...and on the contact's timeline: Email sent: <subject>", timeline.data?.interaction_type === "email" && timeline.data.summary === "Email sent: Thank you for your time today", JSON.stringify(timeline.data));
+  const { readFileSync, existsSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const outbox = `${process.env.HQ_EMAIL_OUTBOX_DIR || `${tmpdir()}/planted-hq-email-outbox`}/${sentRow.data?.provider_message_id}.json`;
+  const outboxOk = existsSync(outbox) && (JSON.parse(readFileSync(outbox, "utf8")) as { to: { email: string } }).to.email === mailbox;
+  check("  ...the fake provider wrote it to the local outbox", outboxOk, outbox);
+  const s2 = await call(directorApp, "send_email_draft", { draft: d1Ref });
+  check("sending it again is refused (already sent)", outcome(s2) === "unchanged" && /already sent/.test(s2.text), s2.text);
+  const forcedTwice = await directorApp.db.rpc("begin_email_send", { p_id: d1Id, p_via: "chat" });
+  check("  ...and the database refuses a second begin (no double send)", forcedTwice.error?.code === "22023", JSON.stringify(forcedTwice.error));
+
+  // chat-send mode (a director's setting): an unapproved draft this app made in the last 30 minutes, with the address confirmed
+  await director.db.from("settings").update({ value: true }).eq("key", "email_chat_send_enabled");
+  const d2 = await call(directorApp, "draft_email", { recipient: `contact:${timId}`, template: "follow_up", subject: "Following up", body: "Hi Tim,\n\nFollowing up on our chat." });
+  const d2Id = String(d2.structured?.id ?? "");
+  const d2Ref = String(d2.structured?.ref ?? "");
+  if (d2Id) created.emails.push(d2Id);
+  check("chat-send on: draft_email says it can be sent from chat after confirming the address", outcome(d2) === "ok" && /confirm_recipient_email/.test(d2.text), d2.text);
+  const wrong = await call(directorApp, "send_email_draft", { draft: d2Ref, confirm_recipient_email: "other@example.test" });
+  check("chat-send on: a confirm address that is not the draft's is refused, nothing sent", outcome(wrong) === "refused" && /does not match/.test(wrong.text), wrong.text);
+  const right = await call(directorApp, "send_email_draft", { draft: d2Ref, confirm_recipient_email: mailbox.toUpperCase() });
+  check("chat-send on: with the address confirmed, the unapproved chat draft is sent", outcome(right) === "ok" && /^Sent email/.test(right.text), right.text);
+  const d3 = await call(director, "draft_email", { recipient: `contact:${timId}`, template: "general", subject: "Made in HQ", body: "Hi Tim." });
+  const d3Id = String(d3.structured?.id ?? "");
+  if (d3Id) created.emails.push(d3Id);
+  const d3send = await call(directorApp, "send_email_draft", { draft: String(d3.structured?.ref ?? ""), confirm_recipient_email: mailbox });
+  check("chat-send on: a draft NOT made through this app still needs approval", outcome(d3send) === "refused", d3send.text);
+  await director.db.from("settings").update({ value: false }).eq("key", "email_chat_send_enabled");
+
+  // the daily limit
+  await director.db.from("settings").update({ value: 1 }).eq("key", "email_daily_limit");
+  await director.db.rpc("approve_email_draft", { p_id: d3Id });
+  const capped = await call(directorApp, "send_email_draft", { draft: d3Id });
+  const d3After = await director.db.from("email_drafts").select("status").eq("id", d3Id).single();
+  check("over the daily limit: refused, nothing sent, still approved", outcome(capped) === "invalid" && /daily email limit reached/i.test(capped.text) && d3After.data?.status === "approved", capped.text);
+  await director.db.from("settings").update({ value: 20 }).eq("key", "email_daily_limit");
+
+  // someone else's draft, and roles without email.send
+  const vaDraft = await call(assistantApp, "draft_email", { recipient: `contact:${timId}`, template: "introduction", subject: "Introducing us", body: "Hi Tim." });
+  const vaId = String(vaDraft.structured?.id ?? "");
+  if (vaId) created.emails.push(vaId);
+  check("virtual assistant: draft_email works (email.draft)", outcome(vaDraft) === "ok" && /ask a director, an administrator or a business development manager/.test(vaDraft.text), vaDraft.text);
+  const vaSend = await call(assistantApp, "send_email_draft", { draft: vaId });
+  const vaForced = await forced(assistantApp, "send_email_draft", { draft: vaId });
+  check("virtual assistant: send_email_draft is refused by the tool (no email.send)", outcome(vaSend) === "refused" && /email\.send/.test(vaSend.text), vaSend.text);
+  check("  ...and forced past the tool, the database refuses it", outcome(vaForced) === "refused", vaForced.text);
+  const vaSees = await call(assistant, "get_email_draft", { draft: d1Ref });
+  check("virtual assistant: someone else's email is not found", outcome(vaSees) === "not_found", vaSees.text);
+  const vaEdit = await forced(assistant, "update_email_draft", { draft: d3Id, subject: "forged" });
+  check("virtual assistant: editing someone else's draft (forced) changes nothing", outcome(vaEdit) !== "ok", vaEdit.text);
+  const dirOther = await call(directorApp, "send_email_draft", { draft: vaId, confirm_recipient_email: mailbox });
+  check("director: someone else's unapproved draft cannot be sent from chat", outcome(dirOther) === "refused", dirOther.text);
+  for (const who of [junior, readOnly]) {
+    const role = who === junior ? "junior" : "read-only";
+    mark = await auditMark();
+    const r = await call(who, "draft_email", { recipient: `contact:${timId}`, template: "general", subject: "forged", body: "forged" });
+    const fr = await forced(who, "draft_email", { recipient: `contact:${timId}`, template: "general", subject: "forged", body: "forged" });
+    const fl = await forced(who, "list_email_drafts", { status: "all" });
+    audit = await auditSince(mark, who.staff.id);
+    check(`${role}: draft_email is refused by the tool`, outcome(r) === "refused" && /email\.draft/.test(r.text), r.text);
+    check(`${role}: draft_email forced past the tool drafts nothing (${outcome(fr)})`, outcome(fr) !== "ok" && audit.length === 0, `${fr.text}\n${auditText(audit)}`);
+    check(`${role}: list_email_drafts forced shows nothing`, outcome(fl) === "empty" || outcome(fl) === "refused", fl.text.slice(0, 200));
+  }
+
+  mark = await auditMark();
+  const disc = await call(director, "discard_email_draft", { draft: d3Id, reason: "smoke test" });
+  audit = await auditSince(mark, director.staff.id);
+  check("discard_email_draft discards an unsent email (one audit row) and it cannot be sent", outcome(disc) === "ok" && audit.length === 1 && audit[0].action === "discard", `${disc.text}\n${auditText(audit)}`);
+  const ls = await call(director, "list_email_drafts", { status: "sent" });
+  check("list_email_drafts status sent shows the sent ones", outcome(ls) === "ok" && ls.text.includes(d1Ref) && ls.text.includes(d2Ref), ls.text.slice(0, 300));
+
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
   const jWrites: Array<[string, Record<string, unknown>]> = [
@@ -542,11 +882,22 @@ try {
       if (error) console.log(`cleanup: could not archive ${entity} ${id} (${error.code})`);
     }
   };
+  // emails: an unsent one is discarded (an email is never deleted); then the email settings go back
+  for (const id of created.emails) {
+    const { data } = await director.db.from("email_drafts").select("status").eq("id", id).maybeSingle();
+    if (data && !["sent", "discarded", "sending"].includes(data.status)) {
+      const { error } = await director.db.rpc("discard_email_draft", { p_id: id, p_reason: "mcp-tools-smoke cleanup" });
+      if (error) console.log(`cleanup: could not discard email ${id} (${error.code})`);
+    }
+  }
+  for (const s of emailSettingsBefore.data ?? []) await director.db.from("settings").update({ value: s.value }).eq("key", s.key);
   // decisions first, in the order created (a decision another one is superseded by is archived after it)
   await archive("decision", created.decisions);
   await archive("interaction", created.interactions);
   await archive("task", created.tasks);
   await archive("referral", created.referrals);
+  // a live managed property keeps its lead live, so the properties go first
+  await archive("managed_property", created.managedProperties);
   await archive("opportunity", created.opportunities);
   await archive("contractor_review", created.reviews);
   await archive("contractor", created.contractors);

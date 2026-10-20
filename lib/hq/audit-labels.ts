@@ -29,6 +29,9 @@ export const ENTITY_LABEL: Record<string, string> = {
   trade: "Trade",
   ai_request: "Connected app call",
   decision: "Decision",
+  managed_property: "Managed property",
+  property_handover_step: "Handover step",
+  email_draft: "Email",
 };
 
 export const ACTION_LABEL: Record<string, string> = {
@@ -58,6 +61,10 @@ export const ACTION_LABEL: Record<string, string> = {
   expiry_tasks: "Reminder tasks created",
   ai_begin: "Call started",
   ai_finish: "Call finished",
+  discard: "Discarded",
+  send_start: "Sending started",
+  sent: "Sent",
+  send_failed: "Not sent",
 };
 
 const fallback = (s: string) => {

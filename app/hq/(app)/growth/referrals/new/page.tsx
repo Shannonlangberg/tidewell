@@ -21,7 +21,7 @@ export default async function NewReferralPage({ searchParams }: { searchParams: 
 
   const [organisations, contacts, staffList, opportunities] = await Promise.all([
     organisationOptions(db),
-    contactOptions(db),
+    contactOptions(db, 500, { partnersOnly: true }),
     staffOptions(db),
     existingOpportunityChoices(db, (stage) => STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage),
   ]);

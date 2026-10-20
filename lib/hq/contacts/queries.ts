@@ -77,6 +77,7 @@ export async function listContacts(db: HqClient, query: ContactListQuery, ctx: L
       q = q.neq("relationship_status", "inactive").or(`last_contact_at.is.null,last_contact_at.lt.${staleCutoff(query.staleDays, now)}`);
     }
     if (query.verify) q = q.eq("needs_verification", query.verify === "needs");
+    if (query.kind !== "all") q = q.eq("contact_kind", query.kind);
 
     // Sort by the chosen column, then by id so two rows that tie never swap places between pages.
     q = q
@@ -108,9 +109,12 @@ export async function listContacts(db: HqClient, query: ContactListQuery, ctx: L
 export type ContactCounts = { total: number; needsVerification: number; overdue: number; notContacted30: number };
 
 /** The figures above the list: real counts of live contacts, none invented. */
-export async function contactCounts(db: HqClient, now: Date = new Date()): Promise<Loaded<ContactCounts>> {
+export async function contactCounts(db: HqClient, now: Date = new Date(), kind: ContactListQuery["kind"] = "partner"): Promise<Loaded<ContactCounts>> {
   const count = (build: (q: ReturnType<typeof base>) => ReturnType<typeof base>) => build(base());
-  const base = () => db.from("contact_directory").select("id", { count: "exact", head: true });
+  const base = () => {
+    const q = db.from("contact_directory").select("id", { count: "exact", head: true });
+    return kind === "all" ? q : q.eq("contact_kind", kind);
+  };
   const [total, needs, overdue, stale] = await Promise.all([
     count((q) => q),
     count((q) => q.eq("needs_verification", true)),
@@ -193,11 +197,11 @@ export const TIMELINE_LIMIT = 30;
 /** Newest first. `limit + 1` rows are read so the page can say "showing the latest N" honestly. */
 export async function listInteractions(
   db: HqClient,
-  scope: { contactId: string } | { organisationId: string },
+  scope: { contactId: string } | { organisationId: string } | { opportunityId: string },
   limit: number = TIMELINE_LIMIT,
 ): Promise<Loaded<{ items: InteractionItem[]; more: boolean }>> {
   let q = db.from("interactions").select(INTERACTION_SELECT).is("deleted_at", null);
-  q = "contactId" in scope ? q.eq("contact_id", scope.contactId) : q.eq("organisation_id", scope.organisationId);
+  q = "contactId" in scope ? q.eq("contact_id", scope.contactId) : "organisationId" in scope ? q.eq("organisation_id", scope.organisationId) : q.eq("opportunity_id", scope.opportunityId);
   const { data, error } = await q.order("occurred_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1);
   if (error) {
     console.error("[hq] listInteractions failed:", logTag(error));

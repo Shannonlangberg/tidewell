@@ -312,8 +312,8 @@ export function resolveTask(ctx: ToolContext, query: string, mode: "read" | "wri
 }
 
 /**
- * A prospect in the pipeline: an opportunity id, a referral number ("REF-0007"), or the prospect's
- * name (live opportunities only).
+ * A prospect (lead) in the pipeline: an opportunity id, a lead number ("LEAD-0007"), a referral
+ * number ("REF-0007"), or the prospect's name (live opportunities only).
  */
 export async function resolveOpportunity(ctx: ToolContext, query: string, mode: "read" | "write"): Promise<Resolved> {
   type R = { id: string; prospect_name: string | null; stage: string; display_number: number; property_suburb: string | null };
@@ -321,6 +321,11 @@ export async function resolveOpportunity(ctx: ToolContext, query: string, mode: 
   const toCandidates = (list: R[]) =>
     list.map((r) => ({ id: r.id, label: r.prospect_name ?? `Opportunity ${r.display_number}`, detail: [r.stage.replace(/_/g, " "), r.property_suburb].filter(Boolean).join(", ") }));
   const live = () => ctx.db.from("opportunities").select(COLS).is("deleted_at", null);
+  const leadMatch = /^lead[-\s]?0*(\d{1,9})$/i.exec(query.trim());
+  if (leadMatch) {
+    const hit = toCandidates(await rows("opportunity by lead number", live().eq("display_number", Number(leadMatch[1])).limit(1)))[0];
+    return hit ? { ok: true, record: hit, how: "id", note: null } : { ok: false, result: result("not_found", notFoundText("lead", query)) };
+  }
   const refMatch = /^ref[-\s]?0*(\d{1,9})$/i.exec(query.trim());
   if (refMatch) {
     const ref = await rows("referral by number", ctx.db.from("referral_overview").select("opportunity_id").eq("ref_number", Number(refMatch[1])).limit(1));

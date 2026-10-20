@@ -34,8 +34,12 @@ export const HQ_ROUTES = {
   people: `${HQ_BASE}/people`,
   /** Figures and trends: referral figures, partner performance, contractor coverage. */
   reports: `${HQ_BASE}/reports`,
+  /** Managed properties (the light HQ record and Ailo handover checklist; Ailo holds the rest). */
+  portfolio: `${HQ_BASE}/portfolio`,
   /** The Business Decisions Register: what was decided, why, and whether it still stands. */
   decisions: `${HQ_BASE}/decisions`,
+  /** Branded emails: drafts waiting for approval, sent, and not sent. */
+  email: `${HQ_BASE}/email`,
   /** Old address of Reports; redirects there. */
   insights: `${HQ_BASE}/insights`,
   settings: `${HQ_BASE}/settings`,
@@ -70,7 +74,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "partners" | "operations" | "people" | "reports" | "decisions" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "portfolio" | "partners" | "operations" | "people" | "reports" | "decisions" | "email" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -93,11 +97,13 @@ export type NavItem = {
 export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "dashboard", label: "Today", href: HQ_ROUTES.dashboard, icon: "dashboard", mobile: "tab" },
   { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", requires: "growth.read", mobile: "tab" },
+  { key: "portfolio", label: "Properties", href: HQ_ROUTES.portfolio, icon: "building", requires: "portfolio.read", mobile: "more" },
   { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", mobile: "tab" },
   { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", mobile: "more" },
   { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
   { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },
   { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", mobile: "more" },
+  { key: "email", label: "Email", href: HQ_ROUTES.email, icon: "mail", requires: "email.draft", mobile: "more" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */

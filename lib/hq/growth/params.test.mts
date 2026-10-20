@@ -96,6 +96,14 @@ test("contacts: defaults, with nothing filtered", () => {
   assert.equal(q.filtered, false);
   assert.equal(q.category, null);
   assert.equal(q.owner, null);
+  assert.equal(q.kind, "partner", "the contacts list shows partner contacts unless asked");
+});
+
+test("contacts: the kind filter (partner by default, landlord, other or all)", () => {
+  assert.equal(parseContactListParams({ kind: "landlord" }, VOCAB).kind, "landlord");
+  assert.equal(parseContactListParams({ kind: "all" }, VOCAB).kind, "all");
+  assert.equal(parseContactListParams({ kind: "landlord" }, VOCAB).filtered, true);
+  assert.equal(parseContactListParams({ kind: "tenant" }, VOCAB).kind, "partner");
 });
 
 test("contacts: valid filters are kept and counted as filtering", () => {

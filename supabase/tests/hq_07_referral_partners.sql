@@ -127,7 +127,7 @@ select pg_temp.keep('rI', hq.record_referral(p_direction := 'received', p_referr
 select pg_temp.keep('rI2', hq.record_referral(p_direction := 'received', p_referring_contact := pg_temp.fx('ivy'), p_prospect_name := 'Lost Prospect'));
 select hq.move_opportunity(pg_temp.fx('rI_opportunity_id'), 'management_signed', null, now(), 'PM-7003');
 select hq.move_opportunity(pg_temp.fx('rI2_opportunity_id'), 'qualified');
-select hq.move_opportunity(pg_temp.fx('rI2_opportunity_id'), 'lost', null, null, null, 'Sold instead');
+select hq.move_opportunity(pg_temp.fx('rI2_opportunity_id'), 'lost', null, null, null, 'Sold instead', 'other');
 select pg_temp.keep('rIS', hq.record_referral(p_direction := 'sent', p_receiving_contact := pg_temp.fx('ivy'), p_prospect_name := 'Out Going'));
 select is((select referrals_received || '|' || referrals_sent || '|' || referrals_qualified || '|' || managements_signed || '|' || estimated_value_signed_cents || '|' || conversion || '|' || reciprocal
              from hq.referral_partner_overview where id = pg_temp.fx('ivy')),

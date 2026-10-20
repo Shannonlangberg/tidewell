@@ -8,7 +8,7 @@
 begin;
 \ir hq_fixture.inc
 select pg_temp.seed_hq();
-select plan(147);
+select plan(156);
 
 -- ------------------------------------------------------------ extensions and schemas
 select has_extension('extensions', 'pg_trgm', 'pg_trgm is installed in extensions');
@@ -24,7 +24,7 @@ select ok(not has_schema_privilege('service_role', 'hq_private', 'usage'), 'serv
 
 -- ------------------------------------------------------------ RLS enabled, forced, scoped
 select is((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'hq' and c.relkind = 'r'),
-  23::bigint, 'hq has 23 tables (13 Phase 1, 5 Phase 2 contractor tables, 1 Phase 3 ai_requests, trades, 3 decisions)');
+  26::bigint, 'hq has 26 tables (13 Phase 1, 5 Phase 2 contractor tables, 1 Phase 3 ai_requests, trades, 3 decisions, 2 portfolio, email_drafts)');
 select is((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
             where n.nspname = 'hq' and c.relkind = 'r' and not (c.relrowsecurity and c.relforcerowsecurity)),
   0::bigint, 'RLS is enabled and forced on every hq table');
@@ -57,7 +57,7 @@ select table_privs_are('hq', 'audit_events', 'authenticated', array['SELECT'], '
 select table_privs_are('hq', 'audit_events', 'service_role', array['SELECT'], 'audit_events: service_role can only select');
 select table_privs_are('hq', 'opportunity_stage_history', 'authenticated', array['SELECT'], 'opportunity_stage_history: authenticated can only select');
 select table_privs_are('hq', 'import_batches', 'authenticated', array['SELECT'], 'import_batches: authenticated can only select');
-select is((select count(*) from unnest(array['referrals', 'opportunities', 'interactions', 'staff_profiles', 'audit_events', 'import_batches', 'opportunity_stage_history', 'role_capabilities', 'ai_requests', 'trades', 'decisions', 'decision_history', 'decision_tasks']) t
+select is((select count(*) from unnest(array['referrals', 'opportunities', 'interactions', 'staff_profiles', 'audit_events', 'import_batches', 'opportunity_stage_history', 'role_capabilities', 'ai_requests', 'trades', 'decisions', 'decision_history', 'decision_tasks', 'managed_properties', 'property_handover_steps', 'email_drafts']) t
             where has_table_privilege('authenticated', 'hq.' || t, 'insert')),
   0::bigint, 'authenticated cannot insert directly into the RPC-only tables');
 select table_privs_are('hq', 'organisations', 'authenticated', array['SELECT', 'INSERT', 'UPDATE'], 'organisations: select, insert, update (no delete, no truncate)');
@@ -77,7 +77,7 @@ select throws_ok(format('select 1 from hq.%I', t), '42501', null, 'anon is denie
 from unnest(array['pods', 'staff_profiles', 'role_capabilities', 'settings', 'organisations', 'contacts', 'interactions', 'opportunities',
                   'opportunity_stage_history', 'referrals', 'tasks', 'audit_events', 'import_batches',
                   'contact_directory', 'organisation_directory', 'referral_overview', 'partner_performance', 'overdue_followups', 'referral_partner_overview',
-                  'decisions', 'decision_history', 'decision_tasks', 'decision_overview']) t;
+                  'decisions', 'decision_history', 'decision_tasks', 'decision_overview', 'managed_properties', 'property_handover_steps', 'portfolio_overview']) t;
 select throws_ok('select hq.my_access()', '42501', null, 'anon cannot call my_access');
 select throws_ok('select hq.can(''growth.read'')', '42501', null, 'anon cannot call can');
 select throws_ok('select hq.global_search(''alpha'', 5)', '42501', null, 'anon cannot call global_search');
@@ -85,7 +85,7 @@ select throws_ok('select hq.growth_summary(null)', '42501', null, 'anon cannot c
 select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ function privileges (from pg_proc)
-select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 43::bigint, 'hq holds 42 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades, 5 decisions) plus bootstrap_first_director');
+select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 58::bigint, 'hq holds 57 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades, 5 decisions, 3 leads, 6 portfolio, 6 email) plus bootstrap_first_director');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and (p.proacl is null or exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0))),
   0::bigint, 'no hq or hq_private function is executable by public');
@@ -93,7 +93,7 @@ select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regname
             and has_function_privilege('anon', p.oid, 'execute')),
   0::bigint, 'anon can execute no hq or hq_private function');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('authenticated', p.oid, 'execute')),
-  42::bigint, 'authenticated can execute the 42 RPCs');
+  57::bigint, 'authenticated can execute the 57 RPCs');
 select ok(not has_function_privilege('authenticated', 'hq.bootstrap_first_director(uuid,text,text,text)', 'execute'), 'authenticated cannot execute bootstrap_first_director');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
   1::bigint, 'service_role can execute exactly one hq function');
@@ -105,7 +105,7 @@ select is((select array_agg(p.proname::text order by p.proname) from pg_proc p w
   '... and they are the capability helpers, normalise_name, abn_is_valid and expiry_state');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq_private'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
   1::bigint, 'service_role can execute only normalise_name in hq_private');
-select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 42::bigint, 'every hq function but one is security definer');
+select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 57::bigint, 'every hq function but one is security definer');
 select ok(not (select prosecdef from pg_proc where pronamespace = 'hq'::regnamespace and proname = 'global_search'), 'global_search is security invoker, so RLS decides what it returns');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and not coalesce(p.proconfig::text, '') ~ 'search_path=(pg_catalog|"?pg_catalog, public, extensions)'),
@@ -120,18 +120,18 @@ select throws_ok('select hq_private.normalise_name(''x'')', '42501', null, 'auth
 select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ views
-select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v'), 10::bigint, 'hq has ten views (five Phase 1, three Phase 2, referral_partner_overview, decision_overview)');
+select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v'), 13::bigint, 'hq has thirteen views (five Phase 1, three Phase 2, referral_partner_overview, decision_overview, opportunity_overview, overdue_opportunities, portfolio_overview)');
 select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v' and c.reloptions @> array['security_invoker=true']),
-  10::bigint, 'every view is security_invoker');
+  13::bigint, 'every view is security_invoker');
 select is((select count(*) from pg_class c where c.relnamespace = 'hq'::regnamespace and c.relkind = 'v' and has_table_privilege('authenticated', c.oid, 'select')),
-  10::bigint, 'authenticated can select every view');
+  13::bigint, 'authenticated can select every view');
 
 -- ------------------------------------------------------------ append-only: update, delete and truncate raise for every role
 select hq_private.audit_write('test', 'probe', null, 'a probe row', '{}'::jsonb);
 select throws_ok($$update hq.audit_events set summary = 'changed'$$, '42501', null, 'audit_events: update raises even as postgres');
 select throws_ok($$delete from hq.audit_events$$, '42501', null, 'audit_events: delete raises even as postgres');
 select throws_ok($$truncate hq.audit_events$$, '42501', null, 'audit_events: truncate raises even as postgres');
-insert into hq.opportunities (prospect_name) values ('Probe Prospect');
+insert into hq.opportunities (prospect_name, assigned_to) values ('Probe Prospect', pg_temp.fx('dir'));
 select throws_ok($$update hq.opportunity_stage_history set note = 'changed'$$, '42501', null, 'opportunity_stage_history: update raises even as postgres');
 select throws_ok($$delete from hq.opportunity_stage_history$$, '42501', null, 'opportunity_stage_history: delete raises even as postgres');
 select throws_ok($$truncate hq.opportunity_stage_history$$, '42501', null, 'opportunity_stage_history: truncate raises even as postgres');
@@ -174,6 +174,12 @@ select enum_has_labels('hq', 'opportunity_stage', array['introduction_received',
 select enum_has_labels('hq', 'sent_referral_outcome', array['sent', 'acknowledged', 'converted', 'no_outcome']);
 select enum_has_labels('hq', 'task_status', array['to_do', 'in_progress', 'waiting', 'completed', 'cancelled']);
 select enum_has_labels('hq', 'task_priority', array['low', 'normal', 'high', 'urgent']);
+select enum_has_labels('hq', 'lead_source', array['website_enquiry', 'referral_partner', 'own_marketing', 'direct_approach', 'other']);
+select enum_has_labels('hq', 'lost_reason', array['price', 'chose_another_manager', 'self_managing', 'not_ready', 'unresponsive', 'out_of_area', 'other']);
+select enum_has_labels('hq', 'contact_kind', array['partner', 'landlord', 'other']);
+select ok(not has_column_privilege('authenticated', 'hq.opportunities', 'source', 'update'), 'a lead''s source cannot be updated directly (update_opportunity only)');
+select ok(not has_column_privilege('authenticated', 'hq.opportunities', 'next_action', 'update'), 'a lead''s next action cannot be updated directly (update_opportunity / log_opportunity_activity only)');
+select ok(not has_column_privilege('authenticated', 'hq.opportunities', 'lost_reason_code', 'update'), 'a lead''s lost reason code moves only with the stage (move_opportunity)');
 
 -- ------------------------------------------------------------ columns (section 4, exact; plus created/updated bookkeeping)
 select columns_are('hq', 'pods', array['id', 'name', 'region', 'is_active', 'created_at', 'updated_at', 'created_by']);
@@ -181,9 +187,9 @@ select columns_are('hq', 'staff_profiles', array['id', 'full_name', 'first_name'
 select columns_are('hq', 'role_capabilities', array['role', 'capability']);
 select columns_are('hq', 'settings', array['key', 'value', 'updated_by', 'updated_at']);
 select columns_are('hq', 'organisations', array['id', 'name', 'name_key', 'categories', 'website', 'phone', 'email', 'location', 'service_region', 'relationship_owner_id', 'notes', 'source', 'needs_verification', 'verified_at', 'verified_by', 'external_ids', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
-select columns_are('hq', 'contacts', array['id', 'organisation_id', 'full_name', 'name_key', 'position', 'categories', 'phone', 'email', 'website', 'location', 'service_region', 'org_contact_role', 'relationship_owner_id', 'relationship_status', 'priority', 'last_contact_at', 'next_follow_up_date', 'notes', 'source', 'needs_verification', 'verified_at', 'verified_by', 'external_ids', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
-select columns_are('hq', 'interactions', array['id', 'contact_id', 'organisation_id', 'contractor_id', 'interaction_type', 'occurred_at', 'summary', 'staff_id', 'next_action', 'follow_up_date', 'task_id', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
-select columns_are('hq', 'opportunities', array['id', 'display_number', 'prospect_name', 'prospect_phone', 'prospect_email', 'property_suburb', 'property_address', 'stage', 'stage_changed_at', 'estimated_annual_value_cents', 'assigned_to', 'signed_at', 'management_reference', 'lost_reason', 'notes', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
+select columns_are('hq', 'contacts', array['id', 'organisation_id', 'full_name', 'name_key', 'position', 'categories', 'phone', 'email', 'website', 'location', 'service_region', 'org_contact_role', 'relationship_owner_id', 'relationship_status', 'priority', 'last_contact_at', 'next_follow_up_date', 'notes', 'source', 'needs_verification', 'verified_at', 'verified_by', 'external_ids', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'contact_kind']);
+select columns_are('hq', 'interactions', array['id', 'contact_id', 'organisation_id', 'contractor_id', 'interaction_type', 'occurred_at', 'summary', 'staff_id', 'next_action', 'follow_up_date', 'task_id', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'opportunity_id']);
+select columns_are('hq', 'opportunities', array['id', 'display_number', 'prospect_name', 'prospect_phone', 'prospect_email', 'property_suburb', 'property_address', 'stage', 'stage_changed_at', 'estimated_annual_value_cents', 'assigned_to', 'signed_at', 'management_reference', 'lost_reason', 'notes', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'source', 'next_action', 'next_action_due', 'expected_close_date', 'owner_contact_id', 'lost_reason_code', 'last_activity_at']);
 select columns_are('hq', 'opportunity_stage_history', array['id', 'opportunity_id', 'from_stage', 'to_stage', 'changed_by', 'changed_at', 'note']);
 select columns_are('hq', 'referrals', array['id', 'ref_number', 'direction', 'referring_contact_id', 'referring_organisation_id', 'receiving_contact_id', 'receiving_organisation_id', 'opportunity_id', 'referral_date', 'assigned_to', 'is_attributed', 'sent_outcome', 'prospect_name', 'prospect_phone', 'prospect_email', 'property_suburb', 'property_address', 'notes', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
 select columns_are('hq', 'tasks', array['id', 'title', 'description', 'assigned_to', 'due_date', 'priority', 'status', 'related_contact_id', 'related_organisation_id', 'related_referral_id', 'related_opportunity_id', 'related_contractor_id', 'reminder_key', 'source', 'completed_at', 'completed_by', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
@@ -215,7 +221,7 @@ select is((select count(*) from pg_indexes where schemaname = 'hq' and indexname
   1::bigint, 'one attributed referral per opportunity is a partial unique index');
 
 -- ------------------------------------------------------------ seeded reference data
-select is((select count(*) from hq.role_capabilities), 75::bigint, 'role_capabilities holds the 41 rows of the section 4 matrix plus the 20 Phase 2 contractor rows, the 7 Phase 3 ai.use rows and the 7 decisions rows');
+select is((select count(*) from hq.role_capabilities), 93::bigint, 'role_capabilities holds the 41 rows of the section 4 matrix plus the 20 Phase 2 contractor rows, the 7 Phase 3 ai.use rows, the 7 decisions rows, the 9 portfolio rows and the 9 email rows');
 select is((select count(*) from hq.settings where key in ('require_mfa', 'timezone')), 2::bigint, 'settings holds require_mfa and timezone');
 select is((select value from hq.settings where key = 'timezone'), '"Australia/Adelaide"'::jsonb, 'settings.timezone is "Australia/Adelaide"');
 select is(hq.today(), (now() at time zone 'Australia/Adelaide')::date, 'hq.today() is today in Australia/Adelaide');

@@ -213,6 +213,17 @@ test("the pipeline filters are assigned, partner and hide lost", () => {
   assert.equal(none.filtered, false);
 });
 
+test("the pipeline can be narrowed to a lead source and to leads needing attention", () => {
+  const q = parsePipelineParams({ source: "own_marketing", attention: "1" });
+  assert.equal(q.source, "own_marketing");
+  assert.equal(q.attention, true);
+  assert.equal(q.filtered, true);
+  const bad = parsePipelineParams({ source: "billboard", attention: "yes" });
+  assert.equal(bad.source, null);
+  assert.equal(bad.attention, false);
+  assert.equal(bad.filtered, false);
+});
+
 test("partner performance sorts by an allowlist, biggest first for the figures", () => {
   const q = parsePartnerParams({}, PARTNER_CATEGORIES);
   assert.equal(q.sort, "received");

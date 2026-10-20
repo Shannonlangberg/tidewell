@@ -36,12 +36,11 @@ export async function organisationOptions(db: HqClient, limit = 500): Promise<Op
 }
 
 /** Contacts with their organisation as the group. Same cap and the same caveat. */
-export async function contactOptions(db: HqClient, limit = 500): Promise<Option[]> {
-  const { data, error } = await db
-    .from("contact_directory")
-    .select("id, full_name, organisation_name")
-    .order("full_name")
-    .limit(limit);
+export async function contactOptions(db: HqClient, limit = 500, opts: { partnersOnly?: boolean } = {}): Promise<Option[]> {
+  let q = db.from("contact_directory").select("id, full_name, organisation_name");
+  // A referral partner picker lists partner contacts only (a landlord never refers anyone in HQ's sense).
+  if (opts.partnersOnly) q = q.eq("contact_kind", "partner");
+  const { data, error } = await q.order("full_name").limit(limit);
   if (error) {
     console.error("[hq] contactOptions failed:", error.code);
     return [];
