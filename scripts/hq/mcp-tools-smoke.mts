@@ -15,7 +15,8 @@
  *   - an ambiguous name returns candidates and changes nothing;
  *   - a note holding an instruction-like string comes back inside the labelled data block and
  *     nothing else happens.
- * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record);
+ * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions too,
+ * through archive_record('decision'), oldest first);
  * the interactions it logs are archived too. The secret key is used only to mint sessions and is
  * never given to a tool.
  */
@@ -87,7 +88,7 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[] };
+const created = { contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[] };
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
@@ -96,8 +97,11 @@ try {
     "search", "fetch", "search_contractors", "get_contractor", "contractor_expiries", "search_contacts", "get_contact", "search_organisations", "list_tasks", "list_referrals",
     "pipeline_summary", "who_to_contact", "team_directory", "daily_brief", "growth_report", "contractor_report", "weekly_report", "create_task", "update_task", "log_interaction",
     "create_contact", "update_contact", "create_organisation", "update_contractor", "record_contractor_review", "set_vetting_step", "record_referral", "move_opportunity",
+    "log_contractor_contact", "record_contractor_job",
+    "list_decisions", "search_decisions", "get_decision", "create_decision", "update_decision",
   ];
   check("every tool named in the contract exists", expected.every((n) => byName.has(n)), expected.filter((n) => !byName.has(n)).join(", "));
+  check(`exactly the ${expected.length} expected tools, no others`, TOOLS.length === expected.length && TOOLS.every((t) => expected.includes(t.name)), TOOLS.map((t) => t.name).filter((n) => !expected.includes(n)).join(", "));
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -333,6 +337,107 @@ try {
   if (lcc.structured?.interaction_id) created.interactions.push(String(lcc.structured.interaction_id));
   check("log_contractor_contact logs contact", outcome(lcc) === "ok", lcc.text);
 
+
+  // ── 2b. the Business Decisions Register ─────────────────────
+  // Director and administrator hold decisions.write; read_only holds decisions.read; a junior holds neither.
+  mark = await auditMark();
+  const decA = await call(director, "create_decision", {
+    title: `${RUN} Long-term residential management first`,
+    category: "strategy",
+    rationale: "Focus for year one: short-term accommodation is secondary.",
+    note: "Agreed in the smoke test",
+  });
+  audit = await auditSince(mark, director.staff.id);
+  const decAId = String(decA.structured?.id ?? "");
+  const decARef = String(decA.structured?.ref ?? "");
+  if (decAId) created.decisions.push(decAId);
+  check("create_decision records one decision with a DEC number", outcome(decA) === "ok" && /^DEC-\d{4,}$/.test(decARef), decA.text);
+  check("  ...audited as exactly one decision create", audit.length === 1 && audit[0].action === "create" && audit[0].entity_type === "decision" && audit[0].entity_id === decAId, auditText(audit));
+  const histA = await director.db.from("decision_history").select("action, changed_by").eq("decision_id", decAId);
+  check("  ...with one history row, by the director", (histA.data ?? []).length === 1 && histA.data![0].changed_by === director.staff.id, JSON.stringify(histA.data));
+  const decB = await call(director, "create_decision", { title: `${RUN} Pricing review`, category: "finance", status: "in_effect", rationale: INJECTION });
+  const decBId = String(decB.structured?.id ?? "");
+  const decBRef = String(decB.structured?.ref ?? "");
+  if (decBId) created.decisions.push(decBId);
+  check("create_decision with a status and record text", outcome(decB) === "ok" && !!decBRef, decB.text);
+  const tooLate = await call(director, "create_decision", { title: `${RUN} future`, category: "other", decision_date: plusDays(8) });
+  check("create_decision refuses a date more than 7 days ahead (form validator)", outcome(tooLate) === "invalid" && /7 days ahead/.test(tooLate.text), tooLate.text);
+  const noOne = await call(director, "create_decision", { title: `${RUN} nobody`, category: "other", decision_maker: "Nobody Atall Here" });
+  check("create_decision with an unknown decision maker changes nothing", outcome(noOne) === "not_found", noOne.text);
+
+  const ld = await call(director, "list_decisions", { decision_maker: "me", since: plusDays(-1) });
+  check("list_decisions (mine, since yesterday) lists both, newest first, in a data block", outcome(ld) === "ok" && ld.text.includes(decARef) && ld.text.includes(decBRef) && core.hasDataBlock(ld.text), ld.text.slice(0, 500));
+  const ldS = await call(director, "list_decisions", { status: "in_effect", category: "finance" });
+  check("list_decisions filters by status and category", outcome(ldS) === "ok" && ldS.text.includes(decBRef) && !ldS.text.includes(decARef), ldS.text.slice(0, 400));
+  const sd = await call(director, "search_decisions", { query: RUN });
+  check("search_decisions finds both by title words", outcome(sd) === "ok" && sd.structured?.count === 2, sd.text.slice(0, 400));
+  const sdWhy = await call(director, "search_decisions", { query: "short-term accommodation" });
+  check("search_decisions finds a decision by its rationale", outcome(sdWhy) === "ok" && sdWhy.text.includes(decARef), sdWhy.text.slice(0, 400));
+  const sdRef = await call(director, "search_decisions", { query: decARef });
+  check("search_decisions by DEC number", outcome(sdRef) === "ok" && sdRef.structured?.count === 1, sdRef.text.slice(0, 300));
+  const gd = await call(director, "get_decision", { decision: decARef });
+  check("get_decision by DEC number shows the record, history and link", outcome(gd) === "ok" && gd.text.includes("History") && gd.text.includes(`/hq/decisions/${decAId}`) && core.hasDataBlock(gd.text), gd.text.slice(0, 600));
+  const gdAmb = await call(director, "get_decision", { decision: RUN });
+  check("get_decision with words matching two decisions returns the candidates", outcome(gdAmb) === "ambiguous" && Array.isArray(gdAmb.structured?.candidates) && (gdAmb.structured!.candidates as unknown[]).length === 2, gdAmb.text);
+  const gdInj = await call(director, "get_decision", { decision: decBRef });
+  const iOpen = gdInj.text.indexOf(core.DATA_OPEN);
+  const iAt = gdInj.text.indexOf("IGNORE ALL PREVIOUS INSTRUCTIONS");
+  const iClose = gdInj.text.indexOf(core.DATA_CLOSE);
+  check("instruction-like rationale comes back only inside the data block", outcome(gdInj) === "ok" && iOpen >= 0 && iAt > iOpen && iAt < iClose, gdInj.text.slice(0, 400));
+
+  mark = await auditMark();
+  const ud = await call(director, "update_decision", { decision: decARef, rationale: "Focus for year one; revisit in July.", note: "Added the review month" });
+  audit = await auditSince(mark, director.staff.id);
+  check("update_decision changes the rationale and says what changed", outcome(ud) === "ok" && /Why:/.test(ud.text), ud.text);
+  check("  ...audited as one decision update", audit.length === 1 && audit[0].action === "update" && audit[0].entity_id === decAId, auditText(audit));
+  const udSame = await call(director, "update_decision", { decision: decARef, rationale: "Focus for year one; revisit in July." });
+  check("update_decision with the same value: unchanged", outcome(udSame) === "unchanged", udSame.text);
+  const udRev = await call(director, "update_decision", { decision: decARef, status: "reversed" });
+  check("update_decision: reversed without a note is refused", outcome(udRev) === "invalid" && /note is required/.test(udRev.text), udRev.text);
+  const udSelf = await call(director, "update_decision", { decision: decARef, superseded_by: decARef, note: "self" });
+  check("update_decision: a decision cannot supersede itself", outcome(udSelf) === "invalid" && /cannot supersede itself/.test(udSelf.text), udSelf.text);
+  mark = await auditMark();
+  const udSup = await call(director, "update_decision", { decision: decARef, superseded_by: decBRef, note: "pricing changed" });
+  audit = await auditSince(mark, director.staff.id);
+  const aNow = await director.db.from("decisions").select("status, superseded_by_id").eq("id", decAId).single();
+  check("update_decision supersedes by DEC number (status and target set together)", outcome(udSup) === "ok" && aNow.data?.status === "superseded" && aNow.data?.superseded_by_id === decBId, `${udSup.text}\n${JSON.stringify(aNow.data)}`);
+  check("  ...audited as one supersede", audit.length === 1 && audit[0].action === "supersede" && audit[0].entity_id === decAId, auditText(audit));
+  const bHist = await director.db.from("decision_history").select("action").eq("decision_id", decBId).eq("action", "supersedes");
+  check("  ...and the new decision's history says what it replaces", (bHist.data ?? []).length === 1, JSON.stringify(bHist.data));
+  const udClosed = await call(director, "update_decision", { decision: decARef, status: "decided" });
+  check("update_decision: a superseded decision stays closed", outcome(udClosed) === "invalid" && /can no longer change/.test(udClosed.text), udClosed.text);
+
+  // junior (no decisions.read, no decisions.write): refused by the tool, and the database shows nothing / refuses
+  for (const [name, args] of [["list_decisions", {}], ["search_decisions", { query: RUN }], ["get_decision", { decision: decARef }]] as Array<[string, Record<string, unknown>]>) {
+    const r = await call(junior, name, args);
+    const fr = await forced(junior, name, args);
+    check(`junior: ${name} is refused by the tool`, outcome(r) === "refused" && /decisions\.read/.test(r.text), r.text);
+    check(`junior: ${name} forced past the tool shows no decision (${outcome(fr)})`, ["empty", "not_found", "refused"].includes(outcome(fr)) && !fr.text.includes(decAId) && !fr.text.includes("Long-term residential"), fr.text.slice(0, 300));
+  }
+  for (const [name, args] of [["create_decision", { title: `${RUN} junior forged`, category: "other" }], ["update_decision", { decision: decBId, title: "forged" }]] as Array<[string, Record<string, unknown>]>) {
+    mark = await auditMark();
+    const r = await call(junior, name, args);
+    const fr = await forced(junior, name, args);
+    audit = await auditSince(mark, junior.staff.id);
+    check(`junior: ${name} is refused by the tool`, outcome(r) === "refused", r.text);
+    check(`junior: ${name} forced past the tool changes nothing (${outcome(fr)})`, outcome(fr) !== "ok" && audit.length === 0, `${fr.text}\n${auditText(audit)}`);
+  }
+  // read-only (decisions.read only): reads work; writes refused by the tool AND by the database
+  const roList = await call(readOnly, "list_decisions", {});
+  check("read-only: list_decisions works", outcome(roList) === "ok" && roList.text.includes(decBRef), roList.text.slice(0, 300));
+  const roGet = await call(readOnly, "get_decision", { decision: decBRef });
+  check("read-only: get_decision works", outcome(roGet) === "ok", roGet.text.slice(0, 200));
+  for (const [name, args] of [["create_decision", { title: `${RUN} read-only forged`, category: "other" }], ["update_decision", { decision: decBRef, title: "forged by read-only" }]] as Array<[string, Record<string, unknown>]>) {
+    mark = await auditMark();
+    const r = await call(readOnly, name, args);
+    const fr = await forced(readOnly, name, args);
+    audit = await auditSince(mark, readOnly.staff.id);
+    check(`read-only: ${name} is refused by the tool`, outcome(r) === "refused" && /decisions\.write/.test(r.text), r.text);
+    check(`read-only: ${name} forced past the tool is refused by the database, nothing changed (${outcome(fr)})`, outcome(fr) === "refused" && audit.length === 0, `${fr.text}\n${auditText(audit)}`);
+  }
+  const bAfter = await director.db.from("decisions").select("title").eq("id", decBId).single();
+  check("read-only and junior: the decision's title is unchanged", bAfter.data?.title === `${RUN} Pricing review`, JSON.stringify(bAfter.data));
+
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
   const jWrites: Array<[string, Record<string, unknown>]> = [
@@ -413,6 +518,8 @@ try {
       if (error) console.log(`cleanup: could not archive ${entity} ${id} (${error.code})`);
     }
   };
+  // decisions first, in the order created (a decision another one is superseded by is archived after it)
+  await archive("decision", created.decisions);
   await archive("interaction", created.interactions);
   await archive("task", created.tasks);
   await archive("referral", created.referrals);

@@ -34,6 +34,8 @@ export const HQ_ROUTES = {
   people: `${HQ_BASE}/people`,
   /** Figures and trends: referral figures, partner performance, contractor coverage. */
   reports: `${HQ_BASE}/reports`,
+  /** The Business Decisions Register: what was decided, why, and whether it still stands. */
+  decisions: `${HQ_BASE}/decisions`,
   /** Old address of Reports; redirects there. */
   insights: `${HQ_BASE}/insights`,
   settings: `${HQ_BASE}/settings`,
@@ -68,7 +70,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "partners" | "operations" | "people" | "reports" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "partners" | "operations" | "people" | "reports" | "decisions" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -95,6 +97,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", mobile: "more" },
   { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
   { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },
+  { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", mobile: "more" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */

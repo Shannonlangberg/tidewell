@@ -15,13 +15,14 @@ const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 test("a clean contract link prefills every field", () => {
-  const p = parseNewTaskQuery({ contact: A, contractor: B, organisation: B, referral: A, opportunity: B, title: "Call back", due: "2026-10-20", return: "/hq/growth/contacts/abc" });
+  const p = parseNewTaskQuery({ contact: A, contractor: B, organisation: B, referral: A, opportunity: B, decision: A, title: "Call back", due: "2026-10-20", return: "/hq/growth/contacts/abc" });
   assert.deepEqual(p, {
     contact: A,
     contractor: B,
     organisation: B,
     referral: A,
     opportunity: B,
+    decision: A,
     title: "Call back",
     due: "2026-10-20",
     returnTo: "/hq/growth/contacts/abc",
@@ -30,7 +31,7 @@ test("a clean contract link prefills every field", () => {
 
 test("any subset works, and an empty query prefills nothing", () => {
   const empty = parseNewTaskQuery({});
-  assert.deepEqual(empty, { contact: null, contractor: null, organisation: null, referral: null, opportunity: null, title: null, due: null, returnTo: null });
+  assert.deepEqual(empty, { contact: null, contractor: null, organisation: null, referral: null, opportunity: null, decision: null, title: null, due: null, returnTo: null });
   assert.equal(parseNewTaskQuery({ contact: A }).contact, A);
   assert.equal(parseNewTaskQuery({ contact: A }).organisation, null);
 });
@@ -110,4 +111,13 @@ test("newTaskHref builds the contract URL and parses back to the same values", (
   assert.equal(back.title, "Call back & confirm");
   assert.equal(back.due, "2026-10-20");
   assert.equal(back.returnTo, "/hq/growth/contacts/x?tab=notes");
+});
+
+test("a task from a decision: the decision id round-trips, and anything else is dropped", () => {
+  const href = newTaskHref({ decision: A, title: "Follow up DEC-0001", returnTo: `/hq/decisions/${A}` });
+  const back = parseNewTaskQuery(Object.fromEntries(new URL(href, "http://x.invalid").searchParams.entries()));
+  assert.equal(back.decision, A);
+  assert.equal(back.returnTo, `/hq/decisions/${A}`);
+  assert.equal(parseNewTaskQuery({ decision: "DEC-0001" }).decision, null);
+  assert.equal(parseNewTaskQuery({ decision: `${A}' or 1=1` }).decision, null);
 });

@@ -15,6 +15,7 @@ import {
 import { TASK_VIEW_KEYS } from "../../tasks/rules.ts";
 import { TENANT_FEEDBACK } from "../../contractors/reviews-form.ts";
 import { GROWTH_PERIODS } from "../../referrals/periods.ts";
+import { DECISION_CATEGORIES, DECISION_STATUSES, OPEN_DECISION_STATUSES } from "../../decisions/rules.ts";
 import * as S from "./schemas.ts";
 
 test("the vocabularies written out in schemas.ts match lib/hq/constants.ts and the modules that own them", () => {
@@ -30,6 +31,9 @@ test("the vocabularies written out in schemas.ts match lib/hq/constants.ts and t
   assert.deepEqual([...S.SETTABLE_VETTING_STEPS], VETTING_STEPS.filter((s) => s !== "review_and_approve"));
   assert.deepEqual([...S.TENANT_FEEDBACK_VALUES], [...TENANT_FEEDBACK]);
   assert.deepEqual([...S.GROWTH_PERIOD_VALUES], [...GROWTH_PERIODS]);
+  assert.deepEqual([...S.DECISION_CATEGORY_VALUES], [...DECISION_CATEGORIES]);
+  assert.deepEqual([...S.DECISION_STATUS_VALUES], [...DECISION_STATUSES]);
+  assert.deepEqual([...S.OPEN_DECISION_STATUS_VALUES], [...OPEN_DECISION_STATUSES]);
 });
 
 const shapes = Object.entries(S).filter(([k, v]) => k.endsWith("Shape") && v && typeof v === "object") as Array<[string, z.ZodRawShape]>;

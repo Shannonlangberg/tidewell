@@ -71,6 +71,8 @@ export type TaskFormProps = {
    * create it and cannot see every task, so the database would refuse). The assignee is then shown, not offered.
    */
   lockAssignee?: { id: string; name: string } | null;
+  /** Extra hidden fields posted with the form (for example the decision a new task will be linked to). */
+  hiddenFields?: Record<string, string>;
 };
 
 const KIND_NOUN: Record<LinkedSummary["kind"], string> = {
@@ -82,7 +84,7 @@ const KIND_NOUN: Record<LinkedSummary["kind"], string> = {
 };
 
 export function TaskForm(props: TaskFormProps) {
-  const { mode, action, initial, taskId, version, returnTo, staff, contacts, organisations, contractors = [], canLinkContractors = false, canLink, linked, referralLink, opportunityLink, today, cancelHref, lockAssignee } = props;
+  const { mode, action, initial, taskId, version, returnTo, staff, contacts, organisations, contractors = [], canLinkContractors = false, canLink, linked, referralLink, opportunityLink, today, cancelHref, lockAssignee, hiddenFields } = props;
   const [state, formAction] = useActionState(action, idle);
 
   // After a failed save the server returns what was typed; until then, the starting values.
@@ -102,6 +104,9 @@ export function TaskForm(props: TaskFormProps) {
       {taskId ? <input type="hidden" name="id" value={taskId} /> : null}
       {version ? <input type="hidden" name="version" value={version} /> : null}
       {returnTo ? <input type="hidden" name="return" value={returnTo} /> : null}
+      {Object.entries(hiddenFields ?? {}).map(([k, val]) => (
+        <input key={k} type="hidden" name={k} value={val} />
+      ))}
 
       <TextInput
         name="title"

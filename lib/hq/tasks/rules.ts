@@ -611,6 +611,8 @@ export type NewTaskPrefill = {
   organisation: string | null;
   referral: string | null;
   opportunity: string | null;
+  /** A decision (Decisions register) the new task will be linked to once it is saved; only for decisions.write holders. */
+  decision: string | null;
   title: string | null;
   due: string | null;
   /** A safe /hq path to go back to once the task is saved, or null. */
@@ -647,6 +649,7 @@ export function parseNewTaskQuery(sp: Params, safePath: (value: unknown) => stri
     organisation: uuidParam(sp.organisation),
     referral: uuidParam(sp.referral),
     opportunity: uuidParam(sp.opportunity),
+    decision: uuidParam(sp.decision),
     title: title === "" ? null : title,
     due: isCalendarDate(due) ? due : null,
     returnTo: safePath(first(sp.return)),
@@ -661,6 +664,7 @@ export function newTaskHref(prefill: Partial<NewTaskPrefill> = {}): string {
   if (prefill.organisation) params.set("organisation", prefill.organisation);
   if (prefill.referral) params.set("referral", prefill.referral);
   if (prefill.opportunity) params.set("opportunity", prefill.opportunity);
+  if (prefill.decision) params.set("decision", prefill.decision);
   if (prefill.title) params.set("title", prefill.title);
   if (prefill.due) params.set("due", prefill.due);
   if (prefill.returnTo) params.set("return", prefill.returnTo);
