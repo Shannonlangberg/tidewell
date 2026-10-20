@@ -450,3 +450,18 @@ allow_dynamic_registration = true
 # A code at most once a minute in production (the base file's 1s is for quick local testing).
 [remotes.production.auth.email]
 max_frequency = "1m0s"
+
+# Sign-in codes are sent through SendGrid (domain plantedproperty.com.au is authenticated in SendGrid). The API key
+# is the SMTP password and lives only in the environment (~/.planted-hq/secrets.env), never in this file.
+[remotes.production.auth.email.smtp]
+enabled = true
+host = "smtp.sendgrid.net"
+port = 587
+user = "apikey"
+pass = "env(SMTP_PASS)"
+admin_email = "hq@plantedproperty.com.au"
+sender_name = "PLANTED. HQ"
+
+# With a real sender the default of 2 emails an hour no longer applies.
+[remotes.production.auth.rate_limit]
+email_sent = 30
