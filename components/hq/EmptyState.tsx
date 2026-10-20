@@ -3,11 +3,10 @@ import { cx } from "./cx";
 import { Icon } from "./icons";
 
 /*
- * EmptyState: the title is Cormorant (one of the four places the brand allows a
- * serif); the body is DM Sans guidance that says what to do next. It must read as real
+ * EmptyState: the title is in the display style; the body is Hanken Grotesk guidance that says what to do next. It must read as real
  * guidance ("No referrals recorded yet. Add your first introduction..."), never filler.
  *
- * ErrorState: a load failure. DM Sans throughout (it is not an empty-state title),
+ * ErrorState: a load failure. Hanken Grotesk throughout (it is not an empty-state title),
  * with an alert icon as well as words, and a way to try again.
  */
 

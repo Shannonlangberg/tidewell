@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/planted/Header";
 import { Footer } from "@/components/planted/Footer";
+import { Motion } from "@/components/planted/Motion";
 import { BRAND, CONTACT } from "@/lib/planted";
 import "./planted.css";
 
@@ -36,12 +37,17 @@ export const metadata: Metadata = {
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      {/* Marks the document as scripted before first paint, so reveal states
+          (planted.css) only ever hide content when the script that reveals it
+          is going to run. */}
+      <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
       <a href="#main" className="skip">
         Skip to content
       </a>
       <Header />
       <main id="main">{children}</main>
       <Footer />
+      <Motion />
     </>
   );
 }

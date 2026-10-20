@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { BRAND } from "@/lib/planted";
+import { ButtonArrow } from "./ui";
 import { submitAppraisal } from "@/app/(site)/enquiry-actions";
 import {
   APPRAISAL_STEPS,
@@ -575,11 +576,12 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
 
       {/* ── Navigation ─────────────────────────────────────── */}
       <div className="mt-14 flex flex-col gap-4 sm:flex-row sm:items-center">
-        <button type="button" data-js-only="true" hidden={step === 1} onClick={goBack} className="btn btn-outline">
+        <button type="button" data-js-only="true" hidden={step === 1} onClick={goBack} className="btn btn-outline btn-noarrow">
           Back
         </button>
-        <button type="button" data-js-only="true" hidden={step === TOTAL} onClick={goNext} className="btn btn-primary">
-          Continue
+        <button type="button" data-js-only="true" hidden={step === TOTAL} onClick={goNext} className="btn">
+          <span>Continue</span>
+          <ButtonArrow />
         </button>
         <SubmitButton
           pending={pending}
@@ -587,7 +589,7 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
           dataAttr={{ "data-nojs-submit": "true" }}
           pendingLabel="Sending your request…"
         >
-          Request My Rental Appraisal
+          Request my rental appraisal
         </SubmitButton>
       </div>
 

@@ -7,8 +7,7 @@ import { Wordmark } from "@/components/hq/Wordmark";
  * Calm and card-less: charcoal and soft white, hairlines and space instead of boxes.
  * From 1024px a charcoal panel carries the wordmark and the form sits on soft white
  * beside it; on a phone the panel becomes a slim charcoal header and the form follows.
- * The title is Cormorant (a sign-in title is one of the four places the brand allows
- * a serif); everything else is DM Sans.
+ * The title is in the display style; everything else is body Hanken Grotesk.
  *
  * Server-safe: no state.
  */

@@ -56,7 +56,7 @@ export function Panel({
   );
 }
 
-/** Title on the left (DM Sans 600), a small uppercase meta label and/or an action on the right. */
+/** Title on the left (Hanken Grotesk 600), a small uppercase meta label and/or an action on the right. */
 export function PanelHeader({
   title,
   meta,

@@ -1,54 +1,79 @@
 /*
- * PLANTED. design tokens: the code form of docs/brand-design-system.md.
+ * PLANTED. design tokens for HQ, 2026 brand.
  *
- * Section 13 of the brand system is reproduced exactly. Everything after the
- * "derived" marker is an implementation decision recorded in that document's
- * "Implementation notes", mainly so text can meet WCAG AA contrast.
+ * The 2026 palette (deep forest, warm ivory, pale lime) from the Claude Design
+ * handoff and docs/brand-design-system.md. The public site has its own copy in
+ * app/(site)/planted.css; this file is read by app/hq/hq.css only.
+ *
+ * The variable NAMES are the ones HQ was built on (charcoal, clay, grey, ...).
+ * They are kept so the whole of hq.css moves to the new brand at once, and each
+ * now holds its 2026 value for the same ROLE: "charcoal" is the dark chrome and
+ * primary action (now forest), "grey-text" is secondary text, "clay" is the
+ * small accent marker, and so on. New code can use the 2026 names below.
  *
  * Plain CSS custom properties, no Tailwind dependency, so any surface can use it.
  */
 
 :root {
-  /* ── official palette (brand system section 2 and 13) ── */
-  --planted-charcoal: #252525;
-  --planted-ivory: #F5F1EA;
-  --planted-white: #FAF8F4;
-  --planted-stone: #D6CEC3;
-  --planted-taupe: #A89A8B;
-  --planted-clay: #947B69;
-  --planted-black: #171717;
-  --planted-grey: #77736E;
-  --planted-border: #DED8D0;
+  /* ── 2026 palette ── */
+  --planted-forest: #14291F;
+  --planted-forest-2: #1B3428;
+  --planted-forest-3: #20392D;
+  --planted-sage: #A6B09B;
+  --planted-lime: #E4F0A5;
+  --planted-ink: #1D241E;
+  --planted-muted: #5A635B;
+  --planted-muted-dark: #B9C1AF;
+  --planted-error: #8A3A24;
 
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-body: 'DM Sans', Arial, sans-serif;
+  /* ── roles HQ is built on, at their 2026 values ── */
+  /* Dark chrome, primary buttons, headings: forest. */
+  --planted-charcoal: #14291F;
+  /* Page and panel fills. HQ keeps a slightly whiter app ground than the site
+     so ivory panels and stone fills still read as surfaces on it. */
+  --planted-ivory: #F7F5EF;
+  --planted-white: #FCFBF8;
+  --planted-stone: #EAE7DF;
+  /* Secondary text and marks on forest: sage (about 6.9:1 on forest). */
+  --planted-taupe: #A6B09B;
+  /* The small accent marker (active rails, dots): a mid green. Decoration only. */
+  --planted-clay: #6F806C;
+  --planted-black: #0F1F17;
+  /* Control edges: 4.9:1 on white, so a field's boundary clears 3:1. */
+  --planted-grey: #6B746C;
+  --planted-border: #E2DFD6;
 
-  --radius-button: 4px;
-  --radius-card: 6px;
-  --radius-input: 4px;
+  --font-display: 'Hanken Grotesk', Arial, sans-serif;
+  --font-body: 'Hanken Grotesk', Arial, sans-serif;
 
-  /* ── derived (implementation notes) ── */
+  /* 2026 radii, tuned for a dense working app: 12px inputs, 16px panels
+     (the site uses 28px; it is too soft at HQ's density), 10px for menus,
+     tiles and badges. Buttons and navigation items are pills (hq.css). */
+  --radius-button: 10px;
+  --radius-card: 16px;
+  --radius-input: 12px;
+  --radius-pill: 999px;
 
-  /* Body-size secondary text. #77736E is 4.43:1 on soft white and about 4.2:1 on ivory,
-     so text uses this one step darker (about 5.0:1 and 4.7:1). */
-  --planted-grey-text: #6F6B66;
-  /* Clay as small text. #947B69 is about 3.6:1 and is for large text and decoration only. */
-  --planted-clay-text: #7A6353;
-  /* Slightly lighter charcoal for the primary button hover (brand system section 6). */
-  --planted-charcoal-hover: #3A3A3A;
-  /* A raised charcoal for selected rows and active navigation on a charcoal ground. */
-  --planted-charcoal-raised: #303030;
-  /* Hairline on a charcoal ground. */
-  --planted-border-dark: #3A3836;
+  /* ── derived ── */
+
+  /* Body-size secondary text: the 2026 muted, about 6:1 on white. */
+  --planted-grey-text: #5A635B;
+  /* Accent as small text and the focus ring: a deep green, about 9:1 on white. */
+  --planted-clay-text: #2F4A3A;
+  /* Primary button hover and raised forest surfaces. */
+  --planted-charcoal-hover: #20392D;
+  --planted-charcoal-raised: #1B3428;
+  /* Hairline on a forest ground. */
+  --planted-border-dark: #2C4537;
 
   /* Very subtle elevation, used only for menus, drawers and the command palette. */
-  --shadow-subtle: 0 1px 2px rgba(23, 23, 23, 0.06), 0 8px 24px rgba(23, 23, 23, 0.08);
+  --shadow-subtle: 0 0 0 1px rgba(29, 36, 30, 0.08), 0 10px 30px -12px rgba(20, 41, 31, 0.22);
 
   /*
-   * Functional status colours: the explicit exception in brand system section 7.
-   * Muted and warm-leaning so they sit with the neutrals. Each has a text colour,
-   * a soft background and a dot colour. Text on its background is at least 4.5:1.
-   * Never the only carrier of meaning: always pair with a dot or icon and a label.
+   * Functional status colours: unchanged by the 2026 redesign (the handoff keeps
+   * them for HQ). Each has a text colour, a soft background and a dot colour.
+   * Text on its background is at least 4.5:1. Never the only carrier of meaning:
+   * always pair with a dot or icon and a label.
    */
   --status-neutral-text: #4A4742;
   --status-neutral-bg: #ECE8E1;

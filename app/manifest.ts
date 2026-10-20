@@ -24,12 +24,13 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "browser",
-    // Ivory page, charcoal chrome — the two anchors of the design system.
-    background_color: "#F5F1EA",
-    theme_color: "#252525",
+    // 2026 brand: ivory page, forest chrome.
+    background_color: "#F7F5EF",
+    theme_color: "#14291F",
     icons: [
-      { src: "/icon", sizes: "64x64", type: "image/png", purpose: "any" },
-      { src: "/apple-icon", sizes: "180x180", type: "image/png", purpose: "any" },
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/brand/logos/png/planted-app-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" },
     ],
   };
 }

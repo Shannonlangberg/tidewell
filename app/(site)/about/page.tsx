@@ -243,7 +243,7 @@ export default function AboutPage() {
       </Section>
 
       {/* ── 7. Final call to action ─────────────────────────── */}
-      <Section tone="ivory">
+      <Section tone="forest" rounded>
         <div className="shell">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="display display-lg">Let&rsquo;s talk about your property.</h2>
@@ -252,10 +252,10 @@ export default function AboutPage() {
               about it.
             </p>
             <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button href="/rental-appraisal" variant="primary">
-                Request a Rental Appraisal
+              <Button href="/rental-appraisal" variant="light">
+                Request a rental appraisal
               </Button>
-              <Button href="/contact" variant="outline">
+              <Button href="/contact" variant="ghost-light">
                 Contact {BRAND.name}
               </Button>
             </div>

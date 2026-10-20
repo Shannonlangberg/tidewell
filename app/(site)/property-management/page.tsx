@@ -242,10 +242,10 @@ export default function PropertyManagementPage() {
           </div>
           <div className="reveal reveal-4 mt-12 flex flex-col gap-4 sm:flex-row">
             <Button href="/rental-appraisal" variant="primary">
-              Request a Rental Appraisal
+              Request a rental appraisal
             </Button>
             <Button href="/contact" variant="outline">
-              Talk to Us
+              Talk to us
             </Button>
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function PropertyManagementPage() {
       </Section>
 
       {/* ── 5. Call to action ───────────────────────────────── */}
-      <Section tone="charcoal">
+      <Section tone="forest" rounded>
         <div className="shell">
           <div className="grid gap-x-16 gap-y-12 md:grid-cols-12">
             <div className="md:col-span-7">
@@ -349,7 +349,7 @@ export default function PropertyManagementPage() {
             <div className="flex items-end md:col-span-4 md:col-start-9">
               <div className="flex w-full flex-col gap-4">
                 <Button href="/rental-appraisal" variant="light">
-                  Get a Rental Appraisal
+                  Get a rental appraisal
                 </Button>
                 <Button href="/contact" variant="ghost-light">
                   Contact {BRAND.name}
