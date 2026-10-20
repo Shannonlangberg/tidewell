@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: "Settings" };
 /*
  * Settings. Everyone sees their own, with a way to change each one. People with settings.admin
  * (directors) also see and change the business settings; everyone else can read them. The
- * audit log, for people with audit.read, is one link away.
+ * AI and connected apps screen (settings.admin or audit.read) and the audit log (audit.read) are
+ * one link away.
  */
 export default async function SettingsPage() {
   const { staff, db, can } = await requireStaff();
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
   const byKey = new Map((settingsRes.data ?? []).map((s) => [s.key, s.value]));
   // Same rule as the database: MFA is required unless the setting is exactly false.
   const requireMfa = byKey.get("require_mfa") !== false;
+  const aiEnabled = byKey.get("ai_enabled") === true;
   const rawTz = byKey.get("timezone");
   const businessTimezone = typeof rawTz === "string" ? rawTz : DEFAULT_TIMEZONE;
   const tzLabel = AU_TIMEZONES.find((z) => z.value === businessTimezone)?.label ?? businessTimezone;
@@ -86,6 +88,19 @@ export default async function SettingsPage() {
             </div>
           )}
         </section>
+
+        {can("settings.admin") || can("audit.read") ? (
+          <section aria-labelledby="ai-h" className="max-w-xl">
+            <SectionLabel as="h2" id="ai-h" className="mb-3.5">
+              AI and connected apps
+            </SectionLabel>
+            <p className="mb-4">
+              {aiEnabled ? "The connection is on: ChatGPT and Claude can use HQ as each person." : "The connection is off: ChatGPT and Claude cannot use HQ."}{" "}
+              {can("settings.admin") ? "Switch it on or off, set the hourly limit, and see every call." : "See the settings and every call."}
+            </p>
+            <LinkButton href="/hq/settings/ai">Open AI and connected apps</LinkButton>
+          </section>
+        ) : null}
 
         {can("audit.read") ? (
           <section aria-labelledby="audit-h" className="max-w-xl">

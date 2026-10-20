@@ -14,7 +14,7 @@ import { PanelSkeleton, renderPanel } from "@/components/hq/features/dashboard/w
 import { attempt } from "@/components/hq/features/dashboard/widget-chrome";
 import { loadContractorSummary } from "@/lib/hq/contractors/widgets-data";
 import { requireStaff } from "@/lib/hq/auth";
-import { availableWidgets, widgetDef, type WidgetId } from "@/lib/hq/dashboard-widgets";
+import { reportPanels, widgetDef, type WidgetId } from "@/lib/hq/dashboard-widgets";
 import { formatAud, formatDate, plural, todayIn } from "@/lib/hq/format";
 import { formatConversion } from "@/lib/hq/referrals/numbers";
 import { DEFAULT_GROWTH_PERIOD, GROWTH_PERIODS, GROWTH_PERIOD_LABEL, growthPeriodStart, growthPeriodTitle, parseGrowthPeriod } from "@/lib/hq/referrals/periods";
@@ -24,10 +24,6 @@ export const metadata: Metadata = { title: "Reports" };
 
 const PATH = HQ_ROUTES.reports;
 type SP = Record<string, string | string[] | undefined>;
-
-/** The reporting panels, in the order they appear. Each is shown only to people whose capabilities allow it. */
-const GROWTH_PANELS: readonly WidgetId[] = ["opportunities-by-stage", "partner-referrals", "partner-activity"];
-const CONTRACTOR_PANELS: readonly WidgetId[] = ["contractors-preferred-coverage", "contractors-awaiting-vetting", "contractors-recent-activity"];
 
 /*
  * Reports: the figures and trends that used to crowd the dashboard. Referral figures for a chosen
@@ -49,14 +45,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const [summary, claims] = growth ? await Promise.all([loadGrowthSummary(db, since), countAdditionalClaims(db, since)]) : [null, null];
   const s = summary?.ok ? summary.data : null;
 
-  const allowed = new Set(availableWidgets(staff.capabilities).map((w) => w.id));
-  const growthPanels = GROWTH_PANELS.filter((id) => allowed.has(id));
+  // The reporting panels (lib/hq/dashboard-widgets.ts), each shown only to people whose capabilities allow it.
+  const growthPanels = reportPanels("growth", staff.capabilities);
+  const allowedContractorPanels = reportPanels("contractors", staff.capabilities);
   // An empty "Being vetted" box says nothing: when nobody is being vetted it becomes one line instead.
-  const vetting = allowed.has("contractors-awaiting-vetting") ? await attempt("reports: vetting", () => loadContractorSummary()) : null;
+  const vetting = allowedContractorPanels.includes("contractors-awaiting-vetting") ? await attempt("reports: vetting", () => loadContractorSummary()) : null;
   const nobodyVetting = vetting?.ok === true && vetting.data.awaitingVetting === 0;
-  const contractorPanels = CONTRACTOR_PANELS.filter((id) => allowed.has(id) && !(nobodyVetting && id === "contractors-awaiting-vetting"));
+  const contractorPanels = allowedContractorPanels.filter((id) => !(nobodyVetting && id === "contractors-awaiting-vetting"));
   const ctx: DashCtx = { staffId: staff.id, timezone: staff.timezone, today, capabilities: staff.capabilities };
-  const returnTo = buildHref(PATH, sp, { toast: null, toast_tone: null });
 
   const periodTitle = growthPeriodTitle(period, today);
   const referrals = HQ_ROUTES.referrals;
@@ -67,7 +63,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <div className="hq-reports__grid">
       {ids.map((id) => (
         <Suspense key={id} fallback={<PanelSkeleton id={id} title={widgetDef(id).title} />}>
-          {renderPanel(id, ctx, returnTo)}
+          {renderPanel(id, ctx)}
         </Suspense>
       ))}
     </div>

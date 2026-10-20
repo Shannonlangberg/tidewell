@@ -13,7 +13,8 @@
     "hq:session": "node --env-file=.env.local scripts/hq/dev-session.mts",
     "hq:shot": "node --env-file=.env.local scripts/hq/screenshot.mts",
     "hq:bootstrap": "node --env-file-if-exists=.env.production.local scripts/hq/bootstrap-director.mts",
-    "hq:code": "node --env-file-if-exists=.env.production.local scripts/hq/issue-code.mts"
+    "hq:code": "node --env-file-if-exists=.env.production.local scripts/hq/issue-code.mts",
+    "hq:backup": "scripts/hq/backup.sh"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.6.1",

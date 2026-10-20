@@ -1,33 +1,17 @@
 import "server-only";
 
-import { cache } from "react";
 import { requireStaff } from "@/lib/hq/auth";
-import type { Json } from "@/lib/hq/database.types";
 import type { HqClient } from "@/lib/hq/db";
-import {
-  OPEN_STAGES,
-  OPEN_TASK_STATUSES,
-  type Capability,
-  type InteractionType,
-  type OpportunityStage,
-  type RelationshipStatus,
-  type TaskPriority,
-  type TaskStatus,
-} from "@/lib/hq/constants";
-import { addDays } from "@/lib/hq/periods";
+import { OPEN_STAGES, type Capability, type InteractionType, type OpportunityStage } from "@/lib/hq/constants";
 
 /*
- * Everything the dashboard reads, as plain typed loaders. Every one runs AS the signed-in
+ * Everything the Reports panels read, as plain typed loaders. Every one runs AS the signed-in
  * person through `db`, so row level security decides what comes back: a person who may
- * not read contacts gets zero rows whatever they ask for. The dashboard also hides widgets
+ * not read contacts gets zero rows whatever they ask for. Reports also hides panels
  * the person cannot use, but that is a courtesy; this is the control.
  *
  * A loader THROWS on a database error (with a code only, never personal data) and the widget
  * that called it shows an error state, so one failing query never breaks the page.
- *
- * Several widgets share a query (growth_summary feeds the figures band and others), so the
- * shared ones are memoised for the length of one request with React's cache(), keyed on the
- * `ctx` object the page creates once.
  */
 
 export type DashCtx = {
@@ -52,59 +36,6 @@ async function dbForCaller(): Promise<HqClient> {
 
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
-// ── growth_summary ───────────────────────────────────────────
-
-export type GrowthSummary = {
-  since: string;
-  managementsSigned: number;
-  referralsReceived: number;
-  referralsSent: number;
-  /** null when no referral was received in the window: conversion is not 0%, it is undefined. */
-  conversion: number | null;
-};
-
-export function parseGrowthSummary(json: Json | null): GrowthSummary {
-  const o = json && typeof json === "object" && !Array.isArray(json) ? json : {};
-  return {
-    since: typeof o.since === "string" ? o.since : "",
-    managementsSigned: num(o.managements_signed),
-    referralsReceived: num(o.referrals_received),
-    referralsSent: num(o.referrals_sent),
-    conversion: typeof o.conversion === "number" && Number.isFinite(o.conversion) ? o.conversion : null,
-  };
-}
-
-export const loadGrowthSummary = cache(async (since: string): Promise<GrowthSummary> => {
-  const db = await dbForCaller();
-  const { data, error } = await db.rpc("growth_summary", { p_since: since });
-  if (error) throw new Error(`growth_summary ${error.code}`);
-  return parseGrowthSummary(data);
-});
-
-// ── contacts ─────────────────────────────────────────────────
-
-export type ContactCounts = { total: number; needsVerification: number; contacted: number; organisations: number };
-
-export const loadContactCounts = cache(async (): Promise<ContactCounts> => {
-  const db = await dbForCaller();
-  const head = { count: "exact", head: true } as const;
-  const [total, verify, contacted, orgs] = await Promise.all([
-    db.from("contact_directory").select("id", head),
-    db.from("contact_directory").select("id", head).eq("needs_verification", true),
-    db.from("contact_directory").select("id", head).not("last_contact_at", "is", null),
-    db.from("organisation_directory").select("id", head),
-  ]);
-  for (const r of [total, verify, contacted, orgs]) {
-    if (r.error) throw new Error(`contact counts ${r.error.code}`);
-  }
-  return {
-    total: total.count ?? 0,
-    needsVerification: verify.count ?? 0,
-    contacted: contacted.count ?? 0,
-    organisations: orgs.count ?? 0,
-  };
-});
-
 // ── opportunities ────────────────────────────────────────────
 
 export type OpenStage = Exclude<OpportunityStage, "management_signed" | "lost">;
@@ -123,155 +54,6 @@ export async function loadOpenStageCounts(): Promise<Record<OpenStage, number>> 
     if (row.stage in counts) counts[row.stage as OpenStage] += 1;
   }
   return counts;
-}
-
-// ── follow-ups: who to call ──────────────────────────────────
-
-export type FollowUp = {
-  id: string;
-  name: string;
-  organisation: string | null;
-  status: RelationshipStatus;
-  dueDate: string;
-};
-
-/** Overdue and due within the next seven days, oldest first, inactive contacts left out. */
-export async function loadFollowUps(ctx: DashCtx, limit = 8): Promise<{ items: FollowUp[]; total: number }> {
-  const db = await dbForCaller();
-  const { data, error, count } = await db
-    .from("contact_directory")
-    .select("id, full_name, organisation_name, relationship_status, next_follow_up_date", { count: "exact" })
-    .not("next_follow_up_date", "is", null)
-    .lte("next_follow_up_date", addDays(ctx.today, 7))
-    .neq("relationship_status", "inactive")
-    .order("next_follow_up_date", { ascending: true })
-    .order("full_name", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(`follow-ups ${error.code}`);
-  const items: FollowUp[] = [];
-  for (const r of data ?? []) {
-    if (!r.id || !r.full_name || !r.next_follow_up_date || !r.relationship_status) continue;
-    items.push({
-      id: r.id,
-      name: r.full_name,
-      organisation: r.organisation_name,
-      status: r.relationship_status,
-      dueDate: r.next_follow_up_date,
-    });
-  }
-  return { items, total: count ?? items.length };
-}
-
-// ── contacts not spoken to for 30 days ───────────────────────
-
-export type StaleContact = {
-  id: string;
-  name: string;
-  organisation: string | null;
-  status: RelationshipStatus;
-  lastContactAt: string | null;
-};
-
-export async function loadStaleContacts(limit = 6): Promise<{ items: StaleContact[]; total: number }> {
-  const db = await dbForCaller();
-  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
-  const { data, error, count } = await db
-    .from("contact_directory")
-    .select("id, full_name, organisation_name, relationship_status, last_contact_at", { count: "exact" })
-    .neq("relationship_status", "inactive")
-    .or(`last_contact_at.is.null,last_contact_at.lt.${cutoff}`)
-    .order("last_contact_at", { ascending: true, nullsFirst: true })
-    .order("full_name", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(`stale contacts ${error.code}`);
-  const items: StaleContact[] = [];
-  for (const r of data ?? []) {
-    if (!r.id || !r.full_name || !r.relationship_status) continue;
-    items.push({
-      id: r.id,
-      name: r.full_name,
-      organisation: r.organisation_name,
-      status: r.relationship_status,
-      lastContactAt: r.last_contact_at,
-    });
-  }
-  return { items, total: count ?? items.length };
-}
-
-// ── tasks ────────────────────────────────────────────────────
-
-export type DashTask = {
-  id: string;
-  title: string;
-  dueDate: string | null;
-  priority: TaskPriority;
-  status: TaskStatus;
-  assigneeName: string | null;
-};
-
-export type TaskBucket = "overdue" | "today" | "upcoming";
-
-export function bucketFor(dueDate: string | null, today: string): TaskBucket {
-  if (!dueDate) return "upcoming";
-  if (dueDate < today) return "overdue";
-  if (dueDate === today) return "today";
-  return "upcoming";
-}
-
-/** The person's own open tasks. Overdue first, then today, then the rest by date, undated last. */
-export async function loadMyTasks(ctx: DashCtx): Promise<{ tasks: DashTask[]; counts: Record<TaskBucket, number> }> {
-  const db = await dbForCaller();
-  const { data, error } = await db
-    .from("tasks")
-    .select("id, title, due_date, priority, status")
-    .eq("assigned_to", ctx.staffId)
-    .is("deleted_at", null)
-    .in("status", [...OPEN_TASK_STATUSES])
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true })
-    .limit(300);
-  if (error) throw new Error(`my tasks ${error.code}`);
-  const tasks: DashTask[] = (data ?? []).map((t) => ({
-    id: t.id,
-    title: t.title,
-    dueDate: t.due_date,
-    priority: t.priority,
-    status: t.status,
-    assigneeName: null,
-  }));
-  const counts: Record<TaskBucket, number> = { overdue: 0, today: 0, upcoming: 0 };
-  for (const t of tasks) counts[bucketFor(t.dueDate, ctx.today)] += 1;
-  return { tasks, counts };
-}
-
-/** Everyone else's open tasks that are overdue or due within the week. Needs tasks.read_all to see beyond your own. */
-export async function loadTeamTasks(ctx: DashCtx, limit = 8): Promise<{ items: DashTask[]; total: number }> {
-  const db = await dbForCaller();
-  const { data, error, count } = await db
-    .from("tasks")
-    .select("id, title, due_date, priority, status, assigned_to", { count: "exact" })
-    .is("deleted_at", null)
-    .in("status", [...OPEN_TASK_STATUSES])
-    .not("due_date", "is", null)
-    .lte("due_date", addDays(ctx.today, 7))
-    .or(`assigned_to.is.null,assigned_to.neq.${ctx.staffId}`)
-    .order("due_date", { ascending: true })
-    .order("created_at", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(`team tasks ${error.code}`);
-  const rows = data ?? [];
-  const names = await staffNames(db, rows.map((r) => r.assigned_to));
-  return {
-    total: count ?? rows.length,
-    items: rows.map((t) => ({
-      id: t.id,
-      title: t.title,
-      dueDate: t.due_date,
-      priority: t.priority,
-      status: t.status,
-      assigneeName: t.assigned_to ? (names.get(t.assigned_to) ?? null) : null,
-    })),
-  };
 }
 
 /** id -> first name, for the ids given. Staff are visible to every member of staff (people.read). */
