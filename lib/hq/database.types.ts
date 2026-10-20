@@ -692,6 +692,13 @@ export type Database = {
             foreignKeyName: "decision_tasks_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "decision_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -1146,6 +1153,13 @@ export type Database = {
             foreignKeyName: "enquiries_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "enquiries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -1345,6 +1359,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "staff_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "interactions_task_id_fkey"
@@ -1667,6 +1688,484 @@ export type Database = {
             referencedColumns: ["contact_id"]
           },
         ]
+      }
+      meeting_actions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          meeting_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          meeting_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          meeting_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_actions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_actions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_actions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_actions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "meeting_actions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_attendees: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          contact_id: string | null
+          external_name: string | null
+          id: number
+          meeting_id: string
+          staff_id: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          contact_id?: string | null
+          external_name?: string | null
+          id?: never
+          meeting_id: string
+          staff_id?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          contact_id?: string | null
+          external_name?: string | null
+          id?: never
+          meeting_id?: string
+          staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_attendees_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_history: {
+        Row: {
+          action: string
+          change_note: string | null
+          change_summary: string
+          changes: Json
+          decisions_text: string | null
+          edited_at: string
+          edited_by: string | null
+          edited_by_name: string | null
+          id: number
+          mcp_client_id: string | null
+          meeting_id: string
+          minutes: string | null
+          summary: string | null
+          title: string
+          version: number
+          via: string
+        }
+        Insert: {
+          action: string
+          change_note?: string | null
+          change_summary: string
+          changes?: Json
+          decisions_text?: string | null
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string | null
+          id?: never
+          mcp_client_id?: string | null
+          meeting_id: string
+          minutes?: string | null
+          summary?: string | null
+          title: string
+          version: number
+          via?: string
+        }
+        Update: {
+          action?: string
+          change_note?: string | null
+          change_summary?: string
+          changes?: Json
+          decisions_text?: string | null
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string | null
+          id?: never
+          mcp_client_id?: string | null
+          meeting_id?: string
+          minutes?: string | null
+          summary?: string | null
+          title?: string
+          version?: number
+          via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_history_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_history_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_history_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["meeting_id"]
+          },
+        ]
+      }
+      meeting_links: {
+        Row: {
+          contact_id: string | null
+          contractor_id: string | null
+          decision_id: string | null
+          id: number
+          interaction_id: string | null
+          linked_at: string
+          linked_by: string | null
+          managed_property_id: string | null
+          meeting_id: string
+          opportunity_id: string | null
+          organisation_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          contractor_id?: string | null
+          decision_id?: string | null
+          id?: never
+          interaction_id?: string | null
+          linked_at?: string
+          linked_by?: string | null
+          managed_property_id?: string | null
+          meeting_id: string
+          opportunity_id?: string | null
+          organisation_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          contractor_id?: string | null
+          decision_id?: string | null
+          id?: never
+          interaction_id?: string | null
+          linked_at?: string
+          linked_by?: string | null
+          managed_property_id?: string | null
+          meeting_id?: string
+          opportunity_id?: string | null
+          organisation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "meeting_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "meeting_links_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decision_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_managed_property_id_fkey"
+            columns: ["managed_property_id"]
+            isOneToOne: false
+            referencedRelation: "managed_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_managed_property_id_fkey"
+            columns: ["managed_property_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["meeting_id"]
+          },
+          {
+            foreignKeyName: "meeting_links_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "meeting_links_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_links_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "partner_performance"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          confidential: boolean
+          created_at: string
+          created_by: string | null
+          created_via: string
+          decisions_text: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          duration_minutes: number | null
+          held_at: string
+          id: string
+          location: string | null
+          mcp_client_id: string | null
+          meeting_type: Database["hq"]["Enums"]["meeting_type"]
+          minutes: string | null
+          ref_number: number
+          staff_attendee_ids: string[]
+          summary: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          confidential?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_via?: string
+          decisions_text?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          duration_minutes?: number | null
+          held_at: string
+          id?: string
+          location?: string | null
+          mcp_client_id?: string | null
+          meeting_type?: Database["hq"]["Enums"]["meeting_type"]
+          minutes?: string | null
+          ref_number?: never
+          staff_attendee_ids?: string[]
+          summary?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          confidential?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_via?: string
+          decisions_text?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          duration_minutes?: number | null
+          held_at?: string
+          id?: string
+          location?: string | null
+          mcp_client_id?: string | null
+          meeting_type?: Database["hq"]["Enums"]["meeting_type"]
+          minutes?: string | null
+          ref_number?: never
+          staff_attendee_ids?: string[]
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
       }
       opportunities: {
         Row: {
@@ -2906,6 +3405,13 @@ export type Database = {
             foreignKeyName: "enquiries_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "open_meeting_actions"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "enquiries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -2951,6 +3457,63 @@ export type Database = {
           {
             foreignKeyName: "knowledge_documents_owner_id_fkey"
             columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_overview: {
+        Row: {
+          action_count: number | null
+          attendee_count: number | null
+          attendee_names: string | null
+          confidential: boolean | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          created_via: string | null
+          decisions_text: string | null
+          deleted_at: string | null
+          done_action_count: number | null
+          duration_minutes: number | null
+          held_at: string | null
+          id: string | null
+          linked_names: string | null
+          location: string | null
+          meeting_type: Database["hq"]["Enums"]["meeting_type"] | null
+          minutes: string | null
+          open_action_count: number | null
+          ref: string | null
+          ref_number: number | null
+          staff_attendee_ids: string[] | null
+          summary: string | null
+          title: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Relationships: []
+      }
+      open_meeting_actions: {
+        Row: {
+          assigned_to: string | null
+          assignee_name: string | null
+          created_at: string | null
+          due_date: string | null
+          meeting_confidential: boolean | null
+          meeting_held_at: string | null
+          meeting_id: string | null
+          meeting_ref: string | null
+          meeting_title: string | null
+          priority: Database["hq"]["Enums"]["task_priority"] | null
+          status: Database["hq"]["Enums"]["task_status"] | null
+          task_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "staff_profiles"
             referencedColumns: ["id"]
@@ -3540,6 +4103,26 @@ export type Database = {
         }
         Returns: Json
       }
+      add_meeting_action: {
+        Args: {
+          p_assignee?: string
+          p_description?: string
+          p_due_date?: string
+          p_meeting: string
+          p_priority?: Database["hq"]["Enums"]["task_priority"]
+          p_title: string
+        }
+        Returns: Json
+      }
+      add_meeting_attendee: {
+        Args: {
+          p_contact?: string
+          p_meeting: string
+          p_name?: string
+          p_staff?: string
+        }
+        Returns: Json
+      }
       add_staff: {
         Args: {
           p_email: string
@@ -3664,6 +4247,24 @@ export type Database = {
         }
         Returns: Json
       }
+      create_meeting: {
+        Args: {
+          p_actions?: Json
+          p_attendees?: Json
+          p_change_note?: string
+          p_confidential?: boolean
+          p_decisions_text?: string
+          p_duration_minutes?: number
+          p_held_at: string
+          p_links?: Json
+          p_location?: string
+          p_minutes?: string
+          p_summary?: string
+          p_title: string
+          p_type: Database["hq"]["Enums"]["meeting_type"]
+        }
+        Returns: Json
+      }
       create_opportunity: {
         Args: {
           p_assigned_to?: string
@@ -3737,6 +4338,10 @@ export type Database = {
         Args: { p_decision: string; p_task: string }
         Returns: Json
       }
+      link_meeting: {
+        Args: { p_id: string; p_kind: string; p_meeting: string }
+        Returns: Json
+      }
       log_opportunity_activity: {
         Args: {
           p_create_task?: boolean
@@ -3785,6 +4390,18 @@ export type Database = {
       }
       preview_contractor_import: { Args: { p_rows: Json }; Returns: Json }
       preview_partner_import: { Args: { p_rows: Json }; Returns: Json }
+      promote_decision_to_register: {
+        Args: {
+          p_category: Database["hq"]["Enums"]["decision_category"]
+          p_decision_date?: string
+          p_description?: string
+          p_meeting: string
+          p_rationale?: string
+          p_status?: Database["hq"]["Enums"]["decision_status"]
+          p_title: string
+        }
+        Returns: Json
+      }
       record_contractor_contact: {
         Args: {
           p_contractor: string
@@ -3851,6 +4468,10 @@ export type Database = {
       }
       reinstate_contractor: {
         Args: { p_contractor: string; p_note?: string }
+        Returns: Json
+      }
+      remove_meeting_attendee: {
+        Args: { p_attendee: number; p_meeting: string }
         Returns: Json
       }
       restore_knowledge_version: {
@@ -3947,6 +4568,10 @@ export type Database = {
         Args: { p_decision: string; p_task: string }
         Returns: Json
       }
+      unlink_meeting: {
+        Args: { p_id: string; p_kind: string; p_meeting: string }
+        Returns: Json
+      }
       update_decision: {
         Args: {
           p_category?: Database["hq"]["Enums"]["decision_category"]
@@ -3993,6 +4618,24 @@ export type Database = {
           p_service_type?: Database["hq"]["Enums"]["service_type"]
           p_status?: Database["hq"]["Enums"]["managed_status"]
           p_suburb?: string
+        }
+        Returns: Json
+      }
+      update_meeting: {
+        Args: {
+          p_change_note?: string
+          p_clear?: string[]
+          p_confidential?: boolean
+          p_decisions_text?: string
+          p_duration_minutes?: number
+          p_expected_version: number
+          p_held_at?: string
+          p_location?: string
+          p_meeting: string
+          p_minutes?: string
+          p_summary?: string
+          p_title?: string
+          p_type?: Database["hq"]["Enums"]["meeting_type"]
         }
         Returns: Json
       }
@@ -4163,6 +4806,14 @@ export type Database = {
         | "out_of_area"
         | "other"
       managed_status: "onboarding" | "active" | "offboarding" | "ended"
+      meeting_type:
+        | "partner_referral"
+        | "internal_team"
+        | "contractor"
+        | "landlord_owner"
+        | "supplier_other"
+        | "planning_strategy"
+        | "other"
       opportunity_stage:
         | "introduction_received"
         | "contacted"
@@ -4480,6 +5131,15 @@ export const Constants = {
         "other",
       ],
       managed_status: ["onboarding", "active", "offboarding", "ended"],
+      meeting_type: [
+        "partner_referral",
+        "internal_team",
+        "contractor",
+        "landlord_owner",
+        "supplier_other",
+        "planning_strategy",
+        "other",
+      ],
       opportunity_stage: [
         "introduction_received",
         "contacted",

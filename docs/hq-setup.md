@@ -372,6 +372,24 @@ A reader sees the approved text (or the draft of a never-approved document, mark
 
 **Not yet:** knowledge documents in the global search (`Cmd/Ctrl+K`; the Knowledge page and `search_knowledge` cover it), attachments and images, nested lists and tables in the text, notifications when a review date passes (it shows as Overdue in the list and on the page).
 
+## Meetings
+
+**What it does.** HQ > Meetings keeps meetings: a short summary (shown in lists and on Today), the minutes, decisions, who was there, the records it was about, and actions that are real tasks. The top of the page shows this week's meetings as cards and the open actions from meetings (with Done); below is every meeting with search and a Filter button. Each linked contact, organisation, lead or contractor page shows a small Meetings list, and Today shows one "Recent meetings" line.
+
+**How meetings get in.** Mostly from chat: tell ChatGPT or Claude about the meeting (or paste notes or a transcript from your own recording tool) and ask it to save the minutes to Planted HQ (docs/hq-mcp.md section 12). The assistant writes the minutes and summary; HQ stores them. Or use Record a meeting in HQ. **HQ does not record audio, has no AI of its own, and never stores a transcript: only the minutes.**
+
+**Consent.** Recording a conversation can need the consent of the people in it (South Australia has a surveillance devices law). Check what applies before recording a meeting with any tool. This is a note, not legal advice.
+
+**Roles (an assumption to confirm).** `meetings.read` and `meetings.write`: director, administrator, senior property manager, property manager, business development manager, virtual assistant. Junior property managers and read-only: no access. Actions also need `tasks.write`; adding a meeting decision to the Decisions register needs `decisions.write` (directors and administrators). Archiving and restoring a meeting is on its HQ page, never from chat.
+
+**Confidential meetings** are visible only to the team members who attended, the person who saved it, and directors and administrators (`audit.read`). They do not appear for anyone else in Meetings, Today, record pages or chat lists. Only the person who saved it, or a director or administrator, can change the setting. Their action tasks stay visible to the person they are assigned to (in Tasks, as tasks).
+
+**Touch points.** Saving a meeting linked to a contact, organisation, lead or contractor logs ONE normal interaction on each (an office meeting; a coffee meeting when the location says coffee or cafe; a phone call when it says phone or call), so last contact and the referral partner views update. Editing the meeting updates that interaction; it never adds a second. An organisation whose linked contact belongs to it is logged through that contact (one row, not two). A confidential meeting's interaction says only that a confidential meeting happened. Unlinking or archiving archives the interaction. Saving a meeting is allowed to log these interactions even for a role that cannot log calls itself (for example a senior property manager): the meeting is the record.
+
+**History.** Every change is a new version (who, when, through HQ or a chat app, the note, and a copy of the summary and minutes), readable on the meeting page. An edit is refused if someone saved a newer version first.
+
+Database: migrations `0140_hq_meetings.sql` and `0141_hq_function_acl_meetings.sql`; tests `supabase/tests/hq_16_meetings.sql`.
+
 ## Known limitations and open decisions
 
 - **`update_staff` cannot clear a field.** A null argument means "leave unchanged", so responsibilities and start date can be changed but not blanked.

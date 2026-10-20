@@ -24,6 +24,7 @@ import { BusinessGlanceToday } from "@/components/hq/features/portfolio/Business
 import { EmailDraftsToday } from "@/components/hq/features/email/EmailDraftsToday";
 import { EnquiriesToday } from "@/components/hq/features/enquiries/EnquiriesToday";
 import { KnowledgeApprovalsToday } from "@/components/hq/features/knowledge/KnowledgeApprovalsToday";
+import { MeetingsToday } from "@/components/hq/features/meetings/MeetingsToday";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { todayIn } from "@/lib/hq/format";
@@ -161,6 +162,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       <EmailDraftsToday />
       <EnquiriesToday />
       <KnowledgeApprovalsToday />
+      <MeetingsToday />
 
       {plan.views.length === 0 ? (
         <QuietLine>Nothing needs you today.</QuietLine>

@@ -16,7 +16,9 @@
  * changing a status and choosing who gets them are HQ screens only.
  * The knowledge base can be fully maintained from chat (knowledge.ts): every change to the words is a NEW
  * DRAFT version; approving from chat works only while a director has switched it on; archiving is a
- * reversible soft archive (approvers only). Nothing anywhere is hard-deleted.
+ * reversible soft archive (approvers only). Meetings (meetings.ts) can be saved, listed, searched, opened,
+ * summarised for the week, updated (a new version each time), given actions (real tasks) and have a
+ * decision added to the register; archiving a meeting is an HQ screen. Nothing anywhere is hard-deleted.
  */
 import type { ToolDef } from "../types";
 import { fetchRecord, search } from "./read-search";
@@ -46,6 +48,7 @@ import {
   searchKnowledge,
   updateKnowledge,
 } from "./knowledge";
+import { addMeetingAction, createMeeting, getMeeting, listMeetings, meetingDigest, promoteMeetingDecision, searchMeetings, updateMeeting } from "./meetings";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -121,6 +124,15 @@ export const TOOLS: ToolDef[] = [
   approveKnowledge,
   archiveKnowledge,
   restoreKnowledgeDocument,
+  // meetings (saved from chat: the assistant writes the minutes, HQ stores them; no archive or delete here)
+  listMeetings,
+  searchMeetings,
+  getMeeting,
+  meetingDigest,
+  createMeeting,
+  updateMeeting,
+  addMeetingAction,
+  promoteMeetingDecision,
 ];
 
 /** The tools a person with these capabilities may see and call. */

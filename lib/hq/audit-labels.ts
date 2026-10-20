@@ -34,6 +34,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   email_draft: "Email",
   enquiry: "Website enquiry",
   knowledge_document: "Knowledge document",
+  meeting: "Meeting",
 };
 
 export const ACTION_LABEL: Record<string, string> = {
@@ -75,6 +76,13 @@ export const ACTION_LABEL: Record<string, string> = {
   edit: "New draft saved",
   discard_draft: "Draft discarded",
   restore_version: "Older version brought back as a draft",
+  // meetings (0140): written by hq_private.meeting_bump
+  add_attendee: "Attendee added",
+  remove_attendee: "Attendee removed",
+  link: "Record linked",
+  unlink: "Record unlinked",
+  add_action: "Action added",
+  promote_decision: "Decision added to the register",
 };
 
 const fallback = (s: string) => {

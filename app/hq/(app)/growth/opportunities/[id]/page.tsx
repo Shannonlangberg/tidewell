@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
+import { MeetingsFor } from "@/components/hq/features/meetings/MeetingsFor";
 import { HQ_BASE, INTERACTION_TYPES, TASK_STATUS_LABEL } from "@/lib/hq/constants";
 import { isUuid } from "@/lib/hq/forms";
 import { formatAud, formatDate, formatDateTime, plural, todayIn } from "@/lib/hq/format";
@@ -371,6 +372,7 @@ export default async function LeadPage({ params, searchParams }: { params: Param
               </ul>
             </section>
           ) : null}
+          <MeetingsFor kind="opportunity" id={lead.id} />
         </aside>
       </div>
     </>

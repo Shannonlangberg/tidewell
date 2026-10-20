@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
+import { MeetingsFor } from "@/components/hq/features/meetings/MeetingsFor";
 import { listInteractions, referralSummary, TIMELINE_LIMIT } from "@/lib/hq/contacts/queries";
 import { isUuid } from "@/lib/hq/forms";
 import { formatDate, formatDateTime } from "@/lib/hq/format";
@@ -212,6 +213,7 @@ export default async function OrganisationPage({ params, searchParams }: { param
             <KeyValueList items={details} />
           </section>
           <ReferralsBlock summary={referrals} who="this organisation" recordHref={canWrite ? referralHref : undefined} />
+          <MeetingsFor kind="organisation" id={o.id} />
         </aside>
       </div>
 
