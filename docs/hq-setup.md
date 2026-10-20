@@ -108,7 +108,7 @@ Sign-in codes are emailed through **SendGrid**. The domain **plantedproperty.com
 
 ## Connecting ChatGPT and Claude (MCP)
 
-HQ is an **MCP server** at **`/mcp`** (`https://tidewellcc.netlify.app/mcp` in production). People chat in ChatGPT or Claude; those apps call HQ's tools, **as the person who connected them, with exactly that person's HQ permissions**. There is no AI model inside HQ and no OpenAI or Anthropic key. Design: [hq-mcp.md](hq-mcp.md).
+HQ is an **MCP server** at **`/mcp`** (`https://hq.plantedproperty.com.au/mcp` in production). People chat in ChatGPT or Claude; those apps call HQ's tools, **as the person who connected them, with exactly that person's HQ permissions**. There is no AI model inside HQ and no OpenAI or Anthropic key. Design: [hq-mcp.md](hq-mcp.md).
 
 ### How it works
 
@@ -133,15 +133,15 @@ Approving, preferring, suspending, reinstating or deactivating a contractor; arc
 
 ### Switching it on (production)
 
-1. **Supabase:** the OAuth server is **enabled on the live project**, with authorization path `/hq/oauth/consent` and dynamic registration on. It is recorded in the `[remotes.production.auth.oauth_server]` block in `supabase/config.toml`, which must stay so a later `supabase config push` keeps it (for another project: push that block, or Authentication > OAuth Server in the dashboard). The site URL must be `https://tidewellcc.netlify.app` (it is).
+1. **Supabase:** the OAuth server is **enabled on the live project**, with authorization path `/hq/oauth/consent` and dynamic registration on. It is recorded in the `[remotes.production.auth.oauth_server]` block in `supabase/config.toml`, which must stay so a later `supabase config push` keeps it (for another project: push that block, or Authentication > OAuth Server in the dashboard). The site URL must be `https://hq.plantedproperty.com.au` (it is).
 2. **Signing keys:** `/mcp` accepts only asymmetric tokens (ES256/RS256 from the JWKS) in production. Check Authentication > JWT Keys shows an asymmetric current key before connecting anything.
 3. **Second step (read this first):** see the MFA limitation below. With `require_mfa` on, connected apps are refused; it is currently off on the live project by the owner's decision (see [The live project](#the-live-project)).
 4. **The on/off switch:** `hq.settings.ai_enabled` is `false` by default, and every tool call is refused ("switched off") until a director switches it on. A director does this in **Settings > AI and connected apps** (`/hq/settings/ai`), which also sets the hourly limit and shows the log of every call (directors and administrators see everyone's calls; the database shows anyone else only their own). It writes the settings table as the director, like the other business settings, and the settings trigger audits it. The e2e script makes the same update from a director's session.
-5. Optional environment variables on Netlify: `HQ_PUBLIC_ORIGIN` (for example `https://tidewellcc.netlify.app`; the origin the metadata advertises, otherwise taken from the request's host) and `HQ_MCP_WRITE_HOURLY_LIMIT` (see Limits).
+5. Optional environment variables on Netlify: `HQ_PUBLIC_ORIGIN` (for example `https://hq.plantedproperty.com.au`; the origin the metadata advertises, otherwise taken from the request's host) and `HQ_MCP_WRITE_HOURLY_LIMIT` (see Limits).
 
 ### Connecting (at the time of writing; menu names change)
 
-- **ChatGPT:** Settings, Connectors (Apps), Advanced, turn on Developer mode; then Create/Add a connector, MCP server URL `https://tidewellcc.netlify.app/mcp`, authentication **OAuth** (dynamic registration, no client id to paste). Sign in to HQ when asked and Approve.
+- **ChatGPT:** Settings, Connectors (Apps), Advanced, turn on Developer mode; then Create/Add a connector, MCP server URL `https://hq.plantedproperty.com.au/mcp`, authentication **OAuth** (dynamic registration, no client id to paste). Sign in to HQ when asked and Approve.
 - **Claude:** Settings, Connectors, Add custom connector, the same URL. Sign in to HQ and Approve.
 
 ### Disconnecting

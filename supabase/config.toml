@@ -425,8 +425,8 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 project_id = "wnejvqyqqfxdjkbmbrvs"
 
 [remotes.production.auth]
-site_url = "https://tidewellcc.netlify.app"
-additional_redirect_urls = ["https://tidewellcc.netlify.app/**"]
+site_url = "https://hq.plantedproperty.com.au"
+additional_redirect_urls = ["https://hq.plantedproperty.com.au/**", "https://plantedhq.netlify.app/**", "https://plantedproperty.com.au/**"]
 
 [remotes.production.auth.captcha]
 enabled = false
