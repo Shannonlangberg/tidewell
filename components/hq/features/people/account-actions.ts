@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { withToast } from "@/components/hq/flash";
+import { parseHourlyLimit } from "@/lib/hq/ai-log";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { FormReader, fail, succeed, type ActionState } from "@/lib/hq/forms";
@@ -14,8 +15,9 @@ import { isAustralianTimezone, resolveTimezoneChoice } from "@/lib/hq/timezones"
  *
  *  - updateTimezoneAction: anyone, for THEMSELVES only. The person is the signed-in one (from the
  *    session); the form cannot name anyone else. Validated with Intl here, then by Postgres.
- *  - the two business settings: settings.admin only (directors). They write the settings table
- *    directly; the row level security policy and the column grant (only `value`) are the control.
+ *  - the business settings, including the connected-app switch and hourly limit: settings.admin
+ *    only (directors). They write the settings table directly; the row level security policy, the
+ *    column grant (only `value`) and the settings guard trigger are the control.
  */
 
 // ── your timezone ────────────────────────────────────────────
@@ -75,4 +77,42 @@ export async function updateBusinessTimezoneAction(_prev: ActionState, formData:
     return { ...fail("We could not save the timezone. Try again in a moment."), data: { values: { timezone: tz } } };
   }
   redirect(withToast(`${HQ_BASE}/settings`, "Business timezone saved."));
+}
+
+// ── connected apps (MCP): the on/off switch and the hourly limit ──
+
+/**
+ * Switches the connection for ChatGPT and Claude on or off for everyone (hq.settings.ai_enabled).
+ * Off is the immediate lever: every tool call is refused from the next call on. Same write path as
+ * the other business settings: settings.admin here, then RLS and the settings guard in the database.
+ */
+export async function setAiEnabledAction(enabled: boolean): Promise<ActionState> {
+  const { db } = await requireStaff("settings.admin");
+  if (typeof enabled !== "boolean") return fail("We could not change that setting.");
+
+  const { data, error } = await db.from("settings").update({ value: enabled }).eq("key", "ai_enabled").select("key");
+  if (error || !data || data.length === 0) {
+    console.error("[hq] changing ai_enabled failed:", error?.code);
+    return fail("We could not change that setting. Try again in a moment.");
+  }
+  refresh();
+  return succeed(enabled ? "The connection is on. ChatGPT and Claude can use HQ as each person." : "The connection is off. Connected apps are refused from their next call.");
+}
+
+/** Calls per person per rolling hour through a connected app (hq.settings.ai_hourly_limit): 1 to 1000. */
+export async function updateAiHourlyLimitAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { db } = await requireStaff("settings.admin");
+  const raw = formData.get("hourlyLimit");
+  const typed = typeof raw === "string" ? raw.trim().slice(0, 12) : "";
+  const limit = parseHourlyLimit(typed);
+  if (limit === null) {
+    return { ...fail("Check the hourly limit and try again.", { hourlyLimit: "Enter a whole number from 1 to 1000." }), data: { values: { hourlyLimit: typed } } };
+  }
+
+  const { data, error } = await db.from("settings").update({ value: limit }).eq("key", "ai_hourly_limit").select("key");
+  if (error || !data || data.length === 0) {
+    console.error("[hq] changing ai_hourly_limit failed:", error?.code);
+    return { ...fail("We could not save the hourly limit. Try again in a moment."), data: { values: { hourlyLimit: typed } } };
+  }
+  redirect(withToast(`${HQ_BASE}/settings/ai`, "Hourly limit saved."));
 }
