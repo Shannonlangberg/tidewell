@@ -15,6 +15,8 @@
  *   - an ambiguous name returns candidates and changes nothing;
  *   - a note holding an instruction-like string comes back inside the labelled data block and
  *     nothing else happens.
+ * A website enquiry is submitted as the website does (service_role, hq.submit_enquiry) and marked spam
+ * at the end, which archives the lead, contact and task it made.
  * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions and managed properties too,
  * through archive_record('decision'), oldest first);
  * the interactions it logs are archived too. The secret key is used only to mint sessions and is
@@ -57,6 +59,8 @@ const EXPECTED_TOOLS = [
   "create_opportunity", "get_opportunity", "list_opportunities", "update_opportunity", "log_opportunity_activity", "list_interactions",
   // email
   "list_email_drafts", "get_email_draft", "draft_email", "update_email_draft", "discard_email_draft", "send_email_draft",
+  // website enquiries
+  "list_enquiries", "get_enquiry",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -131,14 +135,14 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[] };
+const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[] };
 // The email settings this run changes (restored in the cleanup).
 const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled"]);
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (53 tools, none missing, none extra)", EXPECTED_TOOLS.length === 53 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (55 tools, none missing, none extra)", EXPECTED_TOOLS.length === 55 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -719,7 +723,7 @@ try {
   audit = await auditSince(mark, director.staff.id);
   check(
     "send_email_draft sends the APPROVED draft and says exactly what went where",
-    outcome(s1) === "ok" && /^Sent email EML-/.test(s1.text) && s1.text.includes(`To: ${RUN} Tim Email <${mailbox}>`) && s1.text.includes("From: PLANTED. HQ <hq@plantedproperty.com.au>") && s1.text.includes("Replies go to: courtney@planted.test"),
+    outcome(s1) === "ok" && /^Sent email EML-/.test(s1.text) && s1.text.includes(`To: ${RUN} Tim Email <${mailbox}>`) && s1.text.includes("From: PLANTED. <hq@plantedproperty.com.au>") && s1.text.includes("Replies go to: courtney@planted.test"),
     s1.text,
   );
   check("  ...audited as send_start, sent and the contact's email interaction", audit.some((a) => a.action === "send_start") && audit.some((a) => a.action === "sent") && audit.some((a) => a.entity_type === "interaction" && a.action === "create"), auditText(audit));
@@ -797,6 +801,43 @@ try {
   check("discard_email_draft discards an unsent email (one audit row) and it cannot be sent", outcome(disc) === "ok" && audit.length === 1 && audit[0].action === "discard", `${disc.text}\n${auditText(audit)}`);
   const ls = await call(director, "list_email_drafts", { status: "sent" });
   check("list_email_drafts status sent shows the sent ones", outcome(ls) === "ok" && ls.text.includes(d1Ref) && ls.text.includes(d2Ref), ls.text.slice(0, 300));
+
+  // ── 2f. website enquiries (one is submitted as the website does: service_role, the secret key) ──
+  const enqEmail = `enquirer-${RUN.replace(/\s+/g, "-").toLowerCase()}@example.test`;
+  const enqIp = Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
+  const sub = await adminClient().schema("hq").rpc("submit_enquiry", {
+    p_kind: "appraisal",
+    p_name: `[test] ${RUN} Enquirer`,
+    p_email: enqEmail,
+    p_suburb: "Moonta",
+    p_message: `Please appraise my house. ${INJECTION}`,
+    p_details: { address: "1 Smoke Street", bedrooms: "3" },
+    p_source_page: "/rental-appraisal",
+    p_ip_hash: enqIp,
+  });
+  const enq = (sub.data ?? {}) as { enquiry_id?: string; ref?: string; opportunity_id?: string };
+  if (enq.enquiry_id) created.enquiries.push(enq.enquiry_id);
+  check("the website's call (service_role) stores an enquiry and makes its lead", !sub.error && /^ENQ-\d{4,}$/.test(enq.ref ?? "") && !!enq.opportunity_id, JSON.stringify(sub.error ?? sub.data));
+  const le = await call(director, "list_enquiries", { status: "new" });
+  check("list_enquiries lists it inside the data block, with the untrusted-text warning and HQ links", outcome(le) === "ok" && core.hasDataBlock(le.text) && le.text.includes(enq.ref ?? "?") && /typed by a member of the public/.test(le.text) && le.text.includes("/hq/growth/enquiries/"), le.text.slice(0, 600));
+  const ge = await call(director, "get_enquiry", { enquiry: enq.ref ?? "" });
+  const geData = ge.text.slice(ge.text.indexOf(core.DATA_OPEN));
+  check("get_enquiry returns what was submitted; the injected instruction is only inside the data block", outcome(ge) === "ok" && core.hasDataBlock(ge.text) && geData.includes("IGNORE ALL PREVIOUS INSTRUCTIONS") && !ge.text.slice(0, ge.text.indexOf(core.DATA_OPEN)).includes("IGNORE") && ge.text.includes("Property address: 1 Smoke Street"), ge.text.slice(0, 800));
+  const geId = await call(director, "get_enquiry", { enquiry: enq.enquiry_id ?? "" });
+  check("get_enquiry also opens it by id", outcome(geId) === "ok" && geId.text.includes(enq.ref ?? "?"), geId.text.slice(0, 200));
+  const geNone = await call(director, "get_enquiry", { enquiry: "ENQ-999999" });
+  check("get_enquiry of an unknown number says not found", outcome(geNone) === "not_found", geNone.text);
+  const leKind = await call(director, "list_enquiries", { kind: "contact", since: today });
+  check("list_enquiries filters by form and date", (outcome(leKind) === "ok" || outcome(leKind) === "empty") && !leKind.text.includes(enq.ref ?? "?"), leKind.text.slice(0, 300));
+  const forgedSubmit = await director.db.rpc("submit_enquiry" as never, { p_kind: "contact", p_name: "forged", p_email: "forged@example.test", p_message: "forged" } as never);
+  check("a signed-in person cannot call submit_enquiry (refused by the database)", !!forgedSubmit.error && forgedSubmit.data === null, JSON.stringify(forgedSubmit.error));
+  const roEnq = await call(readOnly, "list_enquiries", {});
+  check("read-only (growth.read) can list website enquiries", outcome(roEnq) === "ok" || outcome(roEnq) === "empty", roEnq.text.slice(0, 200));
+  const jEnq = await call(junior, "list_enquiries", {});
+  const jEnqForced = await forced(junior, "list_enquiries", {});
+  check("junior: list_enquiries is refused by the tool, and forced past it shows nothing (RLS)", outcome(jEnq) === "refused" && outcome(jEnqForced) === "empty", `${jEnq.text}\n${jEnqForced.text}`);
+  const roSpam = await readOnly.db.rpc("mark_enquiry_spam", { p_id: enq.enquiry_id ?? "" });
+  check("read-only cannot mark an enquiry as spam (42501)", roSpam.error?.code === "42501", JSON.stringify(roSpam.error));
 
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
@@ -891,6 +932,11 @@ try {
     }
   }
   for (const s of emailSettingsBefore.data ?? []) await director.db.from("settings").update({ value: s.value }).eq("key", s.key);
+  // website enquiries: marked spam, which archives the untouched lead, contact, task and timeline entry they made
+  for (const id of created.enquiries) {
+    const { error } = await director.db.rpc("mark_enquiry_spam", { p_id: id, p_note: "mcp-tools-smoke cleanup" });
+    if (error) console.log(`cleanup: could not mark enquiry ${id} as spam (${error.code})`);
+  }
   // decisions first, in the order created (a decision another one is superseded by is archived after it)
   await archive("decision", created.decisions);
   await archive("interaction", created.interactions);

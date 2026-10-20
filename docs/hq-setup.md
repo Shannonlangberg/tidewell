@@ -246,7 +246,7 @@ The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && su
 
 **How it is protected.** New RPCs `create_opportunity`, `update_opportunity`, `log_opportunity_activity` and the seven-argument `move_opportunity` (all security definer, growth.write checked inside with the second sign-in step, pinned search path, audited, execute for `authenticated` only: `0128_hq_function_acl_leads.sql`); views `opportunity_overview` and `overdue_opportunities` (security invoker). Tests `supabase/tests/hq_10_leads.sql` (135 tests: forged callers, the open-lead rule, duplicates, source and lost-reason rules, partner views unchanged by landlords, overdue boundaries, RLS).
 
-**Not yet:** website enquiries arriving as leads automatically (next builder); leads in the global search (`Cmd/Ctrl+K`); a conversion figure for direct leads (the Growth overview's conversion is still managements signed over referrals received, and now includes signed direct leads in the numerator).
+**Not yet:** leads in the global search (`Cmd/Ctrl+K`); a conversion figure for direct leads (the Growth overview's conversion is still managements signed over referrals received, and now includes signed direct leads in the numerator).
 
 ## Email (branded drafts, approved sending)
 
@@ -269,6 +269,42 @@ The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && su
 **Not verified:** a real send through SendGrid. Everything was tested locally with the fake provider; the live send is unverified until deployed and tried with a real address the owner controls.
 
 Tables, RPCs and tests: `hq.email_drafts`, `create_email_draft`, `update_email_draft`, `discard_email_draft`, `approve_email_draft`, `begin_email_send`, `finish_email_send` (0132, privileges 0133); `supabase/tests/hq_12_email.sql`; unit tests in `lib/hq/email/*.test.mts`.
+
+## Website enquiries (the public forms into HQ)
+
+**How it works.** The two forms on plantedproperty.com.au (Rental appraisal at `/rental-appraisal`, Contact at `/contact`) post to Server Actions on the same site (`app/(site)/enquiry-actions.ts`). Each submission is read and validated again on the server, then screened (a hidden honeypot field, a too-fast timing check, and Turnstile when its keys are set). Only then is it stored in HQ: `lib/hq/enquiry-intake.ts` calls `hq.submit_enquiry` with the secret key, and that function is executable by `service_role` only (never by a browser, anon or a signed-in person). In one transaction it:
+
+- validates and caps every field again (name 200, email 254, phone 40, suburb 120, message 5000, the other form fields 300 each, at most 30);
+- **dedupes**: the same email with the same submission within 10 minutes returns the enquiry already stored (a double tap makes one enquiry, one lead and one task);
+- **rate-limits**: at most 5 enquiries per email address and 5 per connection per hour; the sixth is refused and the person is told honestly it was not sent;
+- links the live contact that already uses that email (never changed; a referral partner stays a partner), or creates a **landlord contact** flagged to verify (source "website enquiry");
+- attaches to that person's **open lead** if there is one (a message on its timeline), otherwise creates a new lead: source Website enquiry, stage Introduction received, next action "Reply to the website enquiry", due **today** (business timezone), the message in its notes, owned by the person in **Settings > Who gets website enquiries** (or, when nobody is chosen or that person has left, the earliest-created active director);
+- puts the message on the lead's timeline and creates one task for the owner, due today: "Reply to website enquiry ENQ-0001";
+- writes an audit event with the actor "System" (no message text in it).
+
+**Delivery rule.** A person is told their enquiry was sent only when HQ stored it (or, if HQ could not, when an older adapter, Resend or the webhook, delivered it). If HQ fails and nothing else delivered, they see the existing "something went wrong, it didn't reach us" message and nothing is stored. Both forms work with and without JavaScript.
+
+**Staff notification email (best effort).** After HQ stores a new enquiry (not a duplicate), one email goes to `ENQUIRY_TO_EMAIL` only, never to the enquirer: "New website enquiry ENQ-0001: Rental appraisal request (Wallaroo)", with the form, the ENQ number, the name and suburb as typed, when it arrived, and links to the enquiry and the lead in HQ (`https://hq.plantedproperty.com.au/...`). The message, email address and phone number stay in HQ. From `PLANTED. <hq@plantedproperty.com.au>` (`EMAIL_FROM_ADDRESS` / `EMAIL_FROM_NAME`, as for HQ email), Reply-To the notification address itself. If the email fails, the enquiry still counts as received (it is in HQ) and the failure is only logged. Outside production the fake provider writes it to the local outbox instead (`HQ_EMAIL_OUTBOX_DIR`), exactly as for HQ email.
+
+**In HQ.** **Growth > Website enquiries** (`/hq/growth/enquiries`, `growth.read`): newest first, with the ENQ number, Appraisal or Contact, name, suburb, when it arrived, status (New, In progress, Spam, Archived), owner and the lead; filters by status and form; cards on a phone. An enquiry's page shows exactly what was submitted, as plain text, with **Open the lead**. People with `growth.write` can mark it In progress, Archive it, or **Mark as spam** (confirmed): spam keeps the enquiry and archives the lead and contact it created, with its reply task and timeline entry, when nobody has worked on them yet (a call, a note, a task, a stage change); a lead it joined, or a partner contact, is never touched. Leads from the website carry a **Website enquiry** chip on their page and pipeline card, and the lead's page links back to its ENQ numbers. **Today** shows one quiet line, "2 new website enquiries", when there are any. A director chooses **Who gets website enquiries** in Settings.
+
+**Through ChatGPT or Claude:** `list_enquiries` and `get_enquiry` (read only; enquiry text is returned as untrusted data). Prompts: [hq-mcp.md section 10](hq-mcp.md#10-testing-website-enquiries-from-chatgpt).
+
+**Netlify environment variables (production).**
+- `ENQUIRY_TO_EMAIL`: **set this**: the address that gets the notification email (for example the shared inbox the owner reads). Without it enquiries are still stored in HQ, but no email is sent.
+- `ENQUIRY_IP_SALT` (optional, mark it secret): 16 or more random characters, used to hash the visitor's IP for the hourly limit. Without it a value derived from the secret key is used. Changing it only resets the hourly counts.
+- Already set: `SENDGRID_API_KEY` (the notification uses it through `lib/hq/email/sendgrid.ts`, still the only file that reads it), `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the intake uses them through `lib/supabase/secret.ts`).
+- Redeploy after changing any of them.
+
+**Spam protection today.** Turnstile is still **off** (no keys set), so protection is the honeypot field, the timing check, the dedupe and the two hourly limits, plus Mark as spam in HQ. Turning Turnstile on needs `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (the CSP already allows it on both form pages).
+
+**Privacy and retention.** No IP address is stored: only a salted SHA-256 of it, used for the hourly limit. Server logs carry the outcome and the ENQ number, never a name, email, phone or message. Enquiries are never deleted by HQ (spam is marked, not removed), and the message is also copied to the lead's notes and timeline. **There is no automatic retention period yet:** the owner should decide how long enquiries that never became a management are kept, and the privacy policy should say what happens to what people submit. Deleting an enquiry is blocked for every role by design, so a retention clean-up needs a new migration that the owner approves.
+
+**Security boundary.** `lib/hq/enquiry-intake.ts` is the only file on the public site's path allowed to import `lib/supabase/secret.ts` (ESLint allow-list), and it only calls `submit_enquiry`. `lib/hq/email/enquiry-notify.ts` is the only file besides `lib/hq/email/send.ts` allowed to import the SendGrid provider. Migrations `0134_hq_enquiries.sql` (table `hq.enquiries`, RLS forced, readable with `growth.read`, no direct writes by any API role; the RPCs; view `enquiry_overview`) and `0135_hq_function_acl_enquiries.sql` (privileges); tests `supabase/tests/hq_13_enquiries.sql`.
+
+**Site links.** `CONTACT.url` in `lib/planted.ts` is `https://plantedproperty.com.au` (confirmed), so canonical URLs, the Open Graph base, the sitemap, robots.txt and the area pages' structured data use it. The footer's **Staff login** goes to `https://hq.plantedproperty.com.au/`. No other contact detail is published.
+
+**Not verified until deployed:** the real notification email through SendGrid, and the live path (the Netlify function reaching the hosted database with the secret key, Netlify's client IP header). Everything was tested locally (fake email provider). To try it live after deploying: set `ENQUIRY_TO_EMAIL`, redeploy, submit the Contact form on plantedproperty.com.au with a clearly fake name ("[test] ...") and an address you control, check you see the thank-you page, the notification arrives at `ENQUIRY_TO_EMAIL` with working links, and in HQ the enquiry, the lead (Website enquiry chip, owner, next action due today), the reply task on the owner's Today and the message on the lead's timeline; submit the same form again straight away and check there is still one lead; then mark the test enquiry as spam.
 
 ## Known limitations and open decisions
 

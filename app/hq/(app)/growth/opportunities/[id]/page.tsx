@@ -16,6 +16,8 @@ import { EditLeadButton, LogLeadActivityButton, NextStepButton } from "@/compone
 import { LeadTimeline } from "@/components/hq/features/leads/LeadTimeline";
 import { ConvertToManagedButton } from "@/components/hq/features/portfolio/ConvertToManagedButton";
 import { MoveStageButton } from "@/components/hq/features/referrals/ReferralActions";
+import { WebsiteEnquiryChip } from "@/components/hq/features/enquiries/WebsiteEnquiryChip";
+import { enquiriesForLead } from "@/lib/hq/enquiry-queries";
 
 export const metadata: Metadata = { title: "Lead" };
 
@@ -56,7 +58,8 @@ export default async function LeadPage({ params, searchParams }: { params: Param
   if (!found.data) notFound();
   const lead = found.data;
 
-  const [bundle, staffList] = await Promise.all([loadLeadBundle(db, lead), canWrite ? staffOptions(db) : Promise.resolve([])]);
+  const [bundle, staffList, enquiries] = await Promise.all([loadLeadBundle(db, lead), canWrite ? staffOptions(db) : Promise.resolve([]), enquiriesForLead(db, lead.id)]);
+  const fromWebsite = enquiries.ok ? enquiries.data : [];
   const owners =
     lead.assignedTo && !staffList.some((s) => s.value === lead.assignedTo)
       ? [...staffList, { value: lead.assignedTo, label: `${lead.assignedToName ?? "Former staff member"} (no longer active)` }]
@@ -92,7 +95,27 @@ export default async function LeadPage({ params, searchParams }: { params: Param
 
   const details: KeyValueItem[] = [
     { label: "Reference", value: lead.ref },
-    { label: "Came from", value: LEAD_SOURCE_LABEL[lead.source] },
+    {
+      label: "Came from",
+      value:
+        fromWebsite.length > 0 ? (
+          <>
+            {LEAD_SOURCE_LABEL[lead.source]}
+            <span className="block">
+              {fromWebsite.map((q, i) => (
+                <span key={q.id}>
+                  {i > 0 ? ", " : lead.source === "website_enquiry" ? "" : "Also a website enquiry: "}
+                  <Link href={`/hq/growth/enquiries/${q.id}`} className="underline underline-offset-2">
+                    {q.ref}
+                  </Link>
+                </span>
+              ))}
+            </span>
+          </>
+        ) : (
+          LEAD_SOURCE_LABEL[lead.source]
+        ),
+    },
     {
       label: "Stage",
       value: (
@@ -141,6 +164,7 @@ export default async function LeadPage({ params, searchParams }: { params: Param
         meta={
           <span className="flex flex-wrap gap-2">
             <StageChip stage={lead.stage} />
+            {lead.source === "website_enquiry" ? <WebsiteEnquiryChip /> : null}
             {attention ? <StatusChip tone="warning">{attention}</StatusChip> : null}
           </span>
         }

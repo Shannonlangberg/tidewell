@@ -32,6 +32,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   managed_property: "Managed property",
   property_handover_step: "Handover step",
   email_draft: "Email",
+  enquiry: "Website enquiry",
 };
 
 export const ACTION_LABEL: Record<string, string> = {
@@ -65,6 +66,8 @@ export const ACTION_LABEL: Record<string, string> = {
   send_start: "Sending started",
   sent: "Sent",
   send_failed: "Not sent",
+  enquiry_received: "Received from the website",
+  mark_spam: "Marked as spam",
 };
 
 const fallback = (s: string) => {

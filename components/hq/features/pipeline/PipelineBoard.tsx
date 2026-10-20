@@ -11,6 +11,7 @@ import { Avatar } from "../../Avatar";
 import { Button } from "../../Button";
 import { Icon } from "../../icons";
 import { StatusChip } from "../../StatusChip";
+import { WebsiteEnquiryChip } from "../enquiries/WebsiteEnquiryChip";
 import { MoveStageDrawer, type MoveTarget } from "./MoveStageDrawer";
 import styles from "./pipeline.module.css";
 
@@ -146,6 +147,8 @@ export function PipelineBoard({
                               {partner}
                               {c.partnerOrganisationName && c.partnerContactName ? `, ${c.partnerContactName}` : ""}
                             </>
+                          ) : c.source === "website_enquiry" ? (
+                            <WebsiteEnquiryChip />
                           ) : (
                             (isLeadSource(c.source) ? LEAD_SOURCE_LABEL[c.source] : "Direct lead")
                           )}
