@@ -79,7 +79,7 @@ const KIND_NOUN: Record<LinkedSummary["kind"], string> = {
   contact: "Contact",
   organisation: "Organisation",
   referral: "Referral",
-  opportunity: "Opportunity",
+  opportunity: "Lead",
   contractor: "Contractor",
 };
 
@@ -263,7 +263,7 @@ export function TaskForm(props: TaskFormProps) {
               key={`opp-${opportunityChecked}`}
               name="related_opportunity_id"
               value={opportunityLink.id}
-              label={opportunityLink.label ? `Linked to opportunity ${opportunityLink.label}` : "Linked to an opportunity"}
+              label={opportunityLink.label ? `Linked to the lead ${opportunityLink.label}` : "Linked to a lead"}
               hint="Untick to remove the link."
               defaultChecked={opportunityChecked}
               error={fieldError(state, "related_opportunity_id")}

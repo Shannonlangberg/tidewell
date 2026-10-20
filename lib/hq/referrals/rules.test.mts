@@ -88,3 +88,9 @@ test("a return path that leads anywhere else is replaced", () => {
 test("the follow-up task title names the reference and never the prospect", () => {
   assert.equal(followUpTitle("REF-0012"), "Follow up on REF-0012");
 });
+
+test("a lead's page is a safe place to come back to", () => {
+  const id = "3f7f0d1e-1c5a-4a52-9a52-8a3b0f4a0001";
+  assert.equal(safeReturnPath(`/hq/growth/opportunities/${id}`, "/x"), `/hq/growth/opportunities/${id}`);
+  assert.equal(safeReturnPath("/hq/growth/opportunities/not-an-id", "/x"), "/x");
+});

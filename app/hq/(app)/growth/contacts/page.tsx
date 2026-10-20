@@ -57,7 +57,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
 
   const [list, counts, regions, staffList, pickerContacts] = await Promise.all([
     listContacts(db, query, { staffId: staff.id }),
-    contactCounts(db),
+    contactCounts(db, new Date(), query.kind === "all" ? "all" : query.kind),
     regionChoices(db),
     staffOptions(db),
     logOpen ? contactOptions(db) : Promise.resolve([]),
@@ -109,7 +109,11 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
       <PageHeader
         eyebrow="Growth"
         title="Contacts"
-        description="The people at your referral partners. Log a call or meeting each time, so everyone at an organisation knows who has spoken to whom."
+        description={
+          query.kind === "landlord"
+            ? "Landlords and property owners, most of them added with a lead. They never appear in partner lists or counts."
+            : "The people at your referral partners. Log a call or meeting each time, so everyone at an organisation knows who has spoken to whom. Landlords are listed under Kind of contact."
+        }
         actions={
           <>
             {canImport ? <LinkButton href="/hq/growth/import">Import</LinkButton> : null}
@@ -195,6 +199,18 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
           options={RELATIONSHIP_STATUSES.map((s) => ({ value: s, label: RELATIONSHIP_LABEL[s] }))}
         />
         <Select name="priority" label="Priority" hideLabel placeholder="Any priority" defaultValue={query.priority ?? ""} options={PRIORITIES.map((p) => ({ value: p, label: PRIORITY_LABEL[p] }))} />
+        <Select
+          name="kind"
+          label="Kind of contact"
+          hideLabel
+          placeholder="Partners"
+          defaultValue={query.kind === "partner" ? "" : query.kind}
+          options={[
+            { value: "landlord", label: "Landlords" },
+            { value: "other", label: "Other contacts" },
+            { value: "all", label: "Everyone" },
+          ]}
+        />
       </FilterBar>
 
       <div className="mt-6">

@@ -10,7 +10,7 @@
  * Pure and dependency-free, so `node --test` can run it.
  */
 
-export type DbError = { code?: string | null; message?: string | null } | null | undefined;
+export type DbError = { code?: string | null; message?: string | null; hint?: string | null } | null | undefined;
 
 export type ReferralErrorKind =
   | "permission"
@@ -23,6 +23,8 @@ export type ReferralErrorKind =
   | "prospect_required"
   | "assignee_inactive"
   | "lost_reason_required"
+  | "lost_reason_code_required"
+  | "lead_needs_next_step"
   | "leave_signed_forbidden"
   | "partner_required"
   | "partner_mismatch"
@@ -57,12 +59,14 @@ export function classifyReferralError(error: DbError): ReferralErrorKind {
   if (code === "23514") {
     if (has(m, "attributed source")) return "attributed_source";
     if (has(m, "none is attributed")) return "attribution_conflict";
+    if (has(m, "open lead needs an owner")) return "lead_needs_next_step";
     return "invalid";
   }
 
   if (code === "22023") {
     if (has(m, "prospect name is required")) return "prospect_required";
     if (has(m, "active member of staff")) return "assignee_inactive";
+    if (has(m, "lost opportunity needs a reason code")) return "lost_reason_code_required";
     if (has(m, "lost opportunity needs a reason")) return "lost_reason_required";
     if (has(m, "needs a referring contact or organisation", "needs a receiving contact or organisation")) return "partner_required";
     if (has(m, "does not belong")) return "partner_mismatch";

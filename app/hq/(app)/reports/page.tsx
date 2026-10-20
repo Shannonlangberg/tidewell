@@ -13,6 +13,7 @@ import type { DashCtx } from "@/components/hq/features/dashboard/data";
 import { PanelSkeleton, renderPanel } from "@/components/hq/features/dashboard/widgets";
 import { attempt } from "@/components/hq/features/dashboard/widget-chrome";
 import { loadContractorSummary } from "@/lib/hq/contractors/widgets-data";
+import { BusinessGlance } from "@/components/hq/features/portfolio/BusinessGlance";
 import { requireStaff } from "@/lib/hq/auth";
 import { reportPanels, widgetDef, type WidgetId } from "@/lib/hq/dashboard-widgets";
 import { formatAud, formatDate, plural, todayIn } from "@/lib/hq/format";
@@ -72,6 +73,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageHeader title="Reports" description="Figures from the records in HQ. For what to do today, go to Today." />
+
+      <BusinessGlance />
 
       {growth ? (
         <section aria-labelledby="referrals-h" className="hq-reports__section">

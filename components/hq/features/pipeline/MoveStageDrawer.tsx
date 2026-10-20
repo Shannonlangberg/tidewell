@@ -5,6 +5,7 @@ import { moveStage } from "@/app/hq/(app)/growth/referrals/actions";
 import { STAGE_LABEL } from "@/lib/hq/constants";
 import { idle } from "@/lib/hq/forms";
 import { formatDate } from "@/lib/hq/format";
+import { LOST_REASON_LABEL, LOST_REASONS } from "@/lib/hq/leads/rules";
 import { retainedText, type RetainedValues } from "@/lib/hq/growth/retain";
 import { allowedTargets, classifyMove, moveFieldsFor, moveNeedsConfirmation, isStage, type Stage } from "@/lib/hq/referrals/stages";
 import { Button } from "../../Button";
@@ -26,7 +27,7 @@ import { DateInput, Textarea, TextInput } from "../../TextInput";
  * (the database enforces every rule again):
  *   Management signed   the date it was signed (not in the future) and, optionally, the reference
  *                       from the property management system. Signing twice changes nothing.
- *   Lost / did not proceed   a reason (required).
+ *   Lost / did not proceed   a reason from the list and a few words (both required).
  *   Out of "signed"     only a director or administrator, and only after a confirmation that says
  *                       the signed count will change.
  *
@@ -46,6 +47,7 @@ const LABELS: Record<string, string> = {
   stage: "Move to",
   signed_date: "Date signed",
   management_reference: "Management reference",
+  lost_reason_code: "Why it did not proceed",
   lost_reason: "Reason",
   note: "Note",
 };
@@ -207,16 +209,28 @@ function MoveSession({
               ) : null}
 
               {fields.lostReason ? (
-                <TextInput
-                  name="lost_reason"
-                  idPrefix="move"
-                  label="Why did it not proceed?"
-                  required
-                  maxLength={300}
-                  defaultValue={retainedText(values, "lost_reason")}
-                  error={fieldError(state, "lost_reason")}
-                  hint="A few words. It is kept with the prospect."
-                />
+                <>
+                  <Select
+                    name="lost_reason_code"
+                    idPrefix="move"
+                    label="Why did it not proceed?"
+                    required
+                    placeholder="Choose a reason"
+                    options={LOST_REASONS.map((r) => ({ value: r, label: LOST_REASON_LABEL[r] }))}
+                    defaultValue={retainedText(values, "lost_reason_code")}
+                    error={fieldError(state, "lost_reason_code")}
+                  />
+                  <TextInput
+                    name="lost_reason"
+                    idPrefix="move"
+                    label="In a few words"
+                    required
+                    maxLength={300}
+                    defaultValue={retainedText(values, "lost_reason")}
+                    error={fieldError(state, "lost_reason")}
+                    hint="For example: chose the agency that sold them the house. It is kept with the lead."
+                  />
+                </>
               ) : null}
 
               {leaving && to && kind !== "same" ? (

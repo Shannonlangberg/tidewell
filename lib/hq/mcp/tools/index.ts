@@ -6,7 +6,12 @@
  * Single record, named, no bulk, no deletes. Deliberately not available through chat (HQ screens
  * only): approving, preferring, suspending, reinstating or deactivating a contractor; signing a
  * management or marking it lost; archiving or deleting anything; documents; imports; people and
- * roles; settings. Decisions can be listed, searched, opened, recorded and updated, never archived.
+ * roles; settings. Leads can be added, listed, opened, updated and have calls logged; moving a lead's
+ * stage stays move_opportunity (never signed or lost). Decisions can be listed, searched, opened, recorded and updated, never archived.
+ * Managed properties can be listed, opened, made from a signed lead, updated and have a handover step
+ * set, never archived; adding a property signed before HQ and the business goal are HQ screens only.
+ * Emails can be drafted (to someone HQ holds an address for), listed, opened, changed and discarded,
+ * and an APPROVED email sent; approving is a tap in HQ only (chat-send mode aside, see email.ts).
  */
 import type { ToolDef } from "../types";
 import { fetchRecord, search } from "./read-search";
@@ -18,6 +23,9 @@ import { createTask, updateTask } from "./write-tasks";
 import { createContact, createOrganisation, logInteraction, moveOpportunity, recordReferral, updateContact } from "./write-growth";
 import { logContractorContact, recordContractorJob, recordContractorReview, setVettingStep, updateContractor } from "./write-contractors";
 import { createDecision, getDecision, listDecisions, searchDecisions, updateDecision } from "./decisions";
+import { createOpportunity, getOpportunity, listInteractions, listOpportunities, logOpportunityActivity, updateOpportunity } from "./opportunities";
+import { businessSummary, createManagedProperty, getManagedProperty, listManagedProperties, setHandoverStep, updateManagedProperty } from "./portfolio";
+import { discardEmailDraft, draftEmail, getEmailDraft, listEmailDrafts, sendEmailDraft, updateEmailDraft } from "./email";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -37,11 +45,17 @@ export const TOOLS: ToolDef[] = [
   listDecisions,
   searchDecisions,
   getDecision,
+  listOpportunities,
+  getOpportunity,
+  listInteractions,
+  listManagedProperties,
+  getManagedProperty,
   // reports
   dailyBrief,
   growthReport,
   contractorReport,
   weeklyReport,
+  businessSummary,
   // write
   createTask,
   updateTask,
@@ -58,6 +72,19 @@ export const TOOLS: ToolDef[] = [
   moveOpportunity,
   createDecision,
   updateDecision,
+  createOpportunity,
+  updateOpportunity,
+  logOpportunityActivity,
+  createManagedProperty,
+  updateManagedProperty,
+  setHandoverStep,
+  // email (drafts, and sending an approved one)
+  listEmailDrafts,
+  getEmailDraft,
+  draftEmail,
+  updateEmailDraft,
+  discardEmailDraft,
+  sendEmailDraft,
 ];
 
 /** The tools a person with these capabilities may see and call. */

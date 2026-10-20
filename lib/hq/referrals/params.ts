@@ -190,17 +190,27 @@ export type PipelineQuery = {
   assigned: AssignedFilter | null;
   partner: string | null;
   hideLost: boolean;
+  /** Where the lead came from (hq.lead_source). */
+  source: LeadSourceValue | null;
+  /** Only open leads that need attention: no owner, no next step, or the follow-up date has passed. */
+  attention: boolean;
   /** The column a phone shows (the board is one column at a time there). */
   stage: StageValue;
   filtered: boolean;
 };
 
+/** hq.lead_source, written out (lib/hq/leads/rules.ts LEAD_SOURCES; a test pins them together). */
+export const PIPELINE_SOURCES = ["website_enquiry", "referral_partner", "own_marketing", "direct_approach", "other"] as const;
+export type LeadSourceValue = (typeof PIPELINE_SOURCES)[number];
+
 export function parsePipelineParams(sp: RawParams): PipelineQuery {
   const assigned = parseAssigned(first(sp.assigned));
   const partner = parseUuid(first(sp.partner));
   const hideLost = first(sp.hide_lost) === "1";
+  const source = oneOf(first(sp.source), PIPELINE_SOURCES);
+  const attention = first(sp.attention) === "1";
   const stage = oneOf(first(sp.stage), STAGES) ?? "introduction_received";
-  return { assigned, partner, hideLost, stage, filtered: Boolean(assigned || partner || hideLost) };
+  return { assigned, partner, hideLost, source, attention, stage, filtered: Boolean(assigned || partner || hideLost || source || attention) };
 }
 
 // ── partner performance ──────────────────────────────────────

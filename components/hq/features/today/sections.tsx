@@ -13,6 +13,8 @@ import type { ExpiryItem } from "@/lib/hq/contractors/widgets-data";
 import { completeTaskAction } from "../dashboard/actions";
 import { createExpiryTasksAction } from "../contractor-sections/actions";
 import { snoozeFollowUpAction } from "./actions";
+import { snoozeLeadAction } from "@/app/hq/(app)/growth/opportunities/actions";
+import type { LeadAttention, LeadFollowUp } from "@/lib/hq/leads/queries";
 import type { CallItem, ContractorsToday, NewReferral, QuietPartner, TodayTask } from "./data";
 
 /*
@@ -115,10 +117,70 @@ function LogButton({ contactId, who }: { contactId: string; who: string }) {
 
 // ── growth ───────────────────────────────────────────────────
 
-export function CallToday({ items, total, today, timezone, canWrite, returnTo }: { items: CallItem[]; total: number; today: string; timezone: string; canWrite: boolean; returnTo: string }) {
-  if (items.length === 0) return <QuietLine id="call-today">No follow-ups due today.</QuietLine>;
+const LEADS = "/hq/growth/opportunities";
+
+export function CallToday({
+  items,
+  total,
+  leads,
+  today,
+  timezone,
+  canWrite,
+  returnTo,
+}: {
+  items: CallItem[];
+  total: number;
+  /** The person's own lead follow-ups due today or overdue (null when they could not be loaded). */
+  leads?: { items: LeadFollowUp[]; total: number } | null;
+  today: string;
+  timezone: string;
+  canWrite: boolean;
+  returnTo: string;
+}) {
+  const leadItems = leads?.items ?? [];
+  const leadTotal = leads?.total ?? 0;
+  if (items.length === 0 && leadItems.length === 0) return <QuietLine id="call-today">No follow-ups due today.</QuietLine>;
+  const more = total > items.length ? { href: HQ_ROUTES.contacts, label: `All ${total}` } : leadTotal > leadItems.length ? { href: `${HQ_ROUTES.pipeline}?assigned=me&attention=1`, label: `All ${leadTotal} leads` } : undefined;
   return (
-    <TodaySection id="call-today" title="Call today" count={total} link={total > items.length ? { href: HQ_ROUTES.contacts, label: `All ${total}` } : undefined}>
+    <TodaySection id="call-today" title="Call today" count={total + leadTotal} link={more}>
+      {leadItems.length > 0 ? (
+        <ul className="hq-today__list" aria-label="Your lead follow-ups due today and overdue, oldest first">
+          {leadItems.map((l) => {
+            const overdue = overdueText(l.dueDate, today);
+            return (
+              <Row
+                key={l.id}
+                title={
+                  <Link href={`${LEADS}/${l.id}`} className="hq-today__link">
+                    {l.name}
+                  </Link>
+                }
+                sub={join([l.nextAction ?? "Follow up", overdue ? <span className="hq-today__late">{overdue}</span> : null, l.suburb, "Lead"])}
+                actions={
+                  <>
+                    <CallButton phone={l.phone} who={l.name} />
+                    {canWrite ? (
+                      <>
+                        <LinkButton href={`${LEADS}/${l.id}?log=phone_call`} size="sm" icon="note" className="hq-today__btn" aria-label={`Log a call with ${l.name}`}>
+                          Log
+                        </LinkButton>
+                        <form action={snoozeLeadAction}>
+                          <input type="hidden" name="opportunityId" value={l.id} />
+                          <input type="hidden" name="next" value={returnTo} />
+                          <SubmitButton size="sm" variant="ghost" icon="clock" className="hq-today__btn" pendingLabel="Snoozing" aria-label={`Snooze the follow-up with ${l.name} for a week`}>
+                            Snooze
+                          </SubmitButton>
+                        </form>
+                      </>
+                    ) : null}
+                  </>
+                }
+              />
+            );
+          })}
+        </ul>
+      ) : null}
+      {items.length > 0 ? (
       <ul className="hq-today__list" aria-label="Follow-ups due today and overdue, oldest first">
         {items.map((c) => {
           const overdue = overdueText(c.dueDate, today);
@@ -153,8 +215,27 @@ export function CallToday({ items, total, today, timezone, canWrite, returnTo }:
           );
         })}
       </ul>
+      ) : null}
       {canWrite ? <p className="hq-today__note">Snooze moves a follow-up on by a week.</p> : null}
     </TodaySection>
+  );
+}
+
+/** One quiet line when open leads need attention (no owner, no next step, follow-up overdue); nothing when none do. */
+export function LeadsAttention({ data }: { data: LeadAttention }) {
+  if (data.total === 0) return null;
+  const parts = [
+    data.noOwner > 0 ? `${data.noOwner} with no owner` : null,
+    data.noNextStep > 0 ? `${data.noNextStep} with no next step` : null,
+    data.overdue > 0 ? `${data.overdue} overdue` : null,
+  ].filter((p): p is string => !!p);
+  return (
+    <QuietLine id="leads-attention">
+      {plural(data.total, "lead needs", "leads need")} attention: {parts.join(", ")}.{" "}
+      <Link href={`${HQ_ROUTES.pipeline}?attention=1`} className="hq-today__inline">
+        See them
+      </Link>
+    </QuietLine>
   );
 }
 

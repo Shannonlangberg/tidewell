@@ -49,7 +49,7 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
   if (related.contact) linked.push({ kind: "contact", label: related.contact.label, href: `/hq/growth/contacts/${related.contact.id}` });
   if (related.organisation) linked.push({ kind: "organisation", label: related.organisation.label, href: `/hq/growth/organisations/${related.organisation.id}` });
   if (related.referral) linked.push({ kind: "referral", label: related.referral.label, href: `/hq/growth/referrals/${related.referral.id}` });
-  if (related.opportunity) linked.push({ kind: "opportunity", label: related.opportunity.label, href: null });
+  if (related.opportunity) linked.push({ kind: "opportunity", label: related.opportunity.label, href: `/hq/growth/opportunities/${related.opportunity.id}` });
 
   if (related.contractor) linked.push({ kind: "contractor", label: related.contractor.label, href: `/hq/partners/${related.contractor.id}` });
 

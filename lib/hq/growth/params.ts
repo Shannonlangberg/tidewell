@@ -146,6 +146,8 @@ export type ContactListQuery = {
   /** Not contacted in at least this many days (or never). */
   staleDays: number | null;
   verify: "needs" | "verified" | null;
+  /** Which kind of contact: partner (the default, so the partner CRM stays clean), landlord, other, or all. */
+  kind: "partner" | "landlord" | "other" | "all";
   sort: ContactSortKey;
   dir: "asc" | "desc";
   page: number;
@@ -165,6 +167,8 @@ export function parseContactListParams(sp: RawParams, vocab: ContactListVocab): 
   const staleDays = (STALE_DAY_CHOICES as readonly number[]).includes(staleRaw) ? staleRaw : null;
   const verifyRaw = first(sp.verify);
   const verify = verifyRaw === "needs" || verifyRaw === "verified" ? verifyRaw : null;
+  const kindRaw = first(sp.kind);
+  const kind = kindRaw === "landlord" || kindRaw === "other" || kindRaw === "all" ? kindRaw : "partner";
   const { sort, dir } = parseSort(first(sp.sort), first(sp.dir), CONTACT_SORT_KEYS, "name");
   const page = boundedInt(first(sp.page), 1, 1, 100_000);
 
@@ -178,10 +182,11 @@ export function parseContactListParams(sp: RawParams, vocab: ContactListVocab): 
     followUp,
     staleDays,
     verify,
+    kind,
     sort,
     dir,
     page,
-    filtered: Boolean(q || category || status || priority || region || owner || followUp || staleDays || verify),
+    filtered: Boolean(q || category || status || priority || region || owner || followUp || staleDays || verify || kind !== "partner"),
   };
 }
 

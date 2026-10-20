@@ -392,3 +392,93 @@ export const updateDecisionShape = {
     .describe("Optional. The decision that replaces this one (marks it superseded; needs a note): its number (DEC-0002), its id, or words of its title. It must be a live decision still in force."),
   note: z.string().trim().max(1000).optional().describe("Optional, but required to supersede or reverse: why it changed (kept in the history; at most 1000 characters)."),
 };
+
+// ── leads (the pipeline beyond referrals) ────────────────────
+
+/** hq.lead_source, hq.lost_reason and hq.contact_kind (pinned to lib/hq/leads/rules.ts by its test). */
+export const LEAD_SOURCE_VALUES = ["website_enquiry", "referral_partner", "own_marketing", "direct_approach", "other"] as const;
+export const DIRECT_LEAD_SOURCE_VALUES = ["own_marketing", "website_enquiry", "direct_approach", "other"] as const;
+export const LOST_REASON_VALUES = ["price", "chose_another_manager", "self_managing", "not_ready", "unresponsive", "out_of_area", "other"] as const;
+export const CONTACT_KIND_VALUES = ["partner", "landlord", "other"] as const;
+
+const leadRef = ref("lead (the person's name, a lead number like LEAD-0007, a referral number like REF-0007, or the id)");
+const followUpText = (what: string) => `${what} (YYYY-MM-DD in the person's own timezone; work out "tomorrow" or "next Tuesday" from today's date). Today or later, at most two years ahead.`;
+const followUp = (what: string) => z.string().regex(DATE, "Use YYYY-MM-DD.").describe(followUpText(what));
+const optFollowUp = (what: string) => z.string().regex(DATE, "Use YYYY-MM-DD.").optional().describe(followUpText(what));
+
+export const createOpportunityShape = {
+  prospect_name: text("The landlord's or owner's full name", 200),
+  prospect_phone: z.string().trim().max(40).optional().describe("Optional. Their phone number."),
+  prospect_email: z.string().trim().max(254).optional().describe("Optional. Their email address."),
+  property_suburb: z.string().trim().max(120).optional().describe("Optional. The property's suburb."),
+  property_address: z.string().trim().max(300).optional().describe("Optional. The property's street address."),
+  source: z
+    .enum(DIRECT_LEAD_SOURCE_VALUES)
+    .describe("Where the lead came from: own_marketing (our flyers, ads, social posts), website_enquiry, direct_approach (they called or walked in, or we approached them), other. A referral partner's introduction is NOT a lead here: use record_referral, so the partner is credited."),
+  next_action: text("The next step, for example \"Call to book an appraisal\"", 300),
+  follow_up_date: followUp("When the next step is due"),
+  owner: z.string().trim().max(200).optional().describe('Optional. Who owns the lead: "me" (default), an active staff member\'s name, or their id.'),
+  expected_close_date: optDate("Optional. When the management is expected to be signed (today to three years ahead)"),
+  estimated_annual_value: dollars("Your estimate of a year's management fees for this property"),
+  notes: z.string().trim().max(2000).optional().describe("Optional. Notes (at most 2000 characters)."),
+  create_contact: z.boolean().optional().describe("Optional. true (default) = also add the person as a landlord contact (flagged to verify). false = the lead only."),
+  confirm_distinct: z
+    .boolean()
+    .optional()
+    .describe("Optional. Only after HQ said a lead or landlord with the same phone, email, or name and suburb exists AND the person confirmed this is someone else: true records it anyway."),
+};
+
+export const getOpportunityShape = { opportunity: leadRef };
+
+export const listOpportunitiesShape = {
+  stage: z.enum(OPPORTUNITY_STAGE_VALUES).optional().describe("Optional. Only leads at this stage."),
+  owner: z.string().trim().max(200).optional().describe('Optional. Only leads this staff member owns: "me", a staff name, or a staff id.'),
+  source: z.enum(LEAD_SOURCE_VALUES).optional().describe("Optional. Only leads from this source."),
+  needs_attention: z.boolean().optional().describe("Optional. true = only open leads with no owner, no next step, or a follow-up date that has passed."),
+  overdue: z.boolean().optional().describe("Optional. true = only open leads whose follow-up date has passed."),
+  include_closed: z.boolean().optional().describe("Optional. true = include signed and lost leads (default: open leads only, unless a stage is given)."),
+  query: z.string().trim().max(100).optional().describe("Optional. Words to match in the person's name or the suburb."),
+  limit,
+};
+
+export const updateOpportunityShape = {
+  opportunity: leadRef,
+  prospect_name: z.string().trim().min(1).max(200).optional().describe("Optional. A corrected name."),
+  prospect_phone: z.string().trim().max(40).optional().describe('Optional. New phone number, or "none" to clear it.'),
+  prospect_email: z.string().trim().max(254).optional().describe('Optional. New email address, or "none" to clear it.'),
+  property_suburb: z.string().trim().max(120).optional().describe('Optional. The suburb, or "none" to clear it.'),
+  property_address: z.string().trim().max(300).optional().describe('Optional. The street address, or "none" to clear it.'),
+  source: z.enum(DIRECT_LEAD_SOURCE_VALUES).optional().describe("Optional. A corrected source (a lead introduced by a referral partner keeps referral_partner)."),
+  owner: z.string().trim().max(200).optional().describe('Optional. A new owner: "me", an active staff name, or id.'),
+  next_action: z.string().trim().min(1).max(300).optional().describe("Optional. The new next step."),
+  follow_up_date: optFollowUp("Optional. The new follow-up date"),
+  expected_close_date: z
+    .union([z.string().regex(DATE, "Use YYYY-MM-DD."), z.literal("none")])
+    .optional()
+    .describe('Optional. When it is expected to sign (YYYY-MM-DD, today to three years ahead), or "none" to clear it.'),
+  estimated_annual_value: z.union([z.number().min(0).max(100_000), z.literal("none")]).optional().describe('Optional. The estimated yearly fees in dollars, or "none" to clear it.'),
+  landlord_contact: optRef("contact who is the landlord or owner", "Links that contact to the lead."),
+  add_note: z.string().trim().min(1).max(1000).optional().describe("Optional. A note to ADD to the lead's notes (dated and attributed; existing notes are kept)."),
+};
+
+export const logOpportunityActivityShape = {
+  opportunity: leadRef,
+  type: z.enum(INTERACTION_TYPE_VALUES).describe("What it was: phone_call, coffee_meeting, office_meeting, email, message or note (meeting notes: office_meeting or coffee_meeting)."),
+  summary: text("What was said or agreed", 4000),
+  occurred_at: logInteractionShape.occurred_at,
+  next_action: z.string().trim().max(300).optional().describe("Optional. The new next step on the lead (replaces the current one)."),
+  follow_up_date: optFollowUp("Optional. When the new next step is due"),
+  create_task: z.boolean().optional().describe("Optional. true = also create a follow-up task linked to the lead (needs tasks.write), due on the follow-up date."),
+  task_assignee: logInteractionShape.task_assignee,
+};
+
+export const listInteractionsShape = {
+  contact: optRef("contact (person)", "Activity with this person."),
+  organisation: optRef("organisation", "Activity with this organisation and its people."),
+  contractor: optRef("contractor", "Activity with this contractor (needs contractors.read)."),
+  opportunity: optRef("lead", "Activity logged on this lead (LEAD-0007, REF-0007, a name or an id)."),
+  type: z.enum(INTERACTION_TYPE_VALUES).optional().describe("Optional. Only this kind of interaction."),
+  since: optDate("Optional. Only activity on or after this day"),
+  page: z.number().int().min(1).max(50).optional().describe("Optional. Page number, 1 (newest, default) onwards, for more than one page."),
+  limit,
+};

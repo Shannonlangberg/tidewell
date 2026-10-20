@@ -315,45 +315,35 @@ export const PIPELINE_LIMIT = 1000;
 export type PipelineData = { cards: PipelineCard[]; truncated: boolean };
 
 /**
- * One card per opportunity: the received referral that is the attributed (credited) one, so a
- * prospect claimed by two partners appears once, under the partner who gets the credit.
+ * One card per live lead (hq.opportunity_overview), however it came in: a partner's referral (the
+ * card names the credited partner, so a prospect claimed by two partners appears once) or a direct
+ * lead (own marketing, the website, a direct approach).
  */
 export async function loadPipeline(db: HqClient, query: PipelineQuery, ctx: { staffId: string }): Promise<Loaded<PipelineData>> {
   let q = db
-    .from("referral_overview")
+    .from("opportunity_overview")
     .select(
-      "id, ref_label, opportunity_id, prospect_name, property_suburb, stage, stage_changed_at, estimated_annual_value_cents, signed_at, partner_organisation_name, partner_contact_name, opportunity_assigned_to",
-    )
-    .eq("direction", "received")
-    .eq("is_attributed", true)
-    .not("opportunity_id", "is", null);
+      "id, ref, credited_referral_id, prospect_name, property_suburb, stage, stage_changed_at, estimated_annual_value_cents, signed_at, partner_organisation_name, partner_contact_name, assigned_to, assigned_to_name, other_claims, source, next_action, next_action_due, needs_attention",
+    );
   if (query.partner) q = q.eq("partner_organisation_id", query.partner);
   if (query.hideLost) q = q.neq("stage", "lost");
-  q = applyAssigned(q, "opportunity_assigned_to", query.assigned, ctx.staffId);
+  if (query.source) q = q.eq("source", query.source);
+  if (query.attention) q = q.eq("needs_attention", true);
+  q = applyAssigned(q, "assigned_to", query.assigned, ctx.staffId);
 
-  const [res, claimsRes, names] = await Promise.all([
-    q.order("stage_changed_at", { ascending: true }).order("id").limit(PIPELINE_LIMIT),
-    db.from("referral_overview").select("opportunity_id").eq("direction", "received").eq("is_attributed", false).not("opportunity_id", "is", null).limit(5000),
-    staffNames(db),
-  ]);
+  const res = await q.order("stage_changed_at", { ascending: true }).order("id").limit(PIPELINE_LIMIT);
   if (res.error) {
     console.error("[hq] pipeline failed:", logTag(res.error));
     return fail;
   }
-  if (claimsRes.error) console.error("[hq] pipeline claims failed:", logTag(claimsRes.error));
-
-  const claimCount = new Map<string, number>();
-  for (const c of claimsRes.data ?? []) {
-    if (c.opportunity_id) claimCount.set(c.opportunity_id, (claimCount.get(c.opportunity_id) ?? 0) + 1);
-  }
 
   const cards: PipelineCard[] = [];
   for (const r of res.data ?? []) {
-    if (!r.id || !r.ref_label || !r.opportunity_id || !r.prospect_name || !r.stage) continue;
+    if (!r.id || !r.ref || !r.prospect_name || !r.stage) continue;
     cards.push({
-      referralId: r.id,
-      refLabel: r.ref_label,
-      opportunityId: r.opportunity_id,
+      referralId: r.credited_referral_id,
+      refLabel: r.ref,
+      opportunityId: r.id,
       prospectName: r.prospect_name,
       propertySuburb: r.property_suburb,
       stage: r.stage,
@@ -362,9 +352,13 @@ export async function loadPipeline(db: HqClient, query: PipelineQuery, ctx: { st
       signedAt: r.signed_at,
       partnerOrganisationName: r.partner_organisation_name,
       partnerContactName: r.partner_contact_name,
-      assignedToId: r.opportunity_assigned_to,
-      assignedToName: r.opportunity_assigned_to ? (names.get(r.opportunity_assigned_to) ?? null) : null,
-      otherClaims: claimCount.get(r.opportunity_id) ?? 0,
+      assignedToId: r.assigned_to,
+      assignedToName: r.assigned_to_name,
+      otherClaims: Number(r.other_claims ?? 0),
+      source: r.source ?? "other",
+      nextAction: r.next_action,
+      nextActionDue: r.next_action_due,
+      needsAttention: r.needs_attention ?? false,
     });
   }
 

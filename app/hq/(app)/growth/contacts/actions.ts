@@ -77,6 +77,11 @@ export async function saveContact(_prev: ActionState, formData: FormData): Promi
   const { db } = await requireStaff("growth.write");
   const { reader: f, values: v } = readContactForm(formData);
   const retained = retainedValues(formData);
+  // A landlord (or other non-partner contact) has no partner categories: only partners need one.
+  if (f.errors.categories && v.categories.length === 0 && v.id) {
+    const kind = await db.from("contacts").select("contact_kind").eq("id", v.id).is("deleted_at", null).maybeSingle();
+    if (!kind.error && kind.data && kind.data.contact_kind !== "partner") delete f.errors.categories;
+  }
   if (!f.ok) return failWith(f.fail(), retained);
 
   // Editing: the contact must exist, be live, and be visible to this person.

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { STAGE_LABEL } from "@/lib/hq/constants";
 import { formatAud, formatDate, plural } from "@/lib/hq/format";
+import { LEAD_SOURCE_LABEL, dueText, isLeadSource } from "@/lib/hq/leads/rules";
 import { COLLAPSED_STAGES, STAGE_ORDER, canLeaveSigned, columnTotals, daysInStageLabel, groupByStage, type Stage } from "@/lib/hq/referrals/stages";
 import type { PipelineCard } from "@/lib/hq/referrals/types";
 import { Avatar } from "../../Avatar";
@@ -18,8 +19,9 @@ import styles from "./pipeline.module.css";
  * card has a "Move to..." button (a keyboard-accessible control) that opens the same move-stage
  * form the referral's page uses. Signed and lost are collapsed by default, with their counts.
  *
- * A prospect appears ONCE, under the partner who is credited with the introduction, however many
- * partners claim it. On a phone the board shows one column at a time (the stage selector above it
+ * A lead appears ONCE: a referred lead under the partner who is credited, however many partners
+ * claim it; a direct lead with its source. Each open card shows its owner, next action and
+ * follow-up date (an overdue date is marked), and the name opens the lead's page. On a phone the board shows one column at a time (the stage selector above it
  * is link-based and sets `activeStage`).
  */
 
@@ -125,26 +127,47 @@ export function PipelineBoard({
                   list.map((c) => {
                     const mayMove = canMove && (c.stage !== "management_signed" || mayLeaveSigned);
                     const signed = c.stage === "management_signed";
+                    const open = c.stage !== "management_signed" && c.stage !== "lost";
+                    const partner = c.partnerOrganisationName ?? c.partnerContactName;
+                    const due = open && c.nextActionDue ? dueText(c.nextActionDue, today) : null;
+                    const overdue = open && !!c.nextActionDue && c.nextActionDue < today;
                     return (
                       <li key={c.opportunityId} className={styles.card} data-signed={signed}>
                         <div>
                           <span className={styles.name}>
-                            <Link href={`/hq/growth/referrals/${c.referralId}`}>{c.prospectName}</Link>
+                            <Link href={`/hq/growth/opportunities/${c.opportunityId}`}>{c.prospectName}</Link>
                           </span>
                           {c.propertySuburb ? <span className={styles.sub}>{c.propertySuburb}</span> : null}
                         </div>
                         <div className={styles.src}>
-                          {signed ? "Credited to " : "Via "}
-                          {c.partnerOrganisationName ?? c.partnerContactName ?? "an unnamed partner"}
-                          {c.partnerOrganisationName && c.partnerContactName ? `, ${c.partnerContactName}` : ""}
+                          {partner ? (
+                            <>
+                              {signed ? "Credited to " : "Via "}
+                              {partner}
+                              {c.partnerOrganisationName && c.partnerContactName ? `, ${c.partnerContactName}` : ""}
+                            </>
+                          ) : (
+                            (isLeadSource(c.source) ? LEAD_SOURCE_LABEL[c.source] : "Direct lead")
+                          )}
                         </div>
+                        {open ? (
+                          <div className={styles.next} data-overdue={overdue}>
+                            {c.nextAction ? <span className={styles.nextAction}>{c.nextAction}</span> : <span>No next step</span>}
+                            {c.nextActionDue ? (
+                              <span className={styles.due}>
+                                {overdue ? <span className="sr-only">Overdue: </span> : null}
+                                {due ?? formatDate(c.nextActionDue, timezone)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
                         <div className={styles.meta}>
                           {c.assignedToName ? (
                             <span className={styles.who}>
-                              <Avatar name={c.assignedToName} size="sm" label={`Assigned to ${c.assignedToName}`} />
+                              <Avatar name={c.assignedToName} size="sm" label={`Owner: ${c.assignedToName}`} />
                             </span>
                           ) : (
-                            <span>Unassigned</span>
+                            <span className={styles.noOwner}>No owner</span>
                           )}
                           {c.estimateCents !== null ? <span className={styles.estimate}>{formatAud(c.estimateCents)} est.</span> : null}
                           <span>{signed && c.signedAt ? `Signed ${formatDate(c.signedAt, timezone)}` : c.days === null ? "" : c.days <= 0 ? "In stage today" : `${daysInStageLabel(c.days)} in stage`}</span>

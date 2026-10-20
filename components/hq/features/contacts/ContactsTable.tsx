@@ -5,7 +5,7 @@ import { type Contact } from "@/lib/hq/growth/types";
 import { DataTable, ResponsiveTable, type Column, type SortState } from "../../DataTable";
 import { MobileList, MobileListItem } from "../../MobileList";
 import { PriorityChip, RelationshipChip } from "../../StatusChip";
-import { CategoryTags, FollowUpCell, NeedsVerifyingChip, followUpText } from "./Bits";
+import { CategoryTags, FollowUpCell, KindChip, NeedsVerifyingChip, followUpText } from "./Bits";
 import { HQ_ROUTES } from "../../nav";
 
 /*
@@ -52,9 +52,10 @@ export function ContactsTable({
         <>
           <Link href={`${HQ_ROUTES.contacts}/${c.id}`}>{c.fullName}</Link>
           <span className="hq-cell-sub">{c.organisationName ?? "No organisation"}</span>
-          {c.needsVerification ? (
-            <span style={{ display: "block", marginTop: 6 }}>
-              <NeedsVerifyingChip />
+          {c.needsVerification || c.kind !== "partner" ? (
+            <span style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              <KindChip kind={c.kind} />
+              {c.needsVerification ? <NeedsVerifyingChip /> : null}
             </span>
           ) : null}
         </>
@@ -92,6 +93,7 @@ export function ContactsTable({
                 status={
                   <span className="flex flex-wrap gap-1.5">
                     <RelationshipChip status={c.status} />
+                    <KindChip kind={c.kind} />
                     {c.needsVerification ? <NeedsVerifyingChip /> : null}
                   </span>
                 }

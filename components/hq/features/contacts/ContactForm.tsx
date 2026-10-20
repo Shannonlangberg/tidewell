@@ -53,6 +53,8 @@ export type ContactFormInitial = {
   priority: Priority;
   notes: string;
   isPrimary: boolean;
+  /** A landlord or other non-partner contact: partner categories are optional. */
+  notPartner?: boolean;
 };
 
 const LABELS = {
@@ -180,8 +182,8 @@ export function ContactForm({
         </SectionLabel>
         <CheckboxGroup
           name="categories"
-          legend="Categories"
-          required
+          legend={initial.notPartner ? "Partner categories (optional for a landlord)" : "Categories"}
+          required={!initial.notPartner}
           inline
           error={fieldError(state, "categories")}
           defaultValue={failed ? retainedList(values, "categories") : initial.categories}

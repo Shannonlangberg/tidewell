@@ -65,7 +65,7 @@ export default async function EditTaskPage({ params }: { params: Params }) {
     linked.push({ kind: "organisation", label: t.related.organisation.label, href: t.related.organisation.label ? `/hq/growth/organisations/${t.related.organisation.id}` : null });
   }
   if (t.related.referral) linked.push({ kind: "referral", label: t.related.referral.label, href: t.related.referral.label ? `/hq/growth/referrals/${t.related.referral.id}` : null });
-  if (t.related.opportunity) linked.push({ kind: "opportunity", label: t.related.opportunity.label, href: null });
+  if (t.related.opportunity) linked.push({ kind: "opportunity", label: t.related.opportunity.label, href: t.related.opportunity.label ? `/hq/growth/opportunities/${t.related.opportunity.id}` : null });
   if (t.related.contractor) linked.push({ kind: "contractor", label: t.related.contractor.label, href: t.related.contractor.label ? `/hq/partners/${t.related.contractor.id}` : null });
 
   return (

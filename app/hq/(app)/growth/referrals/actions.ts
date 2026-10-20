@@ -13,6 +13,7 @@ import { retainedValues } from "@/lib/hq/growth/retain";
 import { classifyReferralError, logTag, type DbError } from "@/lib/hq/referrals/errors";
 import { checkPartner, checkPastOrToday, safeReturnPath } from "@/lib/hq/referrals/rules";
 import { canLeaveSigned } from "@/lib/hq/referrals/stages";
+import { LOST_REASONS, type LostReason } from "@/lib/hq/leads/rules";
 
 /*
  * Server Actions for referrals and the pipeline. They are reachable by a direct POST, so every
@@ -211,6 +212,7 @@ export async function moveStage(_prev: ActionState, formData: FormData): Promise
   let signedDate: string | null = null;
   let reference: string | null = null;
   let lostReason: string | null = null;
+  let lostCode: LostReason | null = null;
   if (stage === "management_signed") {
     const typed = f.date("signed_date");
     if (!f.errors.signed_date) {
@@ -220,6 +222,8 @@ export async function moveStage(_prev: ActionState, formData: FormData): Promise
     }
     reference = f.text("management_reference", { max: 100, label: "The reference" });
   } else if (stage === "lost") {
+    lostCode = f.oneOf("lost_reason_code", LOST_REASONS, { required: true });
+    if (f.errors.lost_reason_code) f.errors.lost_reason_code = "Choose why it did not proceed.";
     lostReason = f.requiredText("lost_reason", { max: 300, label: "The reason" });
   }
   if (!f.ok || !opportunityId || !stage) return failWith(f.fail(), retained);
@@ -255,6 +259,7 @@ export async function moveStage(_prev: ActionState, formData: FormData): Promise
     p_signed_at: signedAt ? signedAt.toISOString() : undefined,
     p_management_reference: reference ?? undefined,
     p_lost_reason: lostReason ?? undefined,
+    p_lost_reason_code: lostCode ?? undefined,
   });
   if (error) {
     console.error("[hq] move_opportunity failed:", logTag(error));
@@ -284,6 +289,10 @@ function moveFailure(error: DbError): ActionState {
       return fail("That prospect could not be found. It may have been archived.");
     case "lost_reason_required":
       return fail(summary, { lost_reason: "The reason is required." });
+    case "lost_reason_code_required":
+      return fail(summary, { lost_reason_code: "Choose why it did not proceed." });
+    case "lead_needs_next_step":
+      return fail("An open lead needs an owner, a next action and a follow-up date. Set them on the lead's page, then move it.");
     case "duplicate_reference":
       return fail(summary, { management_reference: "That reference is already used for another management. Check it and try again." });
     default:
@@ -413,6 +422,9 @@ export async function updateOpportunity(_prev: ActionState, formData: FormData):
   if (!current.data) return failWith(fail("That prospect could not be found. It may have been archived."), retained);
   if (assignedTo && assignedTo !== current.data.assigned_to && !(await isActiveStaff(db, assignedTo))) {
     return failWith(fail("Please check the highlighted fields and try again.", { assigned_to: "Choose an active member of staff." }), retained);
+  }
+  if (!assignedTo && current.data.assigned_to) {
+    return failWith(fail("Please check the highlighted fields and try again.", { assigned_to: "A lead needs an owner. Choose who follows it up." }), retained);
   }
 
   const res = await db

@@ -20,7 +20,7 @@ management business, and its product app is deliberately kept here, parked. See
 
 ## Planted HQ (staff portal)
 
-The private operating system for the company lives at `/hq`: referral partner CRM, referral tracking and pipeline, tasks, people and a role-aware dashboard. It is separate from the public site and requires a staff login.
+The private operating system for the company lives at `/hq`: referral partner CRM, referral tracking, the leads pipeline (direct leads, landlord contacts, next steps), tasks, people and a role-aware dashboard. It is separate from the public site and requires a staff login.
 
 - Setup, deployment and security model: [docs/hq-setup.md](docs/hq-setup.md)
 - The plan and the reasoning: [docs/hq-design.md](docs/hq-design.md)

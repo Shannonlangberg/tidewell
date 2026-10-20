@@ -36,7 +36,7 @@ This document is the plan and the shared contract for building HQ. Phase 1 is th
 
 **D8. No fabricated data, ever.** Empty states say what to do. Research leads import as `identified`, `needs_verification = true`, with only the fields supplied. Anything illustrative in development is labelled "sample" and cannot exist in production.
 
-**D9. Ailo is an interface, not an integration.** Nothing in Phase 1 calls Ailo. `lib/hq/integrations/ailo.ts` defines a clearly labelled *proposed* internal interface with a manual-workflow implementation only. No scraping, no stored credentials.
+**D9. Ailo is an interface, not an integration.** Nothing in Phase 1 calls Ailo. `lib/hq/integrations/ailo.ts` now holds only the reference-only shape (`PropertyRef`: the Ailo reference and set-up status a person typed); the proposed read/sync methods were removed (Day 3). No scraping, no stored credentials, no sync.
 
 **D10. No new runtime dependencies in Phase 1.** Forms use native elements and Server Actions; drawers use native `<dialog>`; tables are server-rendered with URL-driven sort, filter and pagination. Tests use Node's built-in runner and pgTAP.
 

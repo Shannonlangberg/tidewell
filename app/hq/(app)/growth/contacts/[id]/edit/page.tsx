@@ -55,6 +55,7 @@ export default async function EditContactPage({ params }: { params: Params }) {
           priority: c.priority,
           notes: c.notes ?? "",
           isPrimary: c.orgContactRole === "primary",
+          notPartner: c.kind !== "partner",
         }}
       />
     </>

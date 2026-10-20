@@ -7,9 +7,11 @@ import { InlineNote } from "@/components/hq/Primitives";
 import { buildHref } from "@/components/hq/url";
 import { attempt } from "@/components/hq/features/dashboard/widget-chrome";
 import { loadCallToday, loadContractorsToday, loadGoneQuiet, loadNewReferrals, loadTasksToday } from "@/components/hq/features/today/data";
+import { loadLeadAttention, loadLeadFollowUps } from "@/lib/hq/leads/queries";
 import {
   CallToday,
   FAILED_LINE,
+  LeadsAttention,
   GoneQuiet,
   NewReferrals,
   NotUsedLately,
@@ -18,6 +20,8 @@ import {
   TasksToday,
   UncoveredTrades,
 } from "@/components/hq/features/today/sections";
+import { BusinessGlanceToday } from "@/components/hq/features/portfolio/BusinessGlance";
+import { EmailDraftsToday } from "@/components/hq/features/email/EmailDraftsToday";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { todayIn } from "@/lib/hq/format";
@@ -32,7 +36,9 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 /*
  * Today: the home screen. It answers "what should I do now?" for the person signed in.
  *
- *  - Growth (growth.read): follow-ups to call today, partners gone quiet, new referrals.
+ *  - Growth (growth.read): follow-ups to call today (contacts, and the person's own leads whose
+ *    follow-up date has come), one line about leads needing attention, partners gone quiet, new
+ *    referrals.
  *  - Operations (tasks or contractors.read): your tasks overdue and due today, paperwork expiring,
  *    trades with no approved contractor, approved contractors not used lately.
  *
@@ -53,8 +59,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const today = typeof todayResult.data === "string" ? todayResult.data : todayIn(staff.timezone);
 
   const skip = Promise.resolve(null);
-  const [calls, quiet, referrals, tasks, contractors] = await Promise.all([
+  const [calls, leads, attention, quiet, referrals, tasks, contractors] = await Promise.all([
     plan.growth ? attempt("today: call", () => loadCallToday(db, today)) : skip,
+    plan.growth ? attempt("today: lead follow-ups", () => loadLeadFollowUps(db, { today, staffId: staff.id, mine: true })) : skip,
+    plan.growth ? attempt("today: leads needing attention", () => loadLeadAttention(db)) : skip,
     plan.growth ? attempt("today: gone quiet", () => loadGoneQuiet(db)) : skip,
     plan.growth ? attempt("today: new referrals", () => loadNewReferrals(db, today)) : skip,
     plan.tasks ? attempt("today: tasks", () => loadTasksToday(db, { staffId: staff.id, today, team: plan.seesTeamTasks })) : skip,
@@ -66,7 +74,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const denied = Boolean(one(sp.denied));
 
   const figures = todayFigures({
-    call: calls?.ok ? calls.data.total : null,
+    call: calls?.ok ? calls.data.total + (leads?.ok ? leads.data.total : 0) : null,
     tasksOverdue: tasks?.ok ? tasks.data.overdue : null,
     tasksToday: tasks?.ok ? tasks.data.dueToday : null,
     expiring: contractors?.ok ? contractors.data.expiringTotal : null,
@@ -77,11 +85,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     <>
       {calls ? (
         calls.ok ? (
-          <CallToday {...calls.data} today={today} timezone={staff.timezone} canWrite={plan.canLogCalls} returnTo={returnTo} />
+          <CallToday {...calls.data} leads={leads?.ok ? leads.data : null} today={today} timezone={staff.timezone} canWrite={plan.canLogCalls} returnTo={returnTo} />
         ) : (
           <QuietLine id="call-today">Follow-ups: {FAILED_LINE}</QuietLine>
         )
       ) : null}
+      {leads && !leads.ok ? <QuietLine id="lead-follow-ups">Lead follow-ups: {FAILED_LINE}</QuietLine> : null}
+      {attention?.ok ? <LeadsAttention data={attention.data} /> : null}
       {referrals?.ok ? <NewReferrals {...referrals.data} /> : null}
       {quiet ? quiet.ok ? <GoneQuiet {...quiet.data} canWrite={plan.canLogCalls} /> : <QuietLine id="gone-quiet">Partners: {FAILED_LINE}</QuietLine> : null}
     </>
@@ -111,7 +121,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     </>
   );
 
-  const VIEW_LABEL: Record<TodayView, string> = { growth: "Referral partners", operations: "Tasks and contractors" };
+  const VIEW_LABEL: Record<TodayView, string> = { growth: "Leads and partners", operations: "Tasks and contractors" };
   const both = plan.views.length > 1;
   const first = plan.views[0];
   const primaryAction =
@@ -144,6 +154,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           Your role does not include that part of Planted HQ. If you think it should, ask a director or an administrator.
         </InlineNote>
       ) : null}
+
+      <BusinessGlanceToday />
+      <EmailDraftsToday />
 
       {plan.views.length === 0 ? (
         <QuietLine>Nothing needs you today.</QuietLine>
