@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PRIORITIES, PRIORITY_LABEL, RELATIONSHIP_LABEL, RELATIONSHIP_STATUSES, STAGE_LABEL } from "@/lib/hq/constants";
 import { requireStaff } from "@/lib/hq/auth";
+import { MeetingsFor } from "@/components/hq/features/meetings/MeetingsFor";
 import {
   firstInteractionAt,
   getContact,
@@ -357,6 +358,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
           ) : null}
           {partner ? <ReferralsBlock summary={referrals} who="this partner" recordHref={canWrite ? referralHref : undefined} /> : null}
           <OpenTasksBlock tasks={tasks} today={today} createHref={canTask ? taskHref : undefined} />
+          <MeetingsFor kind="contact" id={c.id} />
         </aside>
       </div>
 

@@ -3923,3 +3923,101 @@
   }
 }
 /* === end Knowledge base === */
+
+/* === Meetings (0140) === */
+@layer components {
+  /* "This week": summary cards separated by hairlines, no boxes; one column on a phone */
+  .hq-mtg-week {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--planted-border);
+  }
+  .hq-mtg-card {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--planted-border);
+  }
+  .hq-mtg-card__when {
+    margin: 0;
+    color: var(--planted-grey-text);
+    font-size: 13px;
+  }
+  .hq-mtg-card__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .hq-mtg-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+  }
+  .hq-mtg-card__who {
+    margin: 0;
+    color: var(--planted-grey-text);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .hq-mtg-card__summary {
+    margin: 2px 0 0;
+    font-size: 14.5px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .hq-mtg-card__foot {
+    margin: 2px 0 0;
+    font-size: 13px;
+  }
+  @media (min-width: 768px) {
+    .hq-mtg-week {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 32px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .hq-mtg-week {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  /* the two summary sections side by side on a wide screen */
+  .hq-mtg-top {
+    display: grid;
+    gap: 40px;
+  }
+  @media (min-width: 1280px) {
+    .hq-mtg-top {
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 48px;
+    }
+    .hq-mtg-top .hq-mtg-week {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  /* action rows on the meeting form */
+  .hq-mtg-action-row {
+    display: grid;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--planted-border);
+  }
+  @media (min-width: 768px) {
+    .hq-mtg-action-row {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 11rem);
+      align-items: end;
+    }
+  }
+}
+/* === end Meetings === */

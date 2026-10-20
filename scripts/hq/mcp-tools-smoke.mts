@@ -17,7 +17,7 @@
  *     nothing else happens.
  * A website enquiry is submitted as the website does (service_role, hq.submit_enquiry) and marked spam
  * at the end, which archives the lead, contact and task it made.
- * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions and managed properties too,
+ * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions, meetings and managed properties too,
  * through archive_record('decision'), oldest first);
  * the interactions it logs are archived too. The secret key is used only to mint sessions and is
  * never given to a tool.
@@ -64,6 +64,8 @@ const EXPECTED_TOOLS = [
   // knowledge base
   "list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge",
   "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document",
+  // meetings
+  "list_meetings", "search_meetings", "get_meeting", "meeting_digest", "create_meeting", "update_meeting", "add_meeting_action", "promote_meeting_decision",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -138,14 +140,14 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[] };
+const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[], meetings: [] as string[] };
 // The email settings this run changes (restored in the cleanup).
 const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled"]);
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (67 tools, none missing, none extra)", EXPECTED_TOOLS.length === 67 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (75 tools, none missing, none extra)", EXPECTED_TOOLS.length === 75 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -967,6 +969,122 @@ try {
   check("restore_knowledge_document brings it back as it was", outcome(kb_rd) === "ok" && outcome(kb_vaBack) === "ok" && kb_vaBack.text.includes("Ailo invitation"), `${kb_rd.text}\n${kb_vaBack.text.slice(0, 200)}`);
   await director.db.from("settings").update({ value: kbSettingBefore.data?.value ?? false }).eq("key", "knowledge_chat_approve_enabled");
 
+  // ── 2h. meetings (saved from chat: the assistant writes the minutes, HQ stores them) ──
+  const MTG_TOOLS = ["list_meetings", "search_meetings", "get_meeting", "meeting_digest", "create_meeting", "update_meeting", "add_meeting_action", "promote_meeting_decision"];
+  const mtgListed = (ctx: Ctx) => toolsFor(ctx.staff.capabilities).map((t) => t.name).filter((n) => MTG_TOOLS.includes(n)).sort().join(",");
+  check("director: all eight meeting tools are listed", mtgListed(director) === [...MTG_TOOLS].sort().join(","), mtgListed(director));
+  check("virtual assistant (a writer): every meeting tool but promote_meeting_decision (no decisions.write)", mtgListed(assistant) === MTG_TOOLS.filter((n) => n !== "promote_meeting_decision").sort().join(","), mtgListed(assistant));
+  check("junior and read-only: no meeting tools at all (no meetings.read)", mtgListed(junior) === "" && mtgListed(readOnly) === "", `${mtgListed(junior)} | ${mtgListed(readOnly)}`);
+  check("create_meeting tells the assistant never to invent and that transcripts are not stored", /never invent attendees, dates, times, figures, decisions or actions/.test(tool("create_meeting").description) && /NOT the transcript/.test(tool("create_meeting").description), tool("create_meeting").description);
+
+  const mtgTitle = `[test] ${RUN} Coffee with the partner`;
+  const mtgCount = async (title: string) => (await director.db.from("meetings").select("id", { count: "exact", head: true }).eq("title", title)).count ?? 0;
+  const mt_amb = await call(assistant, "create_meeting", { title: mtgTitle, type: "partner_referral", held_at: today, summary: "x", attendees: ["Test"] });
+  check("create_meeting with an attendee name several team members share returns candidates and saves nothing", outcome(mt_amb) === "ambiguous" && (await mtgCount(mtgTitle)) === 0, mt_amb.text);
+
+  mark = await auditMark();
+  const mt_mc = await call(assistant, "create_meeting", {
+    title: mtgTitle,
+    type: "partner_referral",
+    held_at: today,
+    duration_minutes: 45,
+    location: "Coffee at Kadina",
+    summary: "The partner will refer two landlords this month. We send our fee schedule by Friday. [test]",
+    minutes: `## Agenda\n- Referrals\n\n## Discussion\nTwo landlords are ready to talk to us. [test]\n${INJECTION}\n\n## Decisions\n- Send the fee schedule\n\n## Next steps\n- Fee schedule by Friday`,
+    decisions: ["Send our fee schedule to the partner"],
+    attendees: ["me", `${RUN} Person`, { name: "Tim from the bank", kind: "external" }],
+    linked: [{ kind: "organisation", name: `${RUN} Realty` }, { kind: "lead", name: `${RUN} Prospect` }, { kind: "contractor", name: `${RUN} Handyman` }],
+    actions: [{ title: `${RUN} send the fee schedule`, assignee: "me", due: plusDays(3) }, { title: `${RUN} call the partner`, assignee: "Courtney Langberg", due: plusDays(1), priority: "high" }],
+  });
+  audit = await auditSince(mark, assistant.staff.id);
+  const mtgId = String(mt_mc.structured?.id ?? "");
+  const mtgRef = String(mt_mc.structured?.ref ?? "");
+  if (mtgId) created.meetings.push(mtgId);
+  const mt_mtgTasks = (mt_mc.structured?.task_ids as string[] | undefined) ?? [];
+  created.tasks.push(...mt_mtgTasks);
+  check("assistant: create_meeting saves ONE meeting with an MTG number and the HQ link", outcome(mt_mc) === "ok" && /^MTG-\d{4,}$/.test(mtgRef) && mt_mc.text.includes(`/hq/meetings/${mtgId}`), mt_mc.text);
+  check("  ...says the day had no time (saved at 9:00 am) and that no transcript was stored", /no time given: saved at 9:00 am/.test(mt_mc.text) && /not any transcript/.test(mt_mc.text), mt_mc.text);
+  check("  ...the injection in the minutes stays out of the result (only the summary and lists come back)", !mt_mc.text.includes("IGNORE ALL PREVIOUS") && core.hasDataBlock(mt_mc.text), mt_mc.text);
+  check("  ...two real tasks, created by the assistant, assigned as asked", mt_mtgTasks.length === 2, JSON.stringify(mt_mc.structured));
+  const mt_mtgTaskRows = await director.db.from("tasks").select("title, assigned_to, created_by, source, due_date").in("id", mt_mtgTasks).order("title");
+  check("  ...the tasks are source 'meeting', due as given", (mt_mtgTaskRows.data ?? []).length === 2 && (mt_mtgTaskRows.data ?? []).every((t) => t.source === "meeting" && t.created_by === assistant.staff.id) && (mt_mtgTaskRows.data ?? []).some((t) => t.assigned_to === director.staff.id && t.due_date === plusDays(1)), JSON.stringify(mt_mtgTaskRows.data));
+  check("  ...audited: one meeting create and two task creates by the assistant", audit.filter((a) => a.entity_type === "meeting" && a.action === "create" && a.entity_id === mtgId).length === 1 && audit.filter((a) => a.entity_type === "task" && a.action === "create").length === 2, auditText(audit));
+  const mt_tpRows = await director.db.from("interactions").select("id, contact_id, organisation_id, opportunity_id, contractor_id, interaction_type, summary").like("summary", `Meeting ${mtgRef}:%`).is("deleted_at", null);
+  check("  ...touch points: ONE coffee meeting each on the contact (carrying the organisation), the lead and the contractor", (mt_tpRows.data ?? []).length === 3 && (mt_tpRows.data ?? []).every((i) => i.interaction_type === "coffee_meeting") && (mt_tpRows.data ?? []).some((i) => i.contact_id === personId && i.organisation_id === orgId) && (mt_tpRows.data ?? []).some((i) => i.opportunity_id === oppId) && (mt_tpRows.data ?? []).some((i) => i.contractor_id === conId), JSON.stringify(mt_tpRows.data));
+  const mt_lastContact = await director.db.from("contacts").select("last_contact_at").eq("id", personId).single();
+  check("  ...the contact's last contacted moved to the meeting", !!mt_lastContact.data?.last_contact_at && Date.parse(mt_lastContact.data.last_contact_at) >= Date.parse(`${today}T00:00:00Z`) - 86_400_000, JSON.stringify(mt_lastContact.data));
+
+  const mt_mg = await call(director, "get_meeting", { meeting: mtgRef });
+  check("get_meeting opens it by MTG number: version, attendees, minutes, actions; record text inside the data block only", outcome(mt_mg) === "ok" && mt_mg.structured?.version === 1 && /Tim from the bank \(not in HQ\)/.test(mt_mg.text) && /## Discussion/.test(mt_mg.text) && core.hasDataBlock(mt_mg.text) && mt_mg.text.indexOf("IGNORE ALL PREVIOUS") > mt_mg.text.indexOf(core.DATA_OPEN) && mt_mg.text.indexOf("IGNORE ALL PREVIOUS") < mt_mg.text.indexOf(core.DATA_CLOSE), mt_mg.text.slice(0, 900));
+  const mt_mgSec = await call(director, "get_meeting", { meeting: mtgRef, section: "Next steps" });
+  check("get_meeting can return one section of the minutes", outcome(mt_mgSec) === "ok" && /Fee schedule by Friday/.test(mt_mgSec.text) && !/Two landlords are ready/.test(mt_mgSec.text), mt_mgSec.text.slice(0, 600));
+  const mt_ml = await call(director, "list_meetings", { with: `${RUN} Person`, has_open_actions: true });
+  check("list_meetings filters by who it was with and open actions", outcome(mt_ml) === "ok" && mt_ml.text.includes(mtgRef), mt_ml.text.slice(0, 500));
+  const mt_ms = await call(director, "search_meetings", { query: RUN });
+  check("search_meetings finds it by words of the title, with the summary", outcome(mt_ms) === "ok" && mt_ms.text.includes(mtgRef) && /two landlords/.test(mt_ms.text), mt_ms.text.slice(0, 500));
+  const mt_md = await call(director, "meeting_digest", {});
+  check("meeting_digest: this week's meetings and open actions in one call", outcome(mt_md) === "ok" && mt_md.text.includes(mtgRef) && mt_md.text.includes(`${RUN} call the partner`) && /recorded in the last 7 days/.test(mt_md.text), mt_md.text.slice(0, 800));
+
+  mark = await auditMark();
+  const mt_mu = await call(assistant, "update_meeting", { meeting: mtgRef, expected_version: 1, change_note: "Added the follow-up call [test]", minutes_edit: { op: "append_section", heading: "Follow-up", text: "- Courtney to call the partner next Tuesday" }, summary: "The partner will refer THREE landlords this month. We send our fee schedule by Friday. [test]" });
+  audit = await auditSince(mark, assistant.staff.id);
+  const mt_mAfter = await director.db.from("meetings").select("version, minutes, summary").eq("id", mtgId).single();
+  check("update_meeting (append_section + summary) saves version 2 and keeps the history", outcome(mt_mu) === "ok" && mt_mAfter.data?.version === 2 && /## Follow-up/.test(mt_mAfter.data?.minutes ?? "") && /THREE/.test(mt_mAfter.data?.summary ?? ""), `${mt_mu.text}\n${JSON.stringify(mt_mAfter.data)}`);
+  const mt_mHist = await director.db.from("meeting_history").select("version, minutes, change_note, via").eq("meeting_id", mtgId).order("version");
+  check("  ...both versions of the minutes can be read back, saved through a chat app with the note", (mt_mHist.data ?? []).length === 2 && !/Follow-up/.test(mt_mHist.data?.[0]?.minutes ?? "") && mt_mHist.data?.[1]?.change_note === "Added the follow-up call [test]", JSON.stringify(mt_mHist.data));
+  const mt_tpAfter = await director.db.from("interactions").select("id, summary").like("summary", `Meeting ${mtgRef}:%`).is("deleted_at", null);
+  check("  ...the touch points were UPDATED with the new summary, not duplicated", (mt_tpAfter.data ?? []).length === 3 && (mt_tpAfter.data ?? []).every((i) => /THREE/.test(i.summary)), JSON.stringify(mt_tpAfter.data));
+  const mt_muStale = await call(assistant, "update_meeting", { meeting: mtgRef, expected_version: 1, change_note: "late", summary: "Late" });
+  check("update_meeting with an old expected_version is refused (someone saved since)", outcome(mt_muStale) === "refused" && /version 2, not version 1/.test(mt_muStale.text), mt_muStale.text);
+  const mt_muBad = await call(assistant, "update_meeting", { meeting: mtgRef, change_note: "x", minutes_edit: { op: "replace_section", heading: "Fees", text: "y" } });
+  check("update_meeting refuses an edit to a section that does not exist (never guesses)", outcome(mt_muBad) === "invalid" && /No section is headed "Fees"/.test(mt_muBad.text), mt_muBad.text);
+
+  const mt_ma = await call(director, "add_meeting_action", { meeting: mtgRef, title: `${RUN} call Tim`, assignee: "Courtney", due: plusDays(7) });
+  if (mt_ma.structured?.id) created.tasks.push(String(mt_ma.structured.id));
+  check("add_meeting_action: 'Courtney to call Tim next Tuesday' becomes a task on the meeting", outcome(mt_ma) === "ok" && /Assigned to: Courtney Langberg/.test(mt_ma.text), mt_ma.text);
+
+  mark = await auditMark();
+  const mt_mpVa = await call(assistant, "promote_meeting_decision", { meeting: mtgRef, title: "VA forged decision", category: "partners" });
+  const mt_mpVaDb = await forced(assistant, "promote_meeting_decision", { meeting: mtgRef, title: "VA forged decision", category: "partners" });
+  audit = await auditSince(mark, assistant.staff.id);
+  check("assistant: promote_meeting_decision is refused by the tool and, forced, by the database (no decision made)", outcome(mt_mpVa) === "refused" && outcome(mt_mpVaDb) === "refused" && audit.length === 0, `${mt_mpVa.text}\n${mt_mpVaDb.text}\n${auditText(audit)}`);
+  const mt_mp = await call(director, "promote_meeting_decision", { meeting: mtgRef, title: `[test] ${RUN} Send partners our fee schedule first`, category: "partners", rationale: "Agreed at the coffee [test]" });
+  if (mt_mp.structured?.id) created.decisions.push(String(mt_mp.structured.id));
+  check("director: promote_meeting_decision records it in the Decisions register, linked to the meeting", outcome(mt_mp) === "ok" && /^DEC-\d{4,}$/.test(String(mt_mp.structured?.ref ?? "")) && mt_mp.text.includes(mtgRef), mt_mp.text);
+
+  // confidential: invisible to a colleague who was not there, everywhere
+  const mt_cTitle = `[test] ${RUN} Confidential staffing chat`;
+  const mt_mcC = await call(director, "create_meeting", { title: mt_cTitle, type: "internal_team", held_at: today, location: "Phone", summary: "secret summary about a staff matter [test]", attendees: ["me"], linked: [{ kind: "contact", name: `${RUN} Person` }], confidential: true });
+  const mt_cId = String(mt_mcC.structured?.id ?? "");
+  const mt_cRef = String(mt_mcC.structured?.ref ?? "");
+  if (mt_cId) created.meetings.push(mt_cId);
+  check("director: a confidential meeting is saved as CONFIDENTIAL", outcome(mt_mcC) === "ok" && /as CONFIDENTIAL/.test(mt_mcC.text), mt_mcC.text);
+  const mt_vaList = await call(assistant, "list_meetings", { limit: 25 });
+  const mt_vaSearch = await call(assistant, "search_meetings", { query: "Confidential staffing" });
+  const mt_vaDigest = await call(assistant, "meeting_digest", {});
+  const mt_vaGet = await call(assistant, "get_meeting", { meeting: mt_cRef });
+  check("assistant (not there): the confidential meeting is in no list, search or digest, and get_meeting says not found", !mt_vaList.text.includes(mt_cRef) && !mt_vaSearch.text.includes(mt_cRef) && !mt_vaDigest.text.includes(mt_cRef) && outcome(mt_vaGet) === "not_found", `${mt_vaList.text.slice(0, 300)}\n${mt_vaSearch.text.slice(0, 200)}\n${mt_vaGet.text}`);
+  const mt_vaTl = await assistant.db.from("interactions").select("summary").eq("contact_id", personId).is("deleted_at", null);
+  check("  ...and the contact's timeline shows only that a confidential meeting happened, never its summary", (mt_vaTl.data ?? []).some((i) => i.summary === `${mt_cRef} (confidential meeting: details are in Meetings)`) && !(mt_vaTl.data ?? []).some((i) => /secret/.test(i.summary)), JSON.stringify(mt_vaTl.data));
+  const mt_dirGet = await call(director, "get_meeting", { meeting: mt_cRef });
+  check("  ...the director who recorded it can open it", outcome(mt_dirGet) === "ok" && /CONFIDENTIAL/.test(mt_dirGet.text), mt_dirGet.text.slice(0, 300));
+  const mt_cUp = await call(director, "update_meeting", { meeting: mt_cRef, change_note: "Clarified [test]", summary: "another secret line [test]" });
+  const mt_cTl = await assistant.db.from("interactions").select("summary").eq("contact_id", personId).is("deleted_at", null);
+  check("  ...editing it keeps its details out of the contact timeline", outcome(mt_cUp) === "ok" && !(mt_cTl.data ?? []).some((i) => /secret/.test(i.summary)), `${mt_cUp.text}\n${JSON.stringify(mt_cTl.data)}`);
+
+  // junior and read-only: no access, by the tool and by the database
+  for (const [who, ctx] of [["junior", junior], ["read-only", readOnly]] as Array<[string, Ctx]>) {
+    mark = await auditMark();
+    const mt_byTool = await call(ctx, "create_meeting", { title: `[test] ${RUN} ${who} forged`, type: "other", held_at: today, summary: "forged" });
+    const mt_byDb = await forced(ctx, "create_meeting", { title: `[test] ${RUN} ${who} forged`, type: "other", held_at: today, summary: "forged" });
+    audit = await auditSince(mark, ctx.staff.id);
+    check(`${who}: create_meeting is refused by the tool and, forced, by the database (nothing saved)`, outcome(mt_byTool) === "refused" && outcome(mt_byDb) === "refused" && audit.length === 0 && (await mtgCount(`[test] ${RUN} ${who} forged`)) === 0, `${mt_byTool.text}\n${mt_byDb.text}\n${auditText(audit)}`);
+    const mt_lTool = await call(ctx, "list_meetings", {});
+    const mt_lDb = await forced(ctx, "list_meetings", {});
+    const mt_gDb = await forced(ctx, "get_meeting", { meeting: mtgRef });
+    check(`${who}: list_meetings is refused by the tool; forced, the database shows nothing (RLS)`, outcome(mt_lTool) === "refused" && outcome(mt_lDb) === "empty" && outcome(mt_gDb) === "not_found", `${mt_lTool.text}\n${mt_lDb.text}\n${mt_gDb.text}`);
+  }
+
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
   const jWrites: Array<[string, Record<string, unknown>]> = [
@@ -1068,6 +1186,8 @@ try {
   // decisions first, in the order created (a decision another one is superseded by is archived after it)
   await archive("decision", created.decisions);
   await archive("knowledge_document", created.knowledge);
+  // meetings: archiving one archives its touch-point interactions too (its tasks are archived below)
+  await archive("meeting", created.meetings);
   await archive("interaction", created.interactions);
   await archive("task", created.tasks);
   await archive("referral", created.referrals);

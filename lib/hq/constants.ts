@@ -60,6 +60,9 @@ export const CAPABILITIES = [
   "knowledge.read",
   "knowledge.write",
   "knowledge.approve",
+  // Meetings (0140): read and record meetings (minutes, attendees, links, action tasks).
+  "meetings.read",
+  "meetings.write",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

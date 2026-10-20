@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
+import { MeetingsFor } from "@/components/hq/features/meetings/MeetingsFor";
 import { getContractor, openTasksForContractor, previewApproval } from "@/lib/hq/contractors/queries";
 import { statusActions } from "@/lib/hq/contractors/status";
 import { clearedButExpired } from "@/lib/hq/contractors/types";
@@ -143,6 +144,7 @@ export default async function ContractorPage({ params, searchParams }: { params:
         <DocumentsSection contractorId={c.id} />
         <PerformanceSection contractorId={c.id} />
         <ContractorTasks tasks={tasks} today={today} createHref={canTask ? taskHref : undefined} />
+        <MeetingsFor kind="contractor" id={c.id} />
         <TimelineSection contractorId={c.id} />
       </div>
 
