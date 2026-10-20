@@ -21,15 +21,15 @@ export const BRAND = {
 /** Unconfirmed business facts. Null until real; never guessed. */
 export const CONTACT = {
   /** e.g. "0400 000 000" */
-  phone: null as string | null,
+  phone: "0424 156 023" as string | null,
   /** e.g. "hello@plantedgroup.com.au" */
-  email: null as string | null,
+  email: "info@plantedproperty.com.au" as string | null,
   /** The public website (confirmed by the owner, 2026-10-20). Turns on canonical URLs, the Open Graph base, the sitemap and JSON-LD `url`. */
   url: "https://plantedproperty.com.au" as string | null,
   /** e.g. "Planted Property Group Pty Ltd" */
-  legalName: null as string | null,
+  legalName: "Planted Property Group" as string | null,
   /** e.g. "ABN 00 000 000 000" */
-  abn: null as string | null,
+  abn: "87 189 577 427" as string | null,
   /** South Australian land agent registration. Required before any managed service is sold. */
   licenceNumber: null as string | null,
   /** e.g. "Monday to Friday, 9am to 5pm" */

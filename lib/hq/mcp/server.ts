@@ -70,11 +70,15 @@ export async function runTool(def: ToolDef, args: unknown, ctx: ToolContext): Pr
   if (!allowedFor(def, ctx.staff.capabilities)) return refusal(MESSAGES.capability);
 
   const rpc = ctx.db as unknown as RpcClient;
-  const begun = await beginCall(rpc, callSummary(def.name, def.kind, args, ctx.clientId));
+  // Opening the log row and (for writes) counting this hour's writes are independent: run them together,
+  // one database round trip instead of two. The count is only used if the call was allowed to begin.
+  const [begun, count] = await Promise.all([
+    beginCall(rpc, callSummary(def.name, def.kind, args, ctx.clientId)),
+    def.kind === "write" ? writesThisHour(ctx) : Promise.resolve(0),
+  ]);
   if (!begun.ok) return refusal(MESSAGES[begun.reason]);
 
   if (def.kind === "write") {
-    const count = await writesThisHour(ctx);
     if (count === null) {
       await finishCall(rpc, begun.id, def.name, "error");
       return refusal(MESSAGES.error);

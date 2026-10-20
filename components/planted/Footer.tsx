@@ -109,7 +109,7 @@ export function Footer() {
         <div className="rule-dark mt-20 flex flex-col gap-6 pt-8 md:flex-row md:items-center md:justify-between">
           <p className="text-[0.8125rem] text-taupe">
             &copy; {year} {BRAND.name} {CONTACT.legalName && <span>&middot; {CONTACT.legalName}</span>}
-            {CONTACT.abn && <span> &middot; {CONTACT.abn}</span>}
+            {CONTACT.abn && <span> &middot; ABN {CONTACT.abn}</span>}
             {CONTACT.licenceNumber && <span> &middot; {CONTACT.licenceNumber}</span>}
           </p>
           <ul className="flex flex-wrap gap-6">
