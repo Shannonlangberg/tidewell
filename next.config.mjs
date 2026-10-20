@@ -48,8 +48,27 @@ const nextConfig = {
   // Node-only (fontkit, yoga); must stay out of the Turbopack server bundle.
   serverExternalPackages: ["@react-pdf/renderer"],
 
+  // hq.plantedproperty.com.au is the staff address for Planted HQ. Its front page is the HQ sign-in/home,
+  // not the public website; every other path (/hq/..., /mcp, /.well-known/...) is served as normal.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/", has: [{ type: "host", value: "hq.plantedproperty.com.au" }], destination: "/hq" },
+      ],
+    };
+  },
+
   async headers() {
     return [
+      // The staff host's front page is HQ: never indexed, never cached.
+      {
+        source: "/",
+        has: [{ type: "host", value: "hq.plantedproperty.com.au" }],
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [{ key: "Content-Security-Policy", value: csp() }],
