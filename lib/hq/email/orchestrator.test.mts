@@ -54,7 +54,7 @@ function deps(over: Partial<SendDeps> & { logs?: string[] } = {}): SendDeps & { 
       delivered.push(e);
       return { ok: true, messageId: "sg-1" };
     },
-    from: { email: "hq@plantedproperty.com.au", name: "PLANTED. HQ" },
+    from: { email: "hq@plantedproperty.com.au", name: "PLANTED." },
     log: (where, code) => logs.push(`${where} ${code}`),
   };
   return Object.assign({ ...base, ...over }, { logs, delivered, db });
