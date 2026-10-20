@@ -65,7 +65,7 @@ export function AreaPhoto({
   }
 
   return (
-    <div className={`relative overflow-hidden bg-stone ${className}`.trim()} style={{ aspectRatio: ratio }}>
+    <div className={`relative overflow-hidden rounded-[var(--radius-lg)] bg-stone ${className}`.trim()} style={{ aspectRatio: ratio }}>
       <Image src={photo.src} alt={photo.alt} fill sizes={sizes} priority={priority} className="img-cover" />
     </div>
   );

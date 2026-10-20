@@ -278,3 +278,23 @@ test("no thank-you for a duplicate, a failed or rate-limited submission, a honey
   assert.equal((await processEnquiry("contact", contactForm({ email: "nope" }), bad.deps)).state.status, "invalid");
   assert.equal(bad.acks.length, 0, "invalid");
 });
+
+// ── 2026 contact form: "I'm a tenant" and an optional free-text suburb ──
+const { readContact, contactErrors, buildContact } = await import("./enquiries.ts");
+
+test("the contact form accepts a tenant enquiry and an optional free-text suburb", () => {
+  const v = readContact(contactForm({ enquiryType: "Tenant Enquiry", suburb: "  Kadina East  " }));
+  assert.equal(v.suburb, "Kadina East");
+  assert.deepEqual(contactErrors(v), {});
+  const e = buildContact(v);
+  assert.ok(e.fields.some((f) => f.label === "Property suburb" && f.value === "Kadina East"));
+  // Free text is never logged as the enquiry's suburb; only a known one is.
+  assert.equal(e.suburb, null);
+  assert.equal(buildContact(readContact(contactForm({ suburb: "Wallaroo" }))).suburb, "Wallaroo");
+});
+
+test("the contact suburb stays optional and is length-capped", () => {
+  assert.deepEqual(contactErrors(readContact(contactForm())), {});
+  assert.ok(contactErrors(readContact(contactForm({ suburb: "x".repeat(81) }))).suburb);
+  assert.ok(contactErrors(readContact(contactForm({ enquiryType: "Something made up" }))).enquiryType);
+});

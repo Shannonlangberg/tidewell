@@ -194,7 +194,7 @@ export default function WhyPlantedPage() {
             <div className="flex flex-col justify-between bg-ivory p-8 lg:p-10">
               <p className="display display-sm text-clay-deep">{BRAND.tagline}</p>
               <div className="mt-10">
-                <RuleLink href="/contact">Talk to Us</RuleLink>
+                <RuleLink href="/contact">Talk to us</RuleLink>
               </div>
             </div>
           </div>
@@ -232,7 +232,7 @@ export default function WhyPlantedPage() {
       <Testimonials items={[]} />
 
       {/* ── 5. Call to action ───────────────────────────────── */}
-      <Section tone="ivory" className="rule">
+      <Section tone="forest" rounded>
         <div className="shell">
           <div className="grid gap-x-16 gap-y-12 md:grid-cols-12">
             <div className="md:col-span-7">
@@ -246,10 +246,10 @@ export default function WhyPlantedPage() {
             </div>
             <div className="flex items-end md:col-span-4 md:col-start-9">
               <div className="flex w-full flex-col gap-4">
-                <Button href="/rental-appraisal" variant="primary">
-                  Request a Rental Appraisal
+                <Button href="/rental-appraisal" variant="light">
+                  Request a rental appraisal
                 </Button>
-                <Button href="/contact" variant="outline">
+                <Button href="/contact" variant="ghost-light">
                   Contact {BRAND.name}
                 </Button>
               </div>

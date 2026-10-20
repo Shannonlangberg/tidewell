@@ -3,11 +3,13 @@ import { AREAS, BRAND, CONTACT, SOCIAL, STAFF_HQ_URL, telHref } from "@/lib/plan
 import { Logo } from "./Logo";
 
 /*
- * Charcoal footer with the wordmark at display scale. Every contact line is
- * conditional: nothing appears here until it is a real, confirmed detail.
+ * Forest footer (2026 handoff, design/components/navigation/Footer): the
+ * tagline and link columns, then the wordmark at full width, then the legal
+ * row. Every contact line is conditional: nothing appears until it is a real,
+ * confirmed detail in lib/planted.ts.
  */
 
-const PAGES = [
+const EXPLORE = [
   { href: "/property-management", label: "Property Management" },
   { href: "/why-planted", label: "Why PLANTED." },
   { href: "/our-approach", label: "Our Approach" },
@@ -17,34 +19,34 @@ const PAGES = [
 ];
 
 const LEGAL = [
-  { href: "/privacy", label: "Privacy Policy" },
-  { href: "/terms", label: "Terms & Disclaimer" },
-  // Planted HQ, the private staff portal, on its own host (hq.plantedproperty.com.au). Discreet by
-  // design: HQ is noindex and requires a staff login.
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  // Planted HQ, the private staff portal, on its own host. Discreet by design:
+  // HQ is noindex and requires a staff login.
   { href: STAFF_HQ_URL, label: "Staff login" },
 ];
+
+const head = "mb-4 text-[0.8125rem] text-muted-dark";
 
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="on-dark bg-charcoal text-ivory">
-      <div className="shell py-20 md:py-28">
-        <div className="grid gap-16 lg:grid-cols-12 lg:gap-12">
-          {/* Wordmark at display scale */}
-          <div className="lg:col-span-5">
-            <Logo variant="full" tone="light" href={null} className="text-[clamp(2.75rem,6vw,4.5rem)]" />
-            <p className="lede lede-light mt-8 max-w-sm">{BRAND.tagline}</p>
-          </div>
+    <footer className="on-dark bg-forest text-ivory">
+      <div className="shell pb-6 pt-12">
+        <div className="pl-grid border-t border-[var(--line-dark)] pt-12">
+          <p className="m-0 max-w-[22rem] text-[clamp(1.4rem,2vw,1.75rem)] leading-[1.2] tracking-[-0.025em] md:col-span-5">
+            {BRAND.tagline}
+          </p>
 
-          <nav className="lg:col-span-3" aria-labelledby="footer-pages">
-            <p className="label label-light" id="footer-pages">
-              Pages
+          <nav className="md:col-span-3 lg:col-span-2" aria-labelledby="footer-explore">
+            <p className={head} id="footer-explore">
+              Explore
             </p>
-            <ul className="mt-6 space-y-3">
-              {PAGES.map((p) => (
+            <ul className="grid gap-[0.45rem]">
+              {EXPLORE.map((p) => (
                 <li key={p.href}>
-                  <Link href={p.href} className="text-[0.9375rem] text-stone no-underline transition-colors duration-300 hover:text-ivory">
+                  <Link href={p.href} className="pl-foot-link">
                     {p.label}
                   </Link>
                 </li>
@@ -52,17 +54,14 @@ export function Footer() {
             </ul>
           </nav>
 
-          <nav className="lg:col-span-2" aria-labelledby="footer-areas">
-            <p className="label label-light" id="footer-areas">
+          <nav className="md:col-span-2" aria-labelledby="footer-areas">
+            <p className={head} id="footer-areas">
               Areas
             </p>
-            <ul className="mt-6 space-y-3">
+            <ul className="grid gap-[0.45rem]">
               {AREAS.map((a) => (
                 <li key={a.slug}>
-                  <Link
-                    href={`/areas-we-serve/${a.slug}`}
-                    className="text-[0.9375rem] text-stone no-underline transition-colors duration-300 hover:text-ivory"
-                  >
+                  <Link href={`/areas-we-serve/${a.slug}`} className="pl-foot-link">
                     {a.name}
                   </Link>
                 </li>
@@ -70,64 +69,65 @@ export function Footer() {
             </ul>
           </nav>
 
-          <div className="lg:col-span-2">
-            <p className="label label-light">Get in touch</p>
-            <ul className="mt-6 space-y-3 text-[0.9375rem] text-stone">
+          <div className="md:col-span-12 lg:col-span-3">
+            <p className={head}>Contact</p>
+            <ul className="grid gap-[0.45rem]">
               {CONTACT.phone && (
                 <li>
-                  <a href={telHref(CONTACT.phone)} className="no-underline transition-colors duration-300 hover:text-ivory">
+                  <a href={telHref(CONTACT.phone)} className="pl-foot-link tnum">
                     {CONTACT.phone}
                   </a>
                 </li>
               )}
               {CONTACT.email && (
-                <li>
-                  <a href={`mailto:${CONTACT.email}`} className="break-words no-underline transition-colors duration-300 hover:text-ivory">
+                <li className="[overflow-wrap:anywhere]">
+                  <a href={`mailto:${CONTACT.email}`} className="pl-foot-link">
                     {CONTACT.email}
                   </a>
                 </li>
               )}
-              {CONTACT.businessHours && <li>{CONTACT.businessHours}</li>}
+              {CONTACT.businessHours && <li className="text-muted-dark">{CONTACT.businessHours}</li>}
               <li>
-                <Link href="/contact" className="no-underline transition-colors duration-300 hover:text-ivory">
+                <Link href="/contact" className="pl-foot-link">
                   Send an enquiry
                 </Link>
               </li>
-              {SOCIAL.length > 0 && (
-                <li className="flex gap-4 pt-2">
-                  {SOCIAL.map((s) => (
-                    <a key={s.href} href={s.href} className="no-underline hover:text-ivory">
-                      {s.label}
-                    </a>
-                  ))}
+              {SOCIAL.map((s) => (
+                <li key={s.href}>
+                  <a href={s.href} className="pl-foot-link">
+                    {s.label}
+                  </a>
                 </li>
-              )}
+              ))}
             </ul>
           </div>
         </div>
 
-        <div className="rule-dark mt-20 flex flex-col gap-6 pt-8 md:flex-row md:items-center md:justify-between">
-          <p className="text-[0.8125rem] text-taupe">
-            &copy; {year} {BRAND.name} {CONTACT.legalName && <span>&middot; {CONTACT.legalName}</span>}
-            {CONTACT.abn && <span> &middot; ABN {CONTACT.abn}</span>}
-            {CONTACT.licenceNumber && <span> &middot; {CONTACT.licenceNumber}</span>}
-          </p>
-          <ul className="flex flex-wrap gap-6">
-            {LEGAL.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="text-[0.8125rem] text-taupe no-underline transition-colors duration-300 hover:text-ivory">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-[clamp(4rem,8vw,7rem)]">
+          <Logo tone="light" height={null} />
         </div>
 
-        {/*
-          Before launch, add here: registered business name, ABN, South Australian
-          land agent registration number and the registered office address.
-          lib/planted.ts holds them; each line above appears once its value is set.
-        */}
+        <div className="mt-8 flex flex-wrap justify-between gap-4 text-[0.8125rem] text-muted-dark">
+          <span>
+            &copy; {year} {BRAND.name}
+            {CONTACT.legalName && <> &middot; {CONTACT.legalName}</>}
+            {CONTACT.abn && <span className="whitespace-nowrap"> &middot; ABN {CONTACT.abn}</span>}
+            {CONTACT.licenceNumber && <> &middot; {CONTACT.licenceNumber}</>}
+          </span>
+          <span className="flex gap-6">
+            {LEGAL.map((l) =>
+              l.href.startsWith("http") ? (
+                <a key={l.href} href={l.href} className="pl-foot-legal">
+                  {l.label}
+                </a>
+              ) : (
+                <Link key={l.href} href={l.href} className="pl-foot-legal">
+                  {l.label}
+                </Link>
+              ),
+            )}
+          </span>
+        </div>
       </div>
     </footer>
   );

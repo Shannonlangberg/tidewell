@@ -93,9 +93,10 @@ export const TIMEFRAMES = ["Immediately", "Within 30 days", "Within 3 months", "
 export const CONTACT_METHODS = ["Email", "Phone", "Either"] as const;
 
 export const ENQUIRY_TYPES = [
-  "Property Management",
   "Rental Appraisal",
+  "Property Management",
   "Switching Property Managers",
+  "Tenant Enquiry",
   "General Enquiry",
 ] as const;
 
@@ -107,6 +108,7 @@ export const ENQUIRY_TYPE_BY_PARAM: Record<string, string> = {
   "rental-appraisal": "Rental Appraisal",
   switching: "Switching Property Managers",
   switch: "Switching Property Managers",
+  tenant: "Tenant Enquiry",
   general: "General Enquiry",
 };
 
@@ -135,7 +137,8 @@ export const APPRAISAL_STEPS: { title: string; blurb: string; fields: string[] }
   },
 ];
 
-export const CONTACT_FIELDS = ["name", "email", "phone", "enquiryType", "message"];
+/** In the order the contact form shows them, which is the order focus moves to the first problem. */
+export const CONTACT_FIELDS = ["enquiryType", "name", "email", "phone", "suburb", "message"];
 
 /* ── types ───────────────────────────────────────────────────────────────── */
 
@@ -255,6 +258,7 @@ export function readContact(form: FormData): Values {
     name: one(text(form, "name")),
     email: one(text(form, "email")),
     phone: one(text(form, "phone")),
+    suburb: one(text(form, "suburb")),
     enquiryType: one(text(form, "enquiryType")),
     message: many(text(form, "message")),
   };
@@ -331,6 +335,9 @@ export function contactErrors(input: Values): FieldErrors {
     else if (!looksLikePhone(v.phone)) e.phone = "Enter a phone number using digits, spaces and + ( ) - only.";
   }
 
+  // Free text and optional on the contact form (the appraisal form uses the SUBURBS list).
+  if (v.suburb && v.suburb.length > LIMITS.suburb) e.suburb = "Please shorten the suburb to 80 characters or fewer.";
+
   requireChoice(e, v, "enquiryType", ENQUIRY_TYPES, "Choose what your enquiry is about.");
 
   if (!v.message) e.message = "Tell us a little about what you need.";
@@ -383,11 +390,13 @@ export function buildContact(v: Values): Enquiry {
     submittedAt: new Date().toISOString(),
     subject: `Website enquiry — ${v.enquiryType}`,
     replyTo: v.email,
-    suburb: null,
+    // Only a known suburb is ever logged; free text stays in the fields and data.
+    suburb: v.suburb && SUBURBS.includes(v.suburb as (typeof SUBURBS)[number]) ? v.suburb : null,
     fields: [
       { label: "Name", value: v.name },
       { label: "Email", value: v.email },
       { label: "Phone", value: v.phone || "Not given" },
+      { label: "Property suburb", value: v.suburb || "Not given" },
       { label: "Enquiry about", value: v.enquiryType },
       { label: "Message", value: v.message },
     ],

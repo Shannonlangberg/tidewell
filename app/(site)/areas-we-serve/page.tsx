@@ -170,7 +170,7 @@ export default function AreasWeServePage() {
       </Section>
 
       {/* ── 5. Final call to action ─────────────────────────── */}
-      <Section tone="ivory">
+      <Section tone="forest" rounded>
         <div className="shell">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="display display-lg">What could your property achieve here?</h2>
@@ -179,10 +179,10 @@ export default function AreasWeServePage() {
               honest view of what managing it well would involve.
             </p>
             <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button href="/rental-appraisal" variant="primary">
-                Request a Rental Appraisal
+              <Button href="/rental-appraisal" variant="light">
+                Request a rental appraisal
               </Button>
-              <Button href="/contact" variant="outline">
+              <Button href="/contact" variant="ghost-light">
                 Contact {BRAND.name}
               </Button>
             </div>

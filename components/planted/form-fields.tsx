@@ -5,17 +5,17 @@ import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from
 /*
  * The field primitives both enquiry forms are built from.
  *
- * Same discipline as the rest of the system: sharp corners, hairline borders,
- * no shadows. Labels always sit above their field and are never replaced by a
- * placeholder. Every control is wired for assistive technology — the label is
+ * 2026 style (design/components/forms in the Claude Design handoff): 12px
+ * controls, white on light grounds and forest-2 on dark, radio groups as pill
+ * chips that fill lime when chosen. Labels always sit above their field and are
+ * never replaced by a placeholder. Every control is wired for assistive technology — the label is
  * associated, `aria-invalid` is set when a field is wrong, and the message is
  * tied to the field with `aria-describedby`, so a screen reader hears the
  * specific problem on the specific field rather than a general complaint.
  *
- * There is no red in the PLANTED. palette and planted.css belongs to another
- * agent, so errors are carried by clay-deep (5:1 on ivory and on softwhite),
- * a changed border, the wording itself and the ARIA state — never by colour
- * alone.
+ * Errors use the brand's error colour (#8A3A24, #E8B4A0 on forest), a changed
+ * border, the wording itself and the ARIA state: never colour alone. The look
+ * lives in planted.css (.pl-control, .pl-radio, .pl-check).
  */
 
 /* ── hydration ───────────────────────────────────────────────────────────
@@ -72,13 +72,10 @@ function described(form: string, name: string, error?: string, hint?: string) {
 
 /* ── shared classes ──────────────────────────────────────────────────────── */
 
-const CONTROL =
-  "w-full min-h-[3.25rem] rounded-none border bg-softwhite px-4 py-3.5 text-[1rem] leading-normal text-charcoal transition-colors duration-300 placeholder:text-ink-muted/70 focus:border-charcoal disabled:opacity-60";
+const CONTROL = "pl-control";
 
-const borderFor = (error?: string) => (error ? "border-clay-deep" : "border-line");
-
-const LABEL = "block text-[0.9375rem] font-medium text-charcoal";
-const OPTIONAL = "ml-2 text-[0.8125rem] font-normal text-ink-muted";
+const LABEL = "block text-[0.9375rem] font-medium";
+const OPTIONAL = "ml-2 text-[0.8125rem] font-normal text-muted";
 
 /* ── label, hint, error ──────────────────────────────────────────────────── */
 
@@ -101,7 +98,7 @@ function FieldLabel({
 
 function Hint({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <p id={id} className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">
+    <p id={id} className="mt-2 text-[0.8125rem] leading-relaxed text-muted">
       {children}
     </p>
   );
@@ -109,8 +106,8 @@ function Hint({ id, children }: { id: string; children: ReactNode }) {
 
 function FieldError({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <p id={id} className="mt-2 flex gap-2 text-[0.8125rem] leading-relaxed text-clay-deep">
-      <span aria-hidden="true" className="mt-[0.55em] block h-px w-3 shrink-0 bg-clay-deep" />
+    <p id={id} className="mt-2 flex gap-2 text-[0.8125rem] leading-relaxed text-[var(--planted-error)]">
+      <span aria-hidden="true" className="mt-[0.8em] block h-px w-3 shrink-0 bg-current" />
       <span>{children}</span>
     </p>
   );
@@ -175,7 +172,7 @@ export function TextField({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={described(form, name, error, hint)}
-        className={`${CONTROL} ${borderFor(error)} mt-2`}
+        className={`${CONTROL} mt-2`}
       />
       {hint && <Hint id={hintId(form, name)}>{hint}</Hint>}
       {error && <FieldError id={errorId(form, name)}>{error}</FieldError>}
@@ -215,7 +212,7 @@ export function TextAreaField({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={described(form, name, error, hint)}
-        className={`${CONTROL} ${borderFor(error)} mt-2 min-h-[9rem] resize-y`}
+        className={`${CONTROL} mt-2`}
       />
       {hint && <Hint id={hintId(form, name)}>{hint}</Hint>}
       {error && <FieldError id={errorId(form, name)}>{error}</FieldError>}
@@ -266,7 +263,7 @@ export function SelectField({
           autoComplete={autoComplete}
           aria-invalid={error ? true : undefined}
           aria-describedby={described(form, name, error, hint)}
-          className={`${CONTROL} ${borderFor(error)} appearance-none pr-12`}
+          className={CONTROL}
         >
           <option value="">{placeholder}</option>
           {options.map((option) => (
@@ -281,7 +278,7 @@ export function SelectField({
           height="8"
           viewBox="0 0 12 8"
           fill="none"
-          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-charcoal"
+          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-forest [.on-dark_&]:text-ivory"
         >
           <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1" />
         </svg>
@@ -305,6 +302,8 @@ export function RadioField({
   error,
   required,
   columns = 3,
+  layout = "grid",
+  labels,
   className = "",
 }: {
   form: string;
@@ -317,6 +316,10 @@ export function RadioField({
   error?: string;
   required?: boolean;
   columns?: 2 | 3;
+  /** `chips` wraps pills in a row; `grid` sets them in even columns. */
+  layout?: "chips" | "grid";
+  /** Display text per option value, when it differs from the value sent. */
+  labels?: Record<string, string>;
   className?: string;
 }) {
   const describedBy = described(form, name, error, hint);
@@ -324,7 +327,11 @@ export function RadioField({
     <fieldset className={className} aria-describedby={describedBy}>
       <legend className={LABEL}>{label}</legend>
       <div
-        className={`mt-3 grid gap-3 ${columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}
+        className={
+          layout === "chips"
+            ? "mt-3 flex flex-wrap gap-2"
+            : `mt-3 grid gap-3 ${columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`
+        }
       >
         {options.map((option, i) => {
           const id = `${fieldId(form, name)}-${i}`;
@@ -332,7 +339,7 @@ export function RadioField({
             <label
               key={option}
               htmlFor={id}
-              className={`relative flex min-h-[3.25rem] cursor-pointer items-center gap-3 border ${borderFor(error)} bg-softwhite px-4 py-3 text-[0.9375rem] text-charcoal transition-colors duration-300`}
+              className={`pl-radio ${error ? "is-invalid" : ""}`}
             >
               <input
                 id={id}
@@ -345,15 +352,10 @@ export function RadioField({
                 // aria-invalid is not a supported property of role="radio";
                 // the group's error reaches the reader through aria-describedby.
                 aria-describedby={describedBy}
-                className="peer h-[1.125rem] w-[1.125rem] shrink-0 accent-charcoal"
               />
-              <span>{option}</span>
-              {/* The selected state is a drawn border, so it survives any
-                  variant support question and reads at a glance. */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-px border border-transparent peer-checked:border-charcoal"
-              />
+              {/* The input is visually hidden; the chip fills lime when chosen
+                  and shows the focus ring (planted.css, .pl-radio). */}
+              <span>{labels?.[option] ?? option}</span>
             </label>
           );
         })}
@@ -391,7 +393,7 @@ export function CheckboxField({
   const id = fieldId(form, name);
   return (
     <div className={className}>
-      <div className={`flex gap-4 border ${borderFor(error)} bg-softwhite p-4`}>
+      <div className={`pl-check flex gap-4 rounded-[var(--radius-sm)] border bg-white p-4 [.on-dark_&]:bg-forest-2 ${error ? "border-[var(--planted-error)]" : "border-[var(--line)]"}`}>
         <input
           id={id}
           name={name}
@@ -402,13 +404,13 @@ export function CheckboxField({
           value="yes"
           aria-invalid={error ? true : undefined}
           aria-describedby={described(form, name, error)}
-          className="mt-1 h-[1.125rem] w-[1.125rem] shrink-0 accent-charcoal"
+          className="mt-1"
         />
         <div>
-          <label htmlFor={id} className="block cursor-pointer text-[0.9375rem] leading-relaxed text-charcoal">
+          <label htmlFor={id} className="block cursor-pointer text-[0.9375rem] leading-relaxed">
             {label}
           </label>
-          {children && <div className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">{children}</div>}
+          {children && <div className="mt-2 text-[0.8125rem] leading-relaxed text-muted">{children}</div>}
         </div>
       </div>
       {error && <FieldError id={errorId(form, name)}>{error}</FieldError>}
@@ -449,7 +451,7 @@ export function FormMessage({ children, id }: { children: ReactNode; id?: string
       id={id}
       role="alert"
       tabIndex={-1}
-      className="border-l-2 border-clay-deep bg-softwhite px-5 py-4 text-[0.9375rem] leading-relaxed text-charcoal"
+      className="rounded-r-[var(--radius-sm)] border-l-2 border-[var(--planted-error)] bg-white px-5 py-4 text-[0.9375rem] leading-relaxed text-[var(--planted-error)] [.on-dark_&]:bg-forest-2"
     >
       {children}
     </div>
@@ -479,8 +481,8 @@ export function ErrorSummary({
   const entries = Object.entries(errors).filter(([name]) => labels[name]);
   if (entries.length === 0) return null;
   return (
-    <div id={id} role="alert" tabIndex={-1} className="border-l-2 border-clay-deep bg-softwhite px-5 py-4">
-      <p className="text-[0.9375rem] font-medium text-charcoal">{heading}</p>
+    <div id={id} role="alert" tabIndex={-1} className="rounded-r-[var(--radius-sm)] border-l-2 border-[var(--planted-error)] bg-white px-5 py-4 [.on-dark_&]:bg-forest-2">
+      <p className="text-[0.9375rem] font-medium text-[var(--planted-error)]">{heading}</p>
       <ul className="mt-3 space-y-2">
         {entries.map(([name, message]) => (
           <li key={name} className="text-[0.875rem] leading-relaxed">
@@ -491,11 +493,11 @@ export function ErrorSummary({
                 if (onJump) onJump(name);
                 else focusField(form, name);
               }}
-              className="text-clay-deep underline underline-offset-4"
+              className="text-[var(--planted-error)] underline underline-offset-4"
             >
               {labels[name]}
             </a>
-            <span className="text-ink-muted"> — {message}</span>
+            <span className="text-muted"> — {message}</span>
           </li>
         ))}
       </ul>
@@ -505,10 +507,17 @@ export function ErrorSummary({
 
 /* ── submit ──────────────────────────────────────────────────────────────── */
 
+const SubmitArrow = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <path d="M1 7h11.5M8 2.5 12.5 7 8 11.5" stroke="currentColor" strokeWidth="1.4" />
+  </svg>
+);
+
 export function SubmitButton({
   children,
   pending,
   pendingLabel = "Sending…",
+  variant = "primary",
   className = "",
   hidden,
   dataAttr,
@@ -516,6 +525,7 @@ export function SubmitButton({
   children: ReactNode;
   pending: boolean;
   pendingLabel?: string;
+  variant?: "primary" | "lime" | "light";
   className?: string;
   hidden?: boolean;
   /** Lets the no-JavaScript stylesheet reveal the button. */
@@ -526,11 +536,21 @@ export function SubmitButton({
       type="submit"
       disabled={pending}
       hidden={hidden}
+      aria-live="polite"
       {...dataAttr}
-      className={`btn btn-primary ${className}`}
-      style={pending ? { opacity: 0.65 } : undefined}
+      className={`btn ${variant !== "primary" ? `btn-${variant}` : ""} ${className}`}
     >
-      {pending ? pendingLabel : children}
+      <span>{pending ? pendingLabel : children}</span>
+      <span className="ar" aria-hidden="true">
+        {pending ? (
+          <span className="pl-spin" />
+        ) : (
+          <>
+            <SubmitArrow />
+            <SubmitArrow />
+          </>
+        )}
+      </span>
     </button>
   );
 }
@@ -541,15 +561,36 @@ export function SubmitButton({
  * Shown in place of the form once an enquiry has actually been delivered.
  * Focus moves here so the confirmation is the next thing anyone hears.
  */
-export function SuccessPanel({ heading, children }: { heading: string; children: ReactNode }) {
+export function SuccessPanel({
+  heading,
+  children,
+  tone = "light",
+}: {
+  heading: string;
+  children: ReactNode;
+  tone?: "light" | "dark";
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     ref.current?.focus();
   }, []);
+  const dark = tone === "dark";
   return (
-    <div ref={ref} tabIndex={-1} role="status" className="border border-line bg-softwhite p-8 md:p-12">
-      <h2 className="display display-md">{heading}</h2>
-      <div className="prose-measure mt-6 text-ink-muted">{children}</div>
+    <div
+      ref={ref}
+      tabIndex={-1}
+      role="status"
+      className={`rounded-[var(--radius-lg)] p-[clamp(2rem,4vw,3.5rem)] outline-none ${
+        dark ? "bg-forest-2 text-ivory" : "border border-[var(--line)] bg-white"
+      }`}
+    >
+      <span aria-hidden="true" className="inline-grid h-12 w-12 place-items-center rounded-full bg-lime text-forest">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M2 9.5 7 14l9-10" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      </span>
+      <h2 className={`mt-7 ${dark ? "display-lg" : "display-md"}`}>{heading}</h2>
+      <div className="prose-measure mt-4 text-muted">{children}</div>
     </div>
   );
 }
