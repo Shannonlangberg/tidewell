@@ -1,4 +1,5 @@
 import { HQ_BASE, type Capability, type StaffRole } from "@/lib/hq/constants";
+import { COMMS_BASE, OLD_EMAIL_LIST, OLD_ENQUIRIES_LIST, badgeText } from "@/lib/hq/communications";
 import { isPropertyManagerRole } from "@/lib/hq/today";
 import type { IconName } from "./icons";
 
@@ -38,8 +39,10 @@ export const HQ_ROUTES = {
   portfolio: `${HQ_BASE}/portfolio`,
   /** The Business Decisions Register: what was decided, why, and whether it still stands. */
   decisions: `${HQ_BASE}/decisions`,
-  /** Branded emails: drafts waiting for approval, sent, and not sent. */
-  email: `${HQ_BASE}/email`,
+  /** Website enquiries and branded emails, one tab each (the old /hq/email and /hq/growth/enquiries lists redirect here). */
+  communications: COMMS_BASE,
+  /** Old address of the email list; redirects to Communications > Emails. Email pages (/hq/email/<id>, /new) stay. */
+  email: OLD_EMAIL_LIST,
   /** Old address of Reports; redirects there. */
   insights: `${HQ_BASE}/insights`,
   settings: `${HQ_BASE}/settings`,
@@ -74,14 +77,17 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "portfolio" | "partners" | "operations" | "people" | "reports" | "decisions" | "email" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "communications" | "portfolio" | "partners" | "operations" | "people" | "reports" | "decisions" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
  * behind them have not changed (Tasks is still /hq/operations, Contractors is /hq/partners).
  *
  * - `requires` hides the entry entirely when the signed-in person lacks that
- *   capability. Hiding is a courtesy: the database (RLS) is the actual control.
+ *   capability; `requiresAny` when they hold none of those. Hiding is a courtesy: the
+ *   database (RLS) is the actual control.
+ * - `also` lists other path prefixes that belong to the entry (pages kept at an older
+ *   address), so it lights there too and wins over a shorter match.
  * - `mobile` says where it sits below 1024px by default: a bottom tab, or inside the More
  *   sheet. mobileTabs() picks the tabs for the person's role.
  */
@@ -91,19 +97,29 @@ export type NavItem = {
   href: string;
   icon: IconName;
   requires?: Capability;
+  requiresAny?: readonly Capability[];
+  also?: readonly string[];
   mobile: "tab" | "more";
 };
 
 export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "dashboard", label: "Today", href: HQ_ROUTES.dashboard, icon: "dashboard", mobile: "tab" },
   { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", requires: "growth.read", mobile: "tab" },
+  {
+    key: "communications",
+    label: "Communications",
+    href: HQ_ROUTES.communications,
+    icon: "mail",
+    requiresAny: ["growth.read", "email.draft"],
+    also: [OLD_ENQUIRIES_LIST, OLD_EMAIL_LIST],
+    mobile: "more",
+  },
   { key: "portfolio", label: "Properties", href: HQ_ROUTES.portfolio, icon: "building", requires: "portfolio.read", mobile: "more" },
   { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", mobile: "tab" },
   { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", mobile: "more" },
   { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
   { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },
   { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", mobile: "more" },
-  { key: "email", label: "Email", href: HQ_ROUTES.email, icon: "mail", requires: "email.draft", mobile: "more" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */
@@ -113,7 +129,9 @@ export const ACCOUNT_NAV: readonly NavItem[] = [
 ];
 
 export function visibleNav(items: readonly NavItem[], capabilities: readonly string[]): NavItem[] {
-  return items.filter((item) => !item.requires || capabilities.includes(item.requires));
+  return items.filter(
+    (item) => (!item.requires || capabilities.includes(item.requires)) && (!item.requiresAny || item.requiresAny.some((c) => capabilities.includes(c))),
+  );
 }
 
 /**
@@ -138,11 +156,13 @@ export function mobileTabs(visible: readonly NavItem[], role: StaffRole): NavIte
  */
 export function navKeyForPath(pathname: string): NavKey | null {
   const all = [...PRIMARY_NAV, ...ACCOUNT_NAV];
-  let best: NavItem | null = null;
+  let best: { key: NavKey; length: number } | null = null;
   for (const item of all) {
-    const exact = pathname === item.href;
-    const nested = item.href !== HQ_ROUTES.dashboard && pathname.startsWith(`${item.href}/`);
-    if ((exact || nested) && (!best || item.href.length > best.href.length)) best = item;
+    for (const href of [item.href, ...(item.also ?? [])]) {
+      const exact = pathname === href;
+      const nested = href !== HQ_ROUTES.dashboard && pathname.startsWith(`${href}/`);
+      if ((exact || nested) && (!best || href.length > best.length)) best = { key: item.key, length: href.length };
+    }
   }
   return best?.key ?? null;
 }
@@ -154,10 +174,18 @@ export type NavEntry = {
   href: string;
   icon: IconName;
   current: boolean;
+  /** A small count after the label (for example new website enquiries on Communications); absent for zero. */
+  badge?: string;
 };
 
-export function toEntries(items: readonly NavItem[], active: NavKey | null): NavEntry[] {
-  return items.map((i) => ({ key: i.key, label: i.label, href: i.href, icon: i.icon, current: i.key === active }));
+/** Counts shown on nav entries, by key. A count is a plain number the layout read for this person. */
+export type NavBadges = Partial<Record<NavKey, number>>;
+
+export function toEntries(items: readonly NavItem[], active: NavKey | null, badges: NavBadges = {}): NavEntry[] {
+  return items.map((i) => {
+    const badge = badgeText(badges[i.key]);
+    return { key: i.key, label: i.label, href: i.href, icon: i.icon, current: i.key === active, ...(badge ? { badge } : {}) };
+  });
 }
 
 // ── quick add ────────────────────────────────────────────────

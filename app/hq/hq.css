@@ -621,6 +621,20 @@
     letter-spacing: 0.04em;
     color: var(--planted-taupe);
   }
+  /* A small count after a nav label (Communications: new website enquiries). Ivory on charcoal. */
+  .hq-nav__badge {
+    margin-left: auto;
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: var(--radius-button);
+    background: var(--planted-ivory);
+    color: var(--planted-charcoal);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
   .hq-nav__rule {
     margin: 14px 6px;
     border: 0;
@@ -815,6 +829,32 @@
   }
   .hq-tab:focus-visible {
     outline-offset: -4px;
+  }
+  /* the count on a bottom tab, and the dot on More when something inside has one */
+  .hq-tab__badge {
+    position: absolute;
+    top: 5px;
+    left: calc(50% + 6px);
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-button);
+    background: var(--planted-charcoal);
+    color: var(--planted-ivory);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .hq-tab__dot {
+    position: absolute;
+    top: 9px;
+    left: calc(50% + 8px);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--planted-charcoal);
+    box-shadow: 0 0 0 2px var(--planted-white);
   }
 
   /* Floating quick add (the second permitted circle). */
@@ -2703,6 +2743,17 @@
     font-size: 12px;
     font-weight: 400;
     color: var(--planted-grey-text);
+  }
+  .hq-more__badge {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: var(--radius-button);
+    background: var(--planted-charcoal);
+    color: var(--planted-ivory);
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
   .hq-more__chev {
     flex: none;

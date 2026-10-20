@@ -2,6 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  ackBegun,
+  ackChip,
   clientIp,
   detailLines,
   enquiryRef,
@@ -111,4 +113,35 @@ test("receivedAgo and the list parameters", async () => {
   assert.deepEqual(parseEnquiryListParams({ status: "new", kind: "appraisal", page: "2" }), { status: "new", kind: "appraisal", page: 2, filtered: true });
   assert.deepEqual(parseEnquiryListParams({ status: "bogus", kind: ["contact"], page: "-1" }), { status: null, kind: "contact", page: 1, filtered: true });
   assert.deepEqual(parseEnquiryListParams({}), { status: null, kind: null, page: 1, filtered: false });
+});
+
+// ── the automatic thank-you ──
+
+test("begin_enquiry_auto_reply's answer: send only with an address; anything odd is do-not-send", () => {
+  assert.deepEqual(ackBegun({ send: true, ref: "ENQ-0001", to: "a@b.test", first_name: "Jeff", reply_to: "o@hq.test" }), {
+    send: true,
+    ref: "ENQ-0001",
+    to: "a@b.test",
+    firstName: "Jeff",
+    replyTo: "o@hq.test",
+  });
+  assert.deepEqual(ackBegun({ send: true, to: "a@b.test", first_name: null, reply_to: null }), { send: true, ref: null, to: "a@b.test", firstName: null, replyTo: null });
+  assert.deepEqual(ackBegun({ send: true }), { send: false, reason: "unexpected_answer" }, "no address: never send");
+  assert.deepEqual(ackBegun({ send: false, reason: "address_limit" }), { send: false, reason: "address_limit" });
+  assert.deepEqual(ackBegun({ send: false, reason: "<b>odd</b>" }), { send: false, reason: "unexpected_answer" });
+  assert.deepEqual(ackBegun(null), { send: false, reason: "unexpected_answer" });
+  assert.deepEqual(ackBegun("true"), { send: false, reason: "unexpected_answer" });
+});
+
+test("the thank-you chip: sent, not sent (with the reason in words), not confirmed, or nothing", () => {
+  assert.deepEqual(ackChip("sent", null), { label: "Thank-you sent", tone: "success", detail: null });
+  assert.equal(ackChip("skipped", "address_limit")?.label, "Thank-you not sent");
+  assert.equal(ackChip("skipped", "address_limit")?.detail, "this address already had one in the last 24 hours");
+  assert.equal(ackChip("skipped", "disabled")?.detail, "automatic thank-yous were switched off");
+  assert.equal(ackChip("failed", "timeout")?.detail, "the email service did not answer in time");
+  assert.equal(ackChip("failed", "provider_auth")?.detail, "the email service refused it");
+  assert.equal(ackChip("skipped", "something_new")?.detail, null);
+  assert.equal(ackChip("sending", null)?.label, "Thank-you not confirmed");
+  assert.equal(ackChip("none", null), null);
+  assert.equal(ackChip(undefined, null), null);
 });

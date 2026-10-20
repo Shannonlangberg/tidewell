@@ -201,3 +201,80 @@ test("the appraisal reaches HQ with its validated values and no IP or other requ
   ]);
   assert.ok(!JSON.stringify(sent).match(/\d+\.\d+\.\d+\.\d+/), "no IP address in what is handed on");
 });
+
+// ── the thank-you to the enquirer (deps.acknowledge): never changes what the person is told ──
+
+function withAck(deps: Deps, answer: "sent" | "failed" | "skipped" | Error | "hang", order: string[] = []) {
+  const acks: unknown[] = [];
+  const notify = deps.notify;
+  return {
+    acks,
+    deps: {
+      ...deps,
+      notify: async (e: Parameters<NonNullable<Deps["notify"]>>[0], s: Parameters<NonNullable<Deps["notify"]>>[1]) => {
+        order.push("notify");
+        return notify ? notify(e, s) : "skipped";
+      },
+      acknowledge: async (e: Parameters<NonNullable<Deps["acknowledge"]>>[0], s: Parameters<NonNullable<Deps["acknowledge"]>>[1]) => {
+        order.push("acknowledge");
+        acks.push([e, s]);
+        if (answer instanceof Error) throw answer;
+        if (answer === "hang") return new Promise<never>(() => {});
+        return answer;
+      },
+    } satisfies Deps,
+  };
+}
+
+test("a stored new enquiry is thanked once, after the staff notice, with only its ref and id", async () => {
+  const order: string[] = [];
+  const { deps, acks } = withAck(spies(STORED).deps, "sent", order);
+  const out = await processEnquiry("contact", contactForm(), deps);
+  assert.equal(out.state.status, "sent");
+  assert.deepEqual(order, ["notify", "acknowledge"]);
+  assert.equal(acks.length, 1);
+  assert.deepEqual((acks[0] as unknown[])[1], { ref: "ENQ-0007", enquiryId: "e7" });
+});
+
+test("the thank-you failing, being skipped or throwing never changes the result", async () => {
+  for (const answer of ["failed", "skipped", new Error("sendgrid down")] as const) {
+    const { deps } = withAck(spies(STORED).deps, answer);
+    const out = await processEnquiry("contact", contactForm(), deps);
+    assert.equal(out.state.status, "sent", String(answer));
+    assert.equal(out.state.message, MESSAGES.sent);
+    const noJs = await processEnquiry("contact", contactForm({}, false), deps);
+    assert.equal(noJs.redirectTo, SUCCESS_PATH, "the no-JavaScript confirmation is unchanged");
+  }
+});
+
+test("a thank-you that hangs is abandoned after the step's time limit; the person is still told it was sent", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { deps } = withAck(spies(STORED).deps, "hang");
+  const pending = processEnquiry("contact", contactForm(), { ...deps, verify: async () => true });
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  t.mock.timers.tick(10_000);
+  const out = await pending;
+  assert.equal(out.state.status, "sent");
+});
+
+test("no thank-you for a duplicate, a failed or rate-limited submission, a honeypot, or an invalid form", async () => {
+  const dup = withAck(spies({ ...STORED, duplicate: true }).deps, "sent");
+  assert.equal((await processEnquiry("contact", contactForm(), dup.deps)).state.status, "sent");
+  assert.equal(dup.acks.length, 0, "duplicate");
+
+  const failed = withAck(spies({ ok: false, reason: "failed" }).deps, "sent");
+  assert.equal((await processEnquiry("contact", contactForm(), failed.deps)).state.status, "failed");
+  assert.equal(failed.acks.length, 0, "not stored");
+
+  const limited = withAck(spies({ ok: false, reason: "rate_limited" }).deps, "sent");
+  assert.equal((await processEnquiry("contact", contactForm(), limited.deps)).state.status, "failed");
+  assert.equal(limited.acks.length, 0, "rate limited");
+
+  const bot = withAck(spies(STORED).deps, "sent");
+  assert.equal((await processEnquiry("contact", contactForm({ [HONEYPOT_FIELD]: "Acme" }), bot.deps)).state.status, "sent");
+  assert.equal(bot.acks.length, 0, "honeypot");
+
+  const bad = withAck(spies(STORED).deps, "sent");
+  assert.equal((await processEnquiry("contact", contactForm({ email: "nope" }), bad.deps)).state.status, "invalid");
+  assert.equal(bad.acks.length, 0, "invalid");
+});

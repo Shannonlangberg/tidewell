@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
+import { COMMS_BASE, COMMS_TAB_PATH } from "@/lib/hq/communications";
 import { formatDateTime } from "@/lib/hq/format";
 import { isUuid } from "@/lib/hq/forms";
 import { ENQUIRY_KIND_LABEL, detailLines, leadPath } from "@/lib/hq/enquiry-rules";
 import { getEnquiry } from "@/lib/hq/enquiry-queries";
 import { ErrorState, InlineNote, KeyValueList, LinkButton, PageHeader, Panel, PanelHeader, SectionLabel, type KeyValueItem } from "@/components/hq";
 import { EnquiryControls } from "@/components/hq/features/enquiries/EnquiryControls";
+import { AckChip } from "@/components/hq/features/enquiries/AckChip";
 import { EnquiryKindChip, EnquiryStatusChip } from "@/components/hq/features/enquiries/EnquiryParts";
 import { markEnquirySpamAction, setEnquiryStatusAction } from "../actions";
 
@@ -24,11 +26,11 @@ const LIST = "/hq/growth/enquiries";
  */
 export default async function EnquiryPage({ params }: { params: Params }) {
   const { id } = await params;
-  const { db, staff, can } = await requireStaff("growth.read", false, isUuid(id) ? `${LIST}/${id}` : LIST);
+  const { db, staff, can } = await requireStaff("growth.read", false, isUuid(id) ? `${LIST}/${id}` : COMMS_TAB_PATH.enquiries);
   if (!isUuid(id)) notFound();
   const crumbs = [
-    { label: "Growth", href: "/hq/growth" },
-    { label: "Website enquiries", href: LIST },
+    { label: "Communications", href: COMMS_BASE },
+    { label: "Enquiries", href: COMMS_TAB_PATH.enquiries },
   ];
 
   const found = await getEnquiry(db, id);
@@ -63,6 +65,11 @@ export default async function EnquiryPage({ params }: { params: Params }) {
     { label: "Status", value: <EnquiryStatusChip status={e.status} /> },
     { label: "Form", value: ENQUIRY_KIND_LABEL[e.kind] },
     { label: "Received", value: formatDateTime(e.receivedAt, tz) },
+    {
+      label: "Thank-you email",
+      value: e.ackStatus === "none" ? null : <AckChip status={e.ackStatus} at={e.ackAt} reason={e.ackReason} timezone={tz} detail />,
+      empty: "Not attempted",
+    },
     { label: "Page", value: e.sourcePage },
     { label: "Owner", value: e.ownerName, empty: "No owner" },
     {
@@ -107,6 +114,7 @@ export default async function EnquiryPage({ params }: { params: Params }) {
           <span className="flex flex-wrap items-center gap-2">
             <EnquiryKindChip kind={e.kind} />
             <EnquiryStatusChip status={e.status} />
+            <AckChip status={e.ackStatus} at={null} reason={e.ackReason} timezone={tz} />
           </span>
         }
         actions={

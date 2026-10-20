@@ -68,6 +68,9 @@ export const ACTION_LABEL: Record<string, string> = {
   send_failed: "Not sent",
   enquiry_received: "Received from the website",
   mark_spam: "Marked as spam",
+  auto_reply_sent: "Thank-you sent",
+  auto_reply_failed: "Thank-you not sent",
+  auto_reply_skipped: "Thank-you not sent",
 };
 
 const fallback = (s: string) => {

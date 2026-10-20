@@ -13,7 +13,8 @@
  * SUPABASE_SECRET_KEY set, the Server Actions store every enquiry through
  * hq.submit_enquiry (lib/hq/enquiry-intake.ts; ENQUIRY_IP_SALT optional) and
  * then email a notice to ENQUIRY_TO_EMAIL through SendGrid (SENDGRID_API_KEY;
- * lib/hq/email/enquiry-notify.ts, best effort). See docs/hq-setup.md,
+ * lib/hq/email/enquiry-notify.ts, best effort), and thank the enquirer once
+ * (lib/hq/email/enquiry-ack.ts, best effort, limits in the database). See docs/hq-setup.md,
  * "Website enquiries". Stored in HQ = delivered.
  *
  * FALLBACK ADAPTERS, tried only when HQ could not store it, in the order
@@ -473,7 +474,9 @@ export async function verifyTurnstile(form: FormData): Promise<boolean> {
  * hq.submit_enquiry has stored it (lib/hq/enquiry-intake.ts, passed in as
  * `deps.hq` by the Server Actions). Once it is stored, the staff notification
  * email (`deps.notify`, SendGrid to ENQUIRY_TO_EMAIL only) is best effort: its
- * failure is logged and never reported to the person as a failure.
+ * failure is logged and never reported to the person as a failure. So is the
+ * thank-you to the enquirer that follows it (`deps.acknowledge`; the database
+ * decides whether it may go, lib/hq/email/enquiry-ack.ts sends it).
  *
  * If HQ cannot store it, the older adapters (Resend, webhook) are tried in
  * order and the first success wins. If none delivered, the result is an
@@ -485,7 +488,14 @@ export async function verifyTurnstile(form: FormData): Promise<boolean> {
  */
 
 export type Delivery =
-  | { ok: true; via: "hq" | "resend" | "webhook" | "console"; ref?: string; duplicate?: boolean; notified?: "sent" | "skipped" | "failed" }
+  | {
+      ok: true;
+      via: "hq" | "resend" | "webhook" | "console";
+      ref?: string;
+      duplicate?: boolean;
+      notified?: "sent" | "skipped" | "failed";
+      acknowledged?: "sent" | "skipped" | "failed";
+    }
   | { ok: false; reason: "unconfigured" | "failed" | "rate_limited" };
 
 /** What the HQ intake answered (lib/hq/enquiry-rules.ts IntakeResult). */
@@ -498,6 +508,11 @@ export type DeliveryDeps = {
   hq?: (enquiry: Enquiry) => Promise<HqIntake>;
   /** Tell staff a new enquiry is in HQ (best effort; never throws in practice, and a throw is caught). */
   notify?: (enquiry: Enquiry, stored: { ref: string; enquiryId: string; opportunityId: string | null }) => Promise<"sent" | "skipped" | "failed">;
+  /**
+   * Thank the enquirer (best effort, after the notice; the database decides whether it may go). Its
+   * outcome, or a throw, never changes the result: the enquiry is already stored.
+   */
+  acknowledge?: (enquiry: Enquiry, stored: { ref: string; enquiryId: string }) => Promise<"sent" | "skipped" | "failed">;
 };
 
 function errText(error: unknown): string {
@@ -608,6 +623,26 @@ function configured(): boolean {
   return Boolean((process.env.RESEND_API_KEY && process.env.ENQUIRY_TO_EMAIL) || process.env.ENQUIRY_WEBHOOK_URL);
 }
 
+/** The longest the visitor waits for the thank-you step (its own calls time out sooner). */
+const ACK_STEP_MS = 9000;
+
+/** Runs a best-effort step: its answer, or "failed" when it throws or takes longer than `ms`. Never throws. */
+async function withinTime(step: () => Promise<"sent" | "skipped" | "failed">, ms: number): Promise<"sent" | "skipped" | "failed"> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      step().catch(() => "failed" as const),
+      new Promise<"failed">((resolve) => {
+        timer = setTimeout(() => resolve("failed"), ms);
+      }),
+    ]);
+  } catch {
+    return "failed";
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export async function deliver(enquiry: Enquiry, deps: DeliveryDeps = {}): Promise<Delivery> {
   let hqTried = false;
   if (deps.hq) {
@@ -627,7 +662,14 @@ export async function deliver(enquiry: Enquiry, deps: DeliveryDeps = {}): Promis
           notified = "failed";
         }
       }
-      return { ok: true, via: "hq", ref: stored.ref, duplicate: stored.duplicate, notified };
+      // The thank-you to the enquirer, after the notice. Never for a duplicate (the first one decided
+      // it, and the database refuses a second); bounded in time; any failure is swallowed.
+      let acknowledged: "sent" | "skipped" | "failed" | undefined;
+      const acknowledge = deps.acknowledge;
+      if (acknowledge && !stored.duplicate) {
+        acknowledged = await withinTime(() => acknowledge(enquiry, { ref: stored.ref, enquiryId: stored.enquiryId }), ACK_STEP_MS);
+      }
+      return { ok: true, via: "hq", ref: stored.ref, duplicate: stored.duplicate, notified, ...(acknowledged ? { acknowledged } : {}) };
     }
     if (stored.reason === "rate_limited") return { ok: false, reason: "rate_limited" };
     // "unconfigured" means HQ is not set up here (no secret key): the old rules apply unchanged.
@@ -672,7 +714,7 @@ export function logOutcome(kind: EnquiryKind, suburb: string | null, outcome: De
     typeof outcome === "string"
       ? `screened:${outcome}`
       : outcome.ok
-        ? `delivered:${outcome.via}${outcome.ref ? ` ref=${outcome.ref}` : ""}${outcome.duplicate ? " duplicate" : ""}${outcome.notified ? ` notify=${outcome.notified}` : ""}`
+        ? `delivered:${outcome.via}${outcome.ref ? ` ref=${outcome.ref}` : ""}${outcome.duplicate ? " duplicate" : ""}${outcome.notified ? ` notify=${outcome.notified}` : ""}${outcome.acknowledged ? ` thanks=${outcome.acknowledged}` : ""}`
         : `not-delivered:${outcome.reason}`;
   console.info(`[enquiry] kind=${kind} suburb=${suburb ?? "n/a"} at=${new Date().toISOString()} delivery=${delivery}`);
 }

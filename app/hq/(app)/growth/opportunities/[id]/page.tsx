@@ -13,7 +13,7 @@ import { daysInStageLabel } from "@/lib/hq/referrals/stages";
 import { staffOptions } from "@/lib/hq/queries/options";
 import { EmptyState, ErrorState, KeyValueList, LinkButton, PageHeader, Panel, PanelHeader, SectionLabel, StageChip, StatusChip, buildHref, type KeyValueItem } from "@/components/hq";
 import { EditLeadButton, LogLeadActivityButton, NextStepButton } from "@/components/hq/features/leads/LeadDrawers";
-import { LeadTimeline } from "@/components/hq/features/leads/LeadTimeline";
+import { LeadTimeline, type AckMarks } from "@/components/hq/features/leads/LeadTimeline";
 import { ConvertToManagedButton } from "@/components/hq/features/portfolio/ConvertToManagedButton";
 import { MoveStageButton } from "@/components/hq/features/referrals/ReferralActions";
 import { WebsiteEnquiryChip } from "@/components/hq/features/enquiries/WebsiteEnquiryChip";
@@ -60,6 +60,14 @@ export default async function LeadPage({ params, searchParams }: { params: Param
 
   const [bundle, staffList, enquiries] = await Promise.all([loadLeadBundle(db, lead), canWrite ? staffOptions(db) : Promise.resolve([]), enquiriesForLead(db, lead.id)]);
   const fromWebsite = enquiries.ok ? enquiries.data : [];
+  // The thank-you chip on the timeline: on each enquiry's own message and on the thank-you's entry.
+  const ackMarks: AckMarks = {};
+  for (const q of fromWebsite) {
+    if (q.ackStatus === "none") continue;
+    const mark = { status: q.ackStatus, at: q.ackAt, reason: q.ackReason };
+    if (q.interactionId) ackMarks[q.interactionId] = mark;
+    if (q.ackInteractionId) ackMarks[q.ackInteractionId] = mark;
+  }
   const owners =
     lead.assignedTo && !staffList.some((s) => s.value === lead.assignedTo)
       ? [...staffList, { value: lead.assignedTo, label: `${lead.assignedToName ?? "Former staff member"} (no longer active)` }]
@@ -294,7 +302,7 @@ export default async function LeadPage({ params, searchParams }: { params: Param
                 Log your first call with {lead.prospectName}.
               </EmptyState>
             ) : (
-              <LeadTimeline events={bundle.timeline.data} timezone={tz} label={`Activity on ${lead.prospectName}, newest first`} />
+              <LeadTimeline events={bundle.timeline.data} timezone={tz} label={`Activity on ${lead.prospectName}, newest first`} ackMarks={ackMarks} />
             )}
           </section>
         </div>

@@ -141,6 +141,59 @@ export function intakeSuccess(data: unknown): IntakeResult {
   return { ok: true, ref, enquiryId: id, opportunityId: typeof d.opportunity_id === "string" ? d.opportunity_id : null, duplicate: d.duplicate === true };
 }
 
+// ── the automatic thank-you ──────────────────────────────────
+
+/** What hq.begin_enquiry_auto_reply answered: send (to whom), or not (why). */
+export type AckBegun =
+  | { send: true; ref: string | null; to: string; firstName: string | null; replyTo: string | null }
+  | { send: false; reason: string };
+
+/** The RPC's answer, checked. Anything unexpected is "do not send". */
+export function ackBegun(data: unknown): AckBegun {
+  const d = (data ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  if (d.send === true && str(d.to)) {
+    return { send: true, ref: str(d.ref), to: String(d.to), firstName: str(d.first_name), replyTo: str(d.reply_to) };
+  }
+  const reason = typeof d.reason === "string" && /^[a-z_]{1,40}$/.test(d.reason) ? d.reason : "unexpected_answer";
+  return { send: false, reason };
+}
+
+export const ACK_STATUSES = ["none", "sending", "sent", "failed", "skipped"] as const;
+export type AckStatus = (typeof ACK_STATUSES)[number];
+export const isAckStatus = (v: unknown): v is AckStatus => typeof v === "string" && (ACK_STATUSES as readonly string[]).includes(v);
+
+/** Why a thank-you was not sent, in plain words (the codes are begin_enquiry_auto_reply's and the provider's). */
+const ACK_REASON_TEXT: Record<string, string> = {
+  disabled: "automatic thank-yous were switched off",
+  not_new: "the enquiry was already handled or marked as spam",
+  too_old: "the enquiry was more than an hour old",
+  invalid_address: "the email address did not look deliverable",
+  address_limit: "this address already had one in the last 24 hours",
+  hourly_cap: "the hourly limit for thank-you emails was reached",
+  not_configured: "email sending is not set up",
+  timeout: "the email service did not answer in time",
+};
+
+/**
+ * The thank-you chip: null when none was attempted (enquiries from before the feature, or HQ fell back
+ * to another adapter). "Thank-you sent" only when the provider accepted it.
+ */
+export function ackChip(status: AckStatus | null | undefined, reason: string | null | undefined): { label: string; tone: "success" | "neutral" | "warning"; detail: string | null } | null {
+  switch (status) {
+    case "sent":
+      return { label: "Thank-you sent", tone: "success", detail: null };
+    case "sending":
+      return { label: "Thank-you not confirmed", tone: "warning", detail: "the email service did not confirm it" };
+    case "failed":
+      return { label: "Thank-you not sent", tone: "warning", detail: (reason && ACK_REASON_TEXT[reason]) ?? "the email service refused it" };
+    case "skipped":
+      return { label: "Thank-you not sent", tone: "neutral", detail: (reason && ACK_REASON_TEXT[reason]) ?? null };
+    default:
+      return null;
+  }
+}
+
 // ── links ────────────────────────────────────────────────────
 
 export const enquiryPath = (id: string) => `/hq/growth/enquiries/${encodeURIComponent(id)}`;

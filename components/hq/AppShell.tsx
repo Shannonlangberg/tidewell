@@ -5,6 +5,7 @@ import { ActiveLink } from "./ActiveLink";
 import { Avatar } from "./Avatar";
 import { Icon } from "./icons";
 import { MobileMore } from "./MobileMore";
+import { NavBadge } from "./NavBadge";
 import {
   ACCOUNT_NAV,
   PRIMARY_NAV,
@@ -12,9 +13,11 @@ import {
   mobileTabs,
   visibleNav,
   visibleQuickActions,
+  type NavBadges,
   type NavItem,
   type NavKey,
 } from "./nav";
+import { badgeText } from "@/lib/hq/communications";
 import { QuickAdd } from "./QuickAdd";
 import { AskPlantedButton, MobileSearchButton, SearchTrigger } from "./ShellButtons";
 import { ShellProvider } from "./ShellProvider";
@@ -44,7 +47,7 @@ import { Wordmark } from "./Wordmark";
  *  - `searchAction` is a Server Action `(query: string) => Promise<SearchResults>` that
  *    runs global_search as the signed-in person.
  *  - `breadcrumb` fills the top bar's left slot on desktop (optional; PageHeader has its own).
- */
+ */ 
 
 export type AppShellProps = {
   staff: ShellStaff;
@@ -53,18 +56,21 @@ export type AppShellProps = {
   signOutAction: SignOutAction;
   searchAction: SearchAction;
   breadcrumb?: ReactNode;
+  /** Small counts on nav entries (Communications: new website enquiries). Zero or absent shows nothing. */
+  badges?: NavBadges;
 };
 
-function SidebarLink({ item, active }: { item: NavItem; active?: NavKey | null }) {
+function SidebarLink({ item, active, badge }: { item: NavItem; active?: NavKey | null; badge?: string | null }) {
   return (
     <ActiveLink href={item.href} className="hq-nav__item" navKey={item.key} override={active}>
       <Icon name={item.icon} size={18} className="hq-nav__icon" />
       <span>{item.label}</span>
+      <NavBadge text={badge ?? null} className="hq-nav__badge" />
     </ActiveLink>
   );
 }
 
-export function AppShell({ staff, active, children, signOutAction, searchAction, breadcrumb }: AppShellProps) {
+export function AppShell({ staff, active, children, signOutAction, searchAction, breadcrumb, badges = {} }: AppShellProps) {
   const caps = staff.capabilities;
   const primary = visibleNav(PRIMARY_NAV, caps);
   const account = visibleNav(ACCOUNT_NAV, caps);
@@ -77,7 +83,7 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
   const more = [...primary.filter((i) => !tabs.includes(i)), ...account];
 
   return (
-    <ShellProvider searchAction={searchAction} nav={toEntries(primary, active ?? null)} quickActions={quickActions}>
+    <ShellProvider searchAction={searchAction} nav={toEntries(primary, active ?? null, badges)} quickActions={quickActions}>
       <a className="hq-skip" href="#hq-main">
         Skip to content
       </a>
@@ -90,7 +96,7 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
             <ul className="hq-nav">
               {primary.map((item) => (
                 <li key={item.key}>
-                  <SidebarLink item={item} active={active} />
+                  <SidebarLink item={item} active={active} badge={badgeText(badges[item.key])} />
                 </li>
               ))}
             </ul>
@@ -161,10 +167,11 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
           <ActiveLink key={item.key} href={item.href} className="hq-tab" navKey={item.key} override={active}>
             <Icon name={item.icon} size={22} />
             <span>{item.label}</span>
+            <NavBadge text={badgeText(badges[item.key])} className="hq-tab__badge" />
           </ActiveLink>
         ))}
         <MobileMore
-          entries={toEntries(more, active ?? null)}
+          entries={toEntries(more, active ?? null, badges)}
           active={active}
           person={{ fullName: staff.fullName, roleLabel }}
           signOutAction={signOutAction}

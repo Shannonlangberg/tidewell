@@ -33,7 +33,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
 
   const header = (
     <PageHeader
-      breadcrumbs={[{ label: "Email", href: "/hq/email" }, { label: "Draft an email" }]}
+      breadcrumbs={[{ label: "Communications", href: "/hq/communications" }, { label: "Emails", href: "/hq/communications/emails" }, { label: "Draft an email" }]}
       title="Draft an email"
       description="To one person HQ already holds an address for. Nothing is sent until it is approved."
     />
@@ -68,7 +68,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
             Choose someone else
           </Link>
         </p>
-        <ComposeForm action={createEmailDraftAction} recipient={chosen} initial={{ template, subject: start.subject, body: start.body }} cancelHref={chosen.kind === "contact" ? `/hq/growth/contacts/${chosen.id}` : "/hq/email"} />
+        <ComposeForm action={createEmailDraftAction} recipient={chosen} initial={{ template, subject: start.subject, body: start.body }} cancelHref={chosen.kind === "contact" ? `/hq/growth/contacts/${chosen.id}` : "/hq/communications/emails"} />
       </>
     );
   }

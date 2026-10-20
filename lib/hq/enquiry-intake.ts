@@ -1,14 +1,16 @@
 import "server-only";
 
 import { createSecretClient, derivedSecret } from "@/lib/supabase/secret";
-import { clientIp, hashIp, intakeFailure, intakeSuccess, ipSalt, submitArgs, type IntakeEnquiry, type IntakeResult } from "./enquiry-rules";
+import { ackBegun, clientIp, hashIp, intakeFailure, intakeSuccess, ipSalt, submitArgs, type AckBegun, type IntakeEnquiry, type IntakeResult } from "./enquiry-rules";
 
 /*
  * Website enquiries into Planted HQ: the ONE place the public site's path touches the secret key
  * (eslint.config.mjs allows this file, and only this file, among the site's code). It does exactly one
- * thing with it: call hq.submit_enquiry, which the database grants to service_role only. That function
- * validates and caps every field again, dedupes, rate-limits, and creates the contact, the lead, the
- * timeline entry and the reply task (migration 0134).
+ * thing with it: call the three website functions the database grants to service_role only.
+ * hq.submit_enquiry validates and caps every field again, dedupes, rate-limits, and creates the contact,
+ * the lead, the timeline entry and the reply task (migration 0134). hq.begin_enquiry_auto_reply and
+ * hq.finish_enquiry_auto_reply decide and record the automatic thank-you to the enquirer (0136); the
+ * email itself is sent by lib/hq/email/enquiry-ack.ts, which never sees this key.
  *
  * The caller (app/(site)/enquiry-actions.ts, through lib/enquiries.ts) has already validated the form
  * and run the honeypot, timing and Turnstile checks. Nothing here trusts that: the database decides.
@@ -59,4 +61,31 @@ export async function submitToHq(enquiry: IntakeEnquiry, headers: HeaderGetter):
     console.error(`[enquiry] hq intake failed: kind=${enquiry.kind} reason=${reason}`);
     return { ok: false, reason };
   }
+}
+
+// ── the automatic thank-you (0136): the database decides, the email file only delivers ──
+
+/** Short: the thank-you runs after the enquiry is stored and the staff notice is sent, while the visitor waits. */
+const ACK_DB_TIMEOUT_MS = 2500;
+
+/**
+ * hq.begin_enquiry_auto_reply (service_role only): may the thank-you go, and to whom? It applies the
+ * switch, the 24-hour per-address limit, the hourly cap and the never-twice guard, and records a refusal.
+ * Throws on any error (the caller swallows it).
+ */
+export async function beginEnquiryAck(enquiryId: string): Promise<AckBegun> {
+  const client = createSecretClient();
+  const { data, error } = await client.schema("hq").rpc("begin_enquiry_auto_reply", { p_enquiry_id: enquiryId }).abortSignal(AbortSignal.timeout(ACK_DB_TIMEOUT_MS));
+  if (error) throw Object.assign(new Error("begin_enquiry_auto_reply refused"), { name: "AckBeginError", code: error.code ?? "none" });
+  return ackBegun(data);
+}
+
+/** hq.finish_enquiry_auto_reply (service_role only): what the provider said. Writes the timeline entry on success. Throws on error. */
+export async function finishEnquiryAck(enquiryId: string, ok: boolean, messageId: string | null, errorCode: string | null): Promise<void> {
+  const client = createSecretClient();
+  const { error } = await client
+    .schema("hq")
+    .rpc("finish_enquiry_auto_reply", { p_enquiry_id: enquiryId, p_ok: ok, ...(messageId ? { p_message_id: messageId } : {}), ...(errorCode ? { p_error: errorCode } : {}) })
+    .abortSignal(AbortSignal.timeout(ACK_DB_TIMEOUT_MS));
+  if (error) throw Object.assign(new Error("finish_enquiry_auto_reply refused"), { name: "AckFinishError", code: error.code ?? "none" });
 }

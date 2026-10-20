@@ -4,7 +4,7 @@ import { plural } from "@/lib/hq/format";
 import { countNewEnquiries } from "@/lib/hq/enquiry-queries";
 
 /*
- * Today: one quiet line, "2 new website enquiries", linking to the list filtered to New. Only for
+ * Today: one quiet line, "2 new website enquiries", linking to Communications > Enquiries filtered to New. Only for
  * people who can see enquiries (growth.read); nothing is shown when there are none.
  */
 export async function EnquiriesToday() {
@@ -16,7 +16,7 @@ export async function EnquiriesToday() {
   return (
     <p id="website-enquiries" className="hq-today__quiet">
       {plural(loaded.data, "new website enquiry", "new website enquiries")}.{" "}
-      <Link href="/hq/growth/enquiries?status=new" className="hq-today__inline">
+      <Link href="/hq/communications/enquiries?status=new" className="hq-today__inline">
         See {loaded.data === 1 ? "it" : "them"}
       </Link>
     </p>

@@ -31,7 +31,7 @@ export async function EmailDraftsToday() {
           Drafts waiting for approval
           <span className="hq-today__count hq-nums">{total}</span>
         </h2>
-        <Link href="/hq/email" className="hq-today__more">
+        <Link href="/hq/communications/emails" className="hq-today__more">
           {total > rows.length ? `All ${total}` : "Email"}
         </Link>
       </div>

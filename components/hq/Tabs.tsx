@@ -14,6 +14,8 @@ export type TabItem = {
   current?: boolean;
   /** A quiet count after the label. */
   count?: number | null;
+  /** Words in place of the bare count, for example "3 new" (shown instead of `count` when set). */
+  countText?: string | null;
 };
 
 export function Tabs({ items, label, className }: { items: readonly TabItem[]; label: string; className?: string }) {
@@ -24,7 +26,11 @@ export function Tabs({ items, label, className }: { items: readonly TabItem[]; l
           <li key={t.href + t.label}>
             <Link href={t.href} className="hq-tabs__link" aria-current={t.current ? "page" : undefined}>
               {t.label}
-              {t.count !== undefined && t.count !== null ? <span className="hq-tabs__count">{t.count.toLocaleString("en-AU")}</span> : null}
+              {t.countText ? (
+                <span className="hq-tabs__count">{t.countText}</span>
+              ) : t.count !== undefined && t.count !== null ? (
+                <span className="hq-tabs__count">{t.count.toLocaleString("en-AU")}</span>
+              ) : null}
             </Link>
           </li>
         ))}

@@ -1,11 +1,9 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { STAFF_HQ_URL } from "@/lib/planted";
 import { enquiryNotice } from "./enquiry-notice";
+import { recordInOutbox } from "./outbox";
 import { chooseProvider, fakeProvider, fromMailbox, type OutgoingEmail } from "./provider";
 import { deliverViaSendGrid, sendGridConfigured } from "./sendgrid";
 
@@ -36,18 +34,6 @@ export type NotifyInput = {
 };
 
 export type NotifyOutcome = "sent" | "skipped" | "failed";
-
-function outboxDir(): string {
-  return process.env.HQ_EMAIL_OUTBOX_DIR?.trim() || path.join(os.tmpdir(), "planted-hq-email-outbox");
-}
-
-async function recordInOutbox(id: string, email: OutgoingEmail): Promise<void> {
-  const dir = outboxDir();
-  await mkdir(dir, { recursive: true });
-  const meta = { id, at: new Date().toISOString(), to: email.to, from: email.from, replyTo: email.replyTo, subject: email.subject, text: email.text };
-  await writeFile(path.join(dir, `${id}.json`), JSON.stringify(meta, null, 2), { mode: 0o600 });
-  await writeFile(path.join(dir, `${id}.html`), email.html, { mode: 0o600 });
-}
 
 /** Sends the notice, or says why not. Never throws; logs the outcome and the ENQ ref only. */
 export async function notifyStaffOfEnquiry(input: NotifyInput): Promise<NotifyOutcome> {

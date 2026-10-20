@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
+import { COMMS_TAB_PATH } from "@/lib/hq/communications";
 import { isUuid } from "@/lib/hq/forms";
 import { ENQUIRY_STATUS_LABEL } from "@/lib/hq/enquiry-rules";
 import { withToast } from "@/components/hq/flash";
@@ -20,7 +21,9 @@ import { withToast } from "@/components/hq/flash";
  * People see plain messages; only error codes are logged.
  */
 
+// An enquiry's page stays at /hq/growth/enquiries/<id>; the list is Communications > Enquiries.
 const LIST = `${HQ_BASE}/growth/enquiries`;
+const HUB = COMMS_TAB_PATH.enquiries;
 const GENERIC = "Something went wrong and nothing was changed. Try again in a moment.";
 
 function idFrom(formData: FormData): string | null {
@@ -29,6 +32,7 @@ function idFrom(formData: FormData): string | null {
 }
 
 function refresh(id?: string) {
+  revalidatePath(HUB);
   revalidatePath(LIST);
   revalidatePath(HQ_BASE);
   if (id) revalidatePath(`${LIST}/${id}`);
@@ -40,7 +44,7 @@ type SettableStatus = (typeof STATUSES)[number];
 export async function setEnquiryStatusAction(formData: FormData): Promise<void> {
   const { db } = await requireStaff("growth.write");
   const id = idFrom(formData);
-  if (!id) redirect(withToast(LIST, "That enquiry could not be found.", "error"));
+  if (!id) redirect(withToast(HUB, "That enquiry could not be found.", "error"));
   const raw = formData.get("status");
   const status = typeof raw === "string" && (STATUSES as readonly string[]).includes(raw) ? (raw as SettableStatus) : null;
   if (!status) redirect(withToast(`${LIST}/${id}`, GENERIC, "error"));
@@ -57,7 +61,7 @@ export async function setEnquiryStatusAction(formData: FormData): Promise<void> 
 export async function markEnquirySpamAction(formData: FormData): Promise<void> {
   const { db } = await requireStaff("growth.write");
   const id = idFrom(formData);
-  if (!id) redirect(withToast(LIST, "That enquiry could not be found.", "error"));
+  if (!id) redirect(withToast(HUB, "That enquiry could not be found.", "error"));
   const { data, error } = await db.rpc("mark_enquiry_spam", { p_id: id, p_note: "Marked as spam in HQ" });
   if (error) {
     console.error("[hq] markEnquirySpam failed:", error.code ?? "unknown");
@@ -85,4 +89,29 @@ export async function setEnquiryOwnerAction(formData: FormData): Promise<void> {
   revalidatePath(`${HQ_BASE}/settings`);
   const changed = (data as { changed?: boolean } | null)?.changed !== false;
   redirect(withToast(back, changed ? (owner ? "Saved. New website enquiries go to them." : "Saved. New website enquiries go to the first director.") : "Nothing changed", changed ? "success" : "info"));
+}
+
+/**
+ * Directors: switch the automatic thank-you to website enquirers on or off (the setting
+ * enquiry_auto_reply_enabled). Written through the settings row, which row level security lets only
+ * settings.admin update; the settings guard accepts only true or false and the settings trigger audits it.
+ */
+export async function setEnquiryAutoReplyAction(formData: FormData): Promise<void> {
+  const { db } = await requireStaff("settings.admin");
+  const raw = formData.get("enabled");
+  const back = `${HQ_BASE}/settings`;
+  if (raw !== "true" && raw !== "false") redirect(withToast(back, GENERIC, "error"));
+  const enabled = raw === "true";
+  const { data, error } = await db.from("settings").update({ value: enabled }).eq("key", "enquiry_auto_reply_enabled").select("key");
+  if (error || !data || data.length === 0) {
+    console.error("[hq] changing enquiry_auto_reply_enabled failed:", error?.code ?? "no row");
+    redirect(withToast(back, GENERIC, "error"));
+  }
+  revalidatePath(`${HQ_BASE}/settings`);
+  redirect(
+    withToast(
+      back,
+      enabled ? "Thank-you emails are on: each new website enquirer gets one automatic thank-you." : "Thank-you emails are off: website enquirers get no automatic email.",
+    ),
+  );
 }
