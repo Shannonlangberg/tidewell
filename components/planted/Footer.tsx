@@ -29,12 +29,12 @@ export function Footer() {
 
   return (
     <footer className="on-dark bg-charcoal text-ivory">
-      <div className="shell py-20 md:py-28">
-        <div className="grid gap-16 lg:grid-cols-12 lg:gap-12">
+      <div className="shell pb-10 pt-20 md:pb-12 md:pt-28">
+        <div className="grid gap-16 md:grid-cols-3 md:gap-x-10 lg:grid-cols-12 lg:gap-12">
           {/* Wordmark at display scale */}
-          <div className="lg:col-span-5">
+          <div className="md:col-span-3 lg:col-span-4">
             <Logo variant="full" tone="light" href={null} className="text-[clamp(2.75rem,6vw,4.5rem)]" />
-            <p className="lede lede-light mt-8 max-w-sm">{BRAND.tagline}</p>
+            <p className="lede lede-light mt-8 max-w-sm">Residential property management on the Copper Coast, South Australia.</p>
           </div>
 
           <nav className="lg:col-span-3" aria-labelledby="footer-pages">
@@ -70,7 +70,7 @@ export function Footer() {
             </ul>
           </nav>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <p className="label label-light">Get in touch</p>
             <ul className="mt-6 space-y-3 text-[0.9375rem] text-stone">
               {CONTACT.phone && (
@@ -109,7 +109,7 @@ export function Footer() {
         <div className="rule-dark mt-20 flex flex-col gap-6 pt-8 md:flex-row md:items-center md:justify-between">
           <p className="text-[0.8125rem] text-taupe">
             &copy; {year} {BRAND.name} {CONTACT.legalName && <span>&middot; {CONTACT.legalName}</span>}
-            {CONTACT.abn && <span> &middot; ABN {CONTACT.abn}</span>}
+            {CONTACT.abn && <span className="whitespace-nowrap"> &middot; ABN {CONTACT.abn}</span>}
             {CONTACT.licenceNumber && <span> &middot; {CONTACT.licenceNumber}</span>}
           </p>
           <ul className="flex flex-wrap gap-6">

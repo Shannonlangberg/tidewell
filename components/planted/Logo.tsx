@@ -33,9 +33,9 @@ export function Logo({ variant = "wordmark", tone = "dark", className = "", href
         </span>
         {variant === "full" && (
           <span
-            className={tone === "light" ? "text-taupe" : "text-ink-muted"}
+            className={tone === "light" ? "text-stone" : "text-ink-muted"}
             style={{
-              fontSize: "0.5625rem",
+              fontSize: "0.6875rem",
               fontWeight: 500,
               letterSpacing: "0.3em",
               textTransform: "uppercase",

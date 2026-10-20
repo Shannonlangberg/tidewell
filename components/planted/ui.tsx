@@ -9,7 +9,24 @@ import type { ReactNode } from "react";
 // ── eyebrow label ────────────────────────────────────────────
 
 export function Label({ children, tone = "dark", className = "" }: { children: ReactNode; tone?: "dark" | "light"; className?: string }) {
-  return <p className={`label ${tone === "light" ? "label-light" : ""} ${className}`}>{children}</p>;
+  return (
+    <p className={`label label-pt ${tone === "light" ? "label-light" : ""} ${className}`}>
+      {/* One flex item, so inline markup inside a label never picks up the point's gap. */}
+      <span>{children}</span>
+    </p>
+  );
+}
+
+// ── the point ────────────────────────────────────────────────
+// The wordmark's full stop, set in clay. See "the point" in planted.css.
+
+/** A headline's closing full stop, in clay. Put it in place of the final "." */
+export function Stop() {
+  return <span className="stop">.</span>;
+}
+
+export function Point({ className = "" }: { className?: string }) {
+  return <span aria-hidden="true" className={`pt ${className}`.trim()} />;
 }
 
 // ── buttons and links ────────────────────────────────────────
