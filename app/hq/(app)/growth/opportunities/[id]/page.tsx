@@ -14,6 +14,7 @@ import { staffOptions } from "@/lib/hq/queries/options";
 import { EmptyState, ErrorState, KeyValueList, LinkButton, PageHeader, Panel, PanelHeader, SectionLabel, StageChip, StatusChip, buildHref, type KeyValueItem } from "@/components/hq";
 import { EditLeadButton, LogLeadActivityButton, NextStepButton } from "@/components/hq/features/leads/LeadDrawers";
 import { LeadTimeline } from "@/components/hq/features/leads/LeadTimeline";
+import { ConvertToManagedButton } from "@/components/hq/features/portfolio/ConvertToManagedButton";
 import { MoveStageButton } from "@/components/hq/features/referrals/ReferralActions";
 
 export const metadata: Metadata = { title: "Lead" };
@@ -164,6 +165,7 @@ export default async function LeadPage({ params, searchParams }: { params: Param
                 timezone={tz}
                 returnTo={here}
               />
+              <ConvertToManagedButton opportunityId={lead.id} stage={lead.stage} />
             </>
           ) : undefined
         }
