@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/hq/PageHeader";
 import { InlineNote, KeyValueList, SectionLabel } from "@/components/hq/Primitives";
 import { BusinessSettings } from "@/components/hq/features/people/BusinessSettings";
 import { GoalForm } from "@/components/hq/features/portfolio/GoalForm";
+import { EnquiryOwnerSetting } from "@/components/hq/features/enquiries/EnquiryOwnerSetting";
 import { setBusinessGoal } from "../portfolio/actions";
 import { requireStaff } from "@/lib/hq/auth";
 import { DEFAULT_TIMEZONE, formatDate, todayIn } from "@/lib/hq/format";
@@ -115,6 +116,8 @@ export default async function SettingsPage() {
             )}
           </section>
         ) : null}
+
+        <EnquiryOwnerSetting />
 
         {can("settings.admin") || can("audit.read") ? (
           <section aria-labelledby="ai-h" className="max-w-xl">

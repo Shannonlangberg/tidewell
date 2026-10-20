@@ -964,6 +964,171 @@ export type Database = {
           },
         ]
       }
+      enquiries: {
+        Row: {
+          contact_id: string | null
+          created_contact: boolean
+          created_lead: boolean
+          details: Json
+          email: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          interaction_id: string | null
+          ip_hash: string | null
+          kind: Database["hq"]["Enums"]["enquiry_kind"]
+          message: string | null
+          name: string
+          opportunity_id: string | null
+          phone: string | null
+          received_at: string
+          ref_number: number
+          source_page: string | null
+          spam_marked_at: string | null
+          spam_marked_by: string | null
+          status: Database["hq"]["Enums"]["enquiry_status"]
+          status_note: string | null
+          submission_hash: string
+          suburb: string | null
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_contact?: boolean
+          created_lead?: boolean
+          details?: Json
+          email: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          interaction_id?: string | null
+          ip_hash?: string | null
+          kind: Database["hq"]["Enums"]["enquiry_kind"]
+          message?: string | null
+          name: string
+          opportunity_id?: string | null
+          phone?: string | null
+          received_at?: string
+          ref_number?: never
+          source_page?: string | null
+          spam_marked_at?: string | null
+          spam_marked_by?: string | null
+          status?: Database["hq"]["Enums"]["enquiry_status"]
+          status_note?: string | null
+          submission_hash: string
+          suburb?: string | null
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_contact?: boolean
+          created_lead?: boolean
+          details?: Json
+          email?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          interaction_id?: string | null
+          ip_hash?: string | null
+          kind?: Database["hq"]["Enums"]["enquiry_kind"]
+          message?: string | null
+          name?: string
+          opportunity_id?: string | null
+          phone?: string | null
+          received_at?: string
+          ref_number?: never
+          source_page?: string | null
+          spam_marked_at?: string | null
+          spam_marked_by?: string | null
+          status?: Database["hq"]["Enums"]["enquiry_status"]
+          status_note?: string | null
+          submission_hash?: string
+          suburb?: string | null
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "enquiries_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "enquiries_spam_marked_by_fkey"
+            columns: ["spam_marked_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           applied_at: string
@@ -2419,6 +2584,121 @@ export type Database = {
           },
         ]
       }
+      enquiry_overview: {
+        Row: {
+          contact_id: string | null
+          contact_kind: Database["hq"]["Enums"]["contact_kind"] | null
+          contact_name: string | null
+          created_contact: boolean | null
+          created_lead: boolean | null
+          details: Json | null
+          email: string | null
+          handled_at: string | null
+          handled_by: string | null
+          handled_by_name: string | null
+          id: string | null
+          kind: Database["hq"]["Enums"]["enquiry_kind"] | null
+          lead_live: boolean | null
+          lead_ref: string | null
+          lead_stage: Database["hq"]["Enums"]["opportunity_stage"] | null
+          message: string | null
+          name: string | null
+          opportunity_id: string | null
+          owner_id: string | null
+          owner_name: string | null
+          phone: string | null
+          received_at: string | null
+          ref: string | null
+          ref_number: number | null
+          source_page: string | null
+          spam_marked_at: string | null
+          spam_marked_by: string | null
+          status: Database["hq"]["Enums"]["enquiry_status"] | null
+          status_note: string | null
+          suburb: string | null
+          task_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "organisation_directory"
+            referencedColumns: ["primary_contact_id"]
+          },
+          {
+            foreignKeyName: "enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_followups"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "enquiries_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "overdue_opportunities"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "enquiries_spam_marked_by_fkey"
+            columns: ["spam_marked_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enquiries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_assigned_to_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunity_overview: {
         Row: {
           assigned_to: string | null
@@ -3176,6 +3456,10 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_enquiry_spam: {
+        Args: { p_id: string; p_note?: string }
+        Returns: Json
+      }
       move_opportunity: {
         Args: {
           p_lost_reason?: string
@@ -3287,6 +3571,15 @@ export type Database = {
         }
         Returns: Json
       }
+      set_enquiry_owner: { Args: { p_staff?: string }; Returns: Json }
+      set_enquiry_status: {
+        Args: {
+          p_id: string
+          p_note?: string
+          p_status: Database["hq"]["Enums"]["enquiry_status"]
+        }
+        Returns: Json
+      }
       set_handover_step: {
         Args: {
           p_note?: string
@@ -3306,6 +3599,20 @@ export type Database = {
           p_note?: string
           p_status: Database["hq"]["Enums"]["vetting_step_status"]
           p_step: Database["hq"]["Enums"]["vetting_step"]
+        }
+        Returns: Json
+      }
+      submit_enquiry: {
+        Args: {
+          p_details?: Json
+          p_email: string
+          p_ip_hash?: string
+          p_kind: Database["hq"]["Enums"]["enquiry_kind"]
+          p_message?: string
+          p_name: string
+          p_phone?: string
+          p_source_page?: string
+          p_suburb?: string
         }
         Returns: Json
       }
@@ -3473,6 +3780,8 @@ export type Database = {
         | "discarded"
       email_template: "thank_you" | "follow_up" | "introduction" | "general"
       employment_status: "active" | "on_leave" | "ended"
+      enquiry_kind: "appraisal" | "contact"
+      enquiry_status: "new" | "in_progress" | "spam" | "archived"
       fee_basis: "percent_of_rent" | "flat_fee" | "other"
       handover_step:
         | "owner_onboarded"
@@ -3759,6 +4068,8 @@ export const Constants = {
       ],
       email_template: ["thank_you", "follow_up", "introduction", "general"],
       employment_status: ["active", "on_leave", "ended"],
+      enquiry_kind: ["appraisal", "contact"],
+      enquiry_status: ["new", "in_progress", "spam", "archived"],
       fee_basis: ["percent_of_rent", "flat_fee", "other"],
       handover_step: [
         "owner_onboarded",

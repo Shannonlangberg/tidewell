@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AREAS, BRAND, CONTACT, SOCIAL, telHref } from "@/lib/planted";
+import { AREAS, BRAND, CONTACT, SOCIAL, STAFF_HQ_URL, telHref } from "@/lib/planted";
 import { Logo } from "./Logo";
 
 /*
@@ -19,9 +19,9 @@ const PAGES = [
 const LEGAL = [
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms & Disclaimer" },
-  // Planted HQ, the private staff portal. Discreet by design: the page is noindex and
-  // requires a staff login.
-  { href: "/hq", label: "Staff login" },
+  // Planted HQ, the private staff portal, on its own host (hq.plantedproperty.com.au). Discreet by
+  // design: HQ is noindex and requires a staff login.
+  { href: STAFF_HQ_URL, label: "Staff login" },
 ];
 
 export function Footer() {

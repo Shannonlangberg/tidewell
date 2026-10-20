@@ -19,6 +19,10 @@ const SECRET_KEY_ALLOWED = [
   // Planted HQ: the Auth admin API only (creating a staff login on invitation). All HQ
   // data access runs as the signed-in person under row level security, never with this key.
   "lib/hq/staff-admin.ts",
+  // Website enquiries: the public forms' Server Actions store an enquiry in HQ through this file, which only
+  // calls hq.submit_enquiry (granted to service_role alone; the database validates, dedupes and rate-limits).
+  // No visitor has an HQ session, so RLS cannot decide; the function is the boundary.
+  "lib/hq/enquiry-intake.ts",
 ];
 
 const secretImportPatterns = [
@@ -31,15 +35,17 @@ const secretImportPatterns = [
 /**
  * The email-provider boundary (docs/hq-setup.md, Email): SENDGRID_API_KEY is read ONLY in
  * lib/hq/email/sendgrid.ts, and only lib/hq/email/send.ts (which sends an approved draft through
- * begin_email_send / finish_email_send, as the signed-in person) may import that file.
+ * begin_email_send / finish_email_send, as the signed-in person) and lib/hq/email/enquiry-notify.ts (the
+ * staff notice for a stored website enquiry, to ENQUIRY_TO_EMAIL only) may import that file.
  */
 const EMAIL_PROVIDER_FILE = "lib/hq/email/sendgrid.ts";
-const EMAIL_PROVIDER_IMPORTERS = ["lib/hq/email/send.ts"];
+// lib/hq/email/enquiry-notify.ts sends the staff notice for a stored website enquiry to ENQUIRY_TO_EMAIL only.
+const EMAIL_PROVIDER_IMPORTERS = ["lib/hq/email/send.ts", "lib/hq/email/enquiry-notify.ts"];
 
 const emailProviderImportPatterns = [
   {
     group: ["**/email/sendgrid", "**/email/sendgrid.ts", "@/lib/hq/email/sendgrid", "./sendgrid", "./sendgrid.ts"],
-    message: "Only lib/hq/email/send.ts may import the SendGrid provider (it holds the API key). Send through sendDraft() in lib/hq/email/send.ts.",
+    message: "Only lib/hq/email/send.ts and lib/hq/email/enquiry-notify.ts may import the SendGrid provider (it holds the API key). Send through sendDraft() in lib/hq/email/send.ts.",
   },
 ];
 

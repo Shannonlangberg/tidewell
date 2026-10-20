@@ -9,9 +9,15 @@
  * ──────────────────────────────────────────────────────────────────────────
  * ENVIRONMENT VARIABLES THIS PIPELINE READS
  *
- * Delivery adapters are tried in the order listed. The first one that is
- * configured and succeeds wins. (For the lead: fold this block into
- * .env.example and the README.)
+ * PRIMARY DELIVERY: Planted HQ. With NEXT_PUBLIC_SUPABASE_URL and
+ * SUPABASE_SECRET_KEY set, the Server Actions store every enquiry through
+ * hq.submit_enquiry (lib/hq/enquiry-intake.ts; ENQUIRY_IP_SALT optional) and
+ * then email a notice to ENQUIRY_TO_EMAIL through SendGrid (SENDGRID_API_KEY;
+ * lib/hq/email/enquiry-notify.ts, best effort). See docs/hq-setup.md,
+ * "Website enquiries". Stored in HQ = delivered.
+ *
+ * FALLBACK ADAPTERS, tried only when HQ could not store it, in the order
+ * listed. The first one that is configured and succeeds wins.
  *
  *   RESEND_API_KEY
  *     Resend API key (re_...). With ENQUIRY_TO_EMAIL, enquiries are emailed
@@ -463,14 +469,36 @@ export async function verifyTurnstile(form: FormData): Promise<boolean> {
 }
 
 /* ── delivery ────────────────────────────────────────────────────────────
- * Adapters are attempted in order and the first success wins. If nothing is
- * configured in production the result is an explicit failure: the caller must
- * not tell anyone their enquiry was sent.
+ * Planted HQ is the primary delivery: an enquiry counts as delivered when
+ * hq.submit_enquiry has stored it (lib/hq/enquiry-intake.ts, passed in as
+ * `deps.hq` by the Server Actions). Once it is stored, the staff notification
+ * email (`deps.notify`, SendGrid to ENQUIRY_TO_EMAIL only) is best effort: its
+ * failure is logged and never reported to the person as a failure.
+ *
+ * If HQ cannot store it, the older adapters (Resend, webhook) are tried in
+ * order and the first success wins. If none delivered, the result is an
+ * explicit failure: the caller must not tell anyone their enquiry was sent, and
+ * nothing is stored. A refusal by HQ's rate limit is final (no fallback).
+ *
+ * This file stays free of server-only imports (the forms import its option
+ * lists), so the HQ and email steps are injected rather than imported.
  */
 
 export type Delivery =
-  | { ok: true; via: "resend" | "webhook" | "console" }
-  | { ok: false; reason: "unconfigured" | "failed" };
+  | { ok: true; via: "hq" | "resend" | "webhook" | "console"; ref?: string; duplicate?: boolean; notified?: "sent" | "skipped" | "failed" }
+  | { ok: false; reason: "unconfigured" | "failed" | "rate_limited" };
+
+/** What the HQ intake answered (lib/hq/enquiry-rules.ts IntakeResult). */
+export type HqIntake =
+  | { ok: true; ref: string; enquiryId: string; opportunityId: string | null; duplicate: boolean }
+  | { ok: false; reason: "unconfigured" | "rate_limited" | "invalid" | "timeout" | "failed" };
+
+export type DeliveryDeps = {
+  /** Store the enquiry in Planted HQ. */
+  hq?: (enquiry: Enquiry) => Promise<HqIntake>;
+  /** Tell staff a new enquiry is in HQ (best effort; never throws in practice, and a throw is caught). */
+  notify?: (enquiry: Enquiry, stored: { ref: string; enquiryId: string; opportunityId: string | null }) => Promise<"sent" | "skipped" | "failed">;
+};
 
 function errText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -580,10 +608,42 @@ function configured(): boolean {
   return Boolean((process.env.RESEND_API_KEY && process.env.ENQUIRY_TO_EMAIL) || process.env.ENQUIRY_WEBHOOK_URL);
 }
 
-export async function deliver(enquiry: Enquiry): Promise<Delivery> {
+export async function deliver(enquiry: Enquiry, deps: DeliveryDeps = {}): Promise<Delivery> {
+  let hqTried = false;
+  if (deps.hq) {
+    let stored: HqIntake;
+    try {
+      stored = await deps.hq(enquiry);
+    } catch {
+      stored = { ok: false, reason: "failed" };
+    }
+    if (stored.ok) {
+      let notified: "sent" | "skipped" | "failed" = "skipped";
+      // A duplicate (a double tap) was notified the first time.
+      if (deps.notify && !stored.duplicate) {
+        try {
+          notified = await deps.notify(enquiry, { ref: stored.ref, enquiryId: stored.enquiryId, opportunityId: stored.opportunityId });
+        } catch {
+          notified = "failed";
+        }
+      }
+      return { ok: true, via: "hq", ref: stored.ref, duplicate: stored.duplicate, notified };
+    }
+    if (stored.reason === "rate_limited") return { ok: false, reason: "rate_limited" };
+    // "unconfigured" means HQ is not set up here (no secret key): the old rules apply unchanged.
+    hqTried = stored.reason !== "unconfigured";
+  }
+
   if (configured()) {
     if (await viaResend(enquiry)) return { ok: true, via: "resend" };
     if (await viaWebhook(enquiry)) return { ok: true, via: "webhook" };
+    return { ok: false, reason: "failed" };
+  }
+
+  // An HQ intake that was attempted and failed must never fall through to a
+  // console "success" either: nothing was stored.
+  if (hqTried) {
+    console.error("[enquiry] NOT DELIVERED: Planted HQ could not store the enquiry and no other adapter is configured.");
     return { ok: false, reason: "failed" };
   }
 
@@ -598,7 +658,8 @@ export async function deliver(enquiry: Enquiry): Promise<Delivery> {
   }
 
   console.error(
-    "[enquiry] NOT DELIVERED: no delivery adapter is configured. Set RESEND_API_KEY and " +
+    "[enquiry] NOT DELIVERED: no delivery adapter is configured. Set NEXT_PUBLIC_SUPABASE_URL and " +
+      "SUPABASE_SECRET_KEY (Planted HQ), or RESEND_API_KEY and " +
       "ENQUIRY_TO_EMAIL (optionally ENQUIRY_FROM_EMAIL), or ENQUIRY_WEBHOOK_URL " +
       "(optionally ENQUIRY_WEBHOOK_SECRET). The enquiry has been discarded.",
   );
@@ -608,7 +669,11 @@ export async function deliver(enquiry: Enquiry): Promise<Delivery> {
 /** A record of the submission with no personal data in it. */
 export function logOutcome(kind: EnquiryKind, suburb: string | null, outcome: Delivery | SpamVerdict) {
   const delivery =
-    typeof outcome === "string" ? `screened:${outcome}` : outcome.ok ? `delivered:${outcome.via}` : `not-delivered:${outcome.reason}`;
+    typeof outcome === "string"
+      ? `screened:${outcome}`
+      : outcome.ok
+        ? `delivered:${outcome.via}${outcome.ref ? ` ref=${outcome.ref}` : ""}${outcome.duplicate ? " duplicate" : ""}${outcome.notified ? ` notify=${outcome.notified}` : ""}`
+        : `not-delivered:${outcome.reason}`;
   console.info(`[enquiry] kind=${kind} suburb=${suburb ?? "n/a"} at=${new Date().toISOString()} delivery=${delivery}`);
 }
 
@@ -620,7 +685,67 @@ export const MESSAGES = {
   unconfigured:
     "We're sorry — the enquiry form isn't connected yet, so this wasn't sent. Please try again later.",
   failed: "We're sorry — something went wrong sending your enquiry and it didn't reach us. Please try again.",
+  /** HQ's hourly limit (5 per email address and 5 per connection). Honest: it was not sent. */
+  rateLimited:
+    "We've already received several enquiries from you in the last hour, so this one wasn't sent. Please try again a little later.",
   tooFast: "That came through faster than a form is usually filled in. Please try again.",
   robot: "The security check didn't pass. Reload the page and try again.",
   sent: "Thank you — your enquiry has reached us.",
 } as const;
+
+/* ── one submission, start to finish ─────────────────────────────────────
+ * The whole Server Action, minus the framework: screen, read, validate,
+ * verify, deliver, and say honestly what happened. The two actions in
+ * app/(site)/enquiry-actions.ts call this with the real HQ intake and staff
+ * notification and perform the redirect it asks for (the no-JavaScript path).
+ * Kept here, with its effects injected, so it is unit tested with mocks.
+ */
+
+export const SUCCESS_PATH = "/enquiry-received";
+
+export type SubmissionOutcome = { state: EnquiryState; redirectTo: string | null };
+
+const SENT_STATE: EnquiryState = { status: "sent", message: MESSAGES.sent, errors: {}, values: {} };
+
+function failureText(reason: "unconfigured" | "failed" | "rate_limited"): string {
+  return reason === "unconfigured" ? MESSAGES.unconfigured : reason === "rate_limited" ? MESSAGES.rateLimited : MESSAGES.failed;
+}
+
+export async function processEnquiry(
+  kind: EnquiryKind,
+  form: FormData,
+  deps: DeliveryDeps & { verify?: (form: FormData) => Promise<boolean> } = {},
+): Promise<SubmissionOutcome> {
+  const js = hasJs(form);
+  const verdict = screen(form);
+
+  // A filled honeypot is a bot. It is discarded and shown the ordinary
+  // success, so the bot learns nothing about why it failed. Nothing is stored.
+  if (verdict === "honeypot") {
+    logOutcome(kind, null, verdict);
+    return { state: SENT_STATE, redirectTo: js ? null : SUCCESS_PATH };
+  }
+
+  const values = kind === "appraisal" ? readAppraisal(form) : readContact(form);
+
+  if (verdict === "too-fast") {
+    logOutcome(kind, null, verdict);
+    return { state: { status: "invalid", message: MESSAGES.tooFast, errors: {}, values }, redirectTo: null };
+  }
+
+  const errors = kind === "appraisal" ? appraisalErrors(values) : contactErrors(values);
+  if (Object.keys(errors).length > 0) return { state: { status: "invalid", message: MESSAGES.invalid, errors, values }, redirectTo: null };
+
+  if (!(await (deps.verify ?? verifyTurnstile)(form))) {
+    return { state: { status: "invalid", message: MESSAGES.robot, errors: {}, values }, redirectTo: null };
+  }
+
+  const enquiry = kind === "appraisal" ? buildAppraisal(values) : buildContact(values);
+  const outcome = await deliver(enquiry, deps);
+  logOutcome(kind, enquiry.suburb, outcome);
+
+  if (!outcome.ok) {
+    return { state: { status: "failed", message: failureText(outcome.reason), errors: {}, values }, redirectTo: null };
+  }
+  return { state: SENT_STATE, redirectTo: js ? null : SUCCESS_PATH };
+}

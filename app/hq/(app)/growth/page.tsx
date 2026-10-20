@@ -90,6 +90,7 @@ export default async function GrowthOverviewPage({ searchParams }: { searchParam
           <>
             <LinkButton href={HQ_ROUTES.referralPartners}>Referral partners</LinkButton>
             <LinkButton href="/hq/growth/pipeline">Pipeline</LinkButton>
+            <LinkButton href="/hq/growth/enquiries">Website enquiries</LinkButton>
             {recordAction}
           </>
         }
@@ -287,6 +288,7 @@ export default async function GrowthOverviewPage({ searchParams }: { searchParam
             { href: "/hq/growth/organisations", title: "Organisations", description: "The agencies, brokers and firms those people work for." },
             { href: REFERRALS, title: "Referrals", description: "Every introduction, received and sent." },
             { href: "/hq/growth/pipeline", title: "Pipeline", description: "Open prospects from introduction to signed management." },
+            { href: "/hq/growth/enquiries", title: "Website enquiries", description: "Appraisal requests and contact forms from the website, each already a lead." },
             ...(canImport ? [{ href: "/hq/growth/import", title: "Import", description: "Add a list of research leads, checked before anything is saved." }] : []),
           ]}
         />

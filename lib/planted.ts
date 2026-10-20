@@ -24,8 +24,8 @@ export const CONTACT = {
   phone: "0424 156 023" as string | null,
   /** e.g. "hello@plantedgroup.com.au" */
   email: "info@plantedproperty.com.au" as string | null,
-  /** e.g. "https://plantedgroup.com.au" — turns on canonical URLs and JSON-LD `url`. */
-  url: null as string | null,
+  /** The public website (confirmed by the owner, 2026-10-20). Turns on canonical URLs, the Open Graph base, the sitemap and JSON-LD `url`. */
+  url: "https://plantedproperty.com.au" as string | null,
   /** e.g. "Planted Property Group Pty Ltd" */
   legalName: "Planted Property Group" as string | null,
   /** e.g. "ABN 00 000 000 000" */
@@ -113,3 +113,6 @@ export function telHref(phone: string) {
 
 /** True once there is any published way to make contact. */
 export const hasPublicContact = Boolean(CONTACT.phone || CONTACT.email);
+
+/** Planted HQ, the private staff portal (its own host; the footer's "Staff login" goes here). */
+export const STAFF_HQ_URL = "https://hq.plantedproperty.com.au/";
