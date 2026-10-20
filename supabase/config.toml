@@ -460,7 +460,7 @@ port = 587
 user = "apikey"
 pass = "env(SMTP_PASS)"
 admin_email = "hq@plantedproperty.com.au"
-sender_name = "PLANTED. HQ"
+sender_name = "PLANTED."
 
 # With a real sender the default of 2 emails an hour no longer applies.
 [remotes.production.auth.rate_limit]

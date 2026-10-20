@@ -12,7 +12,7 @@
 
 export const SENDGRID_SEND_URL = "https://api.sendgrid.com/v3/mail/send";
 export const DEFAULT_FROM_ADDRESS = "hq@plantedproperty.com.au";
-export const DEFAULT_FROM_NAME = "PLANTED. HQ";
+export const DEFAULT_FROM_NAME = "PLANTED.";
 /** Well inside Netlify's synchronous function limit, with room for the database calls either side. */
 export const SEND_TIMEOUT_MS = 6000;
 

@@ -41,7 +41,7 @@ test("the SendGrid v3 request: one recipient, From, Reply-To, text and HTML, tra
   assert.deepEqual(req.headers, { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" });
   const body = JSON.parse(req.body);
   assert.deepEqual(body.personalizations, [{ to: [{ email: "tim@partner.test", name: "Tim Hosking" }] }]);
-  assert.deepEqual(body.from, { email: "hq@plantedproperty.com.au", name: "PLANTED. HQ" });
+  assert.deepEqual(body.from, { email: "hq@plantedproperty.com.au", name: "PLANTED." });
   assert.deepEqual(body.reply_to, { email: "shannon@planted.test", name: "Shannon Langberg" });
   assert.equal(body.subject, "Thank you");
   assert.deepEqual(body.content, [
@@ -134,9 +134,9 @@ test("provider choice: production is always SendGrid (never fake); development i
 });
 
 test("From: the documented defaults, or valid overrides", () => {
-  assert.deepEqual(fromMailbox({}), { email: "hq@plantedproperty.com.au", name: "PLANTED. HQ" });
+  assert.deepEqual(fromMailbox({}), { email: "hq@plantedproperty.com.au", name: "PLANTED." });
   assert.deepEqual(fromMailbox({ address: "team@plantedproperty.com.au", name: "PLANTED. Team" }), { email: "team@plantedproperty.com.au", name: "PLANTED. Team" });
-  assert.deepEqual(fromMailbox({ address: "not an address", name: '"\r\n' }), { email: "hq@plantedproperty.com.au", name: "PLANTED. HQ" });
+  assert.deepEqual(fromMailbox({ address: "not an address", name: '"\r\n' }), { email: "hq@plantedproperty.com.au", name: "PLANTED." });
 });
 
 test("the fake provider records and answers with a fake id, or fails on request", async () => {
