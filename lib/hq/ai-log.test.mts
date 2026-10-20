@@ -17,6 +17,8 @@ test("parses what lib/hq/mcp/log.ts writes", () => {
   assert.deepEqual(parseAiQuestion(callSummary("search", "read", { query: "plumber" }, CLIENT)), { source: "mcp", kind: "read", tool: "search", clientId: CLIENT });
   // A client id the logger would not record leaves no "via".
   assert.deepEqual(parseAiQuestion(callSummary("list_tasks", "read", {}, "bad client id!")), { source: "mcp", kind: "read", tool: "list_tasks", clientId: null });
+  // A bulk call: one row, its own kind (not counted by the single-write cap).
+  assert.deepEqual(parseAiQuestion(callSummary("bulk_create_tasks", "bulk", { idempotency_key: "k", tasks: [{ title: "x" }] }, CLIENT)), { source: "mcp", kind: "bulk", tool: "bulk_create_tasks", clientId: CLIENT });
 });
 
 test("anything not in the logger's shape is 'other'", () => {
@@ -31,7 +33,10 @@ test("client ids are shortened for a table cell", () => {
 });
 
 test("the tool filter matches a tool exactly, not a longer name that starts the same", () => {
-  assert.equal(toolFilter("search"), 'question.eq."mcp read search",question.like."mcp read search *",question.eq."mcp write search",question.like."mcp write search *"');
+  assert.equal(
+    toolFilter("search"),
+    'question.eq."mcp read search",question.like."mcp read search *",question.eq."mcp write search",question.like."mcp write search *",question.eq."mcp bulk search",question.like."mcp bulk search *"',
+  );
   assert.equal(toolFilter("Search"), null);
   assert.equal(toolFilter('x",question.neq."'), null);
   assert.equal(toolFilter(""), null);

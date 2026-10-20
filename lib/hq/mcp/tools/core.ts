@@ -117,7 +117,7 @@ export function compose(parts: { head: string | readonly string[]; data?: readon
 
 // ── result shapes ────────────────────────────────────────────
 
-export type Outcome = "ok" | "empty" | "refused" | "invalid" | "ambiguous" | "not_found" | "unchanged" | "error";
+export type Outcome = "ok" | "empty" | "refused" | "invalid" | "ambiguous" | "not_found" | "unchanged" | "error" | "rate_limited";
 
 export type CoreResult = { text: string; structured?: Record<string, unknown> };
 

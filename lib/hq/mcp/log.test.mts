@@ -13,6 +13,13 @@ test("the log summary keeps the tool name and ids, never free text", () => {
   assert.doesNotMatch(s, /Smith|ignore|done|Jo\b/);
 });
 
+test("a bulk call is logged as ONE 'mcp bulk' row, which the single-write cap does not count", () => {
+  const s = callSummary("bulk_create_tasks", "bulk", { idempotency_key: ID, project: ID, tasks: [{ title: "Book the course", ref: "a" }], atomic: false }, CLIENT);
+  assert.equal(s, `mcp bulk bulk_create_tasks idempotency_key=${ID} project=${ID} via ${CLIENT}`);
+  assert.ok(!s.startsWith(WRITE_PREFIX));
+  assert.doesNotMatch(s, /Book the course/);
+});
+
 test("the summary survives odd arguments", () => {
   assert.equal(callSummary("search", "read", null, CLIENT), `mcp read search via ${CLIENT}`);
   assert.equal(callSummary("search", "read", ["x"], "bad client id!"), "mcp read search");

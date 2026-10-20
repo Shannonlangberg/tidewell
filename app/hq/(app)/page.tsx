@@ -25,6 +25,7 @@ import { EmailDraftsToday } from "@/components/hq/features/email/EmailDraftsToda
 import { EnquiriesToday } from "@/components/hq/features/enquiries/EnquiriesToday";
 import { KnowledgeApprovalsToday } from "@/components/hq/features/knowledge/KnowledgeApprovalsToday";
 import { MeetingsToday } from "@/components/hq/features/meetings/MeetingsToday";
+import { YourFocus } from "@/components/hq/features/projects/YourFocus";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { todayIn } from "@/lib/hq/format";
@@ -141,6 +142,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader variant="welcome" eyebrow={longDateIn(staff.timezone)} title={welcomeTitle(staff.firstName, staff.timezone)} actions={primaryAction} />
+      <YourFocus />
 
       {figures.length > 0 ? (
         <ul className="hq-today__figures" aria-label="Today at a glance">

@@ -3,7 +3,8 @@
  * registers these and shows a person only the ones their capabilities allow; each handler ALSO
  * refuses on its own when the capability is missing, and the database refuses again.
  *
- * Single record, named, no bulk, no deletes. Deliberately not available through chat (HQ screens
+ * Single record and named, except the two bulk task tools (bulk-tasks.ts: one call, one transaction,
+ * up to 50 tasks, the database's own bulk budget); no deletes. Deliberately not available through chat (HQ screens
  * only): approving, preferring, suspending, reinstating or deactivating a contractor; signing a
  * management or marking it lost; archiving or deleting anything (knowledge documents aside, below); documents; imports; people and
  * roles; settings. Leads can be added, listed, opened, updated and have calls logged; moving a lead's
@@ -18,7 +19,12 @@
  * DRAFT version; approving from chat works only while a director has switched it on; archiving is a
  * reversible soft archive (approvers only). Meetings (meetings.ts) can be saved, listed, searched, opened,
  * summarised for the week, updated (a new version each time), given actions (real tasks) and have a
- * decision added to the register; archiving a meeting is an HQ screen. Nothing anywhere is hard-deleted.
+ * decision added to the register; archiving a meeting is an HQ screen. Projects (projects.ts, focus.ts,
+ * project-tasks.ts, bulk-tasks.ts) can be listed, opened, created and changed with their milestones;
+ * tasks get projects, milestones, subtasks, dependencies, checklists and comments, can be created or
+ * changed 50 at a time, and the focus tools answer "what are my priorities", "what is overdue" and
+ * "what is blocking"; archiving a project, its documents and related records are HQ screens only.
+ * Nothing anywhere is hard-deleted.
  */
 import type { ToolDef } from "../types";
 import { fetchRecord, search } from "./read-search";
@@ -49,6 +55,10 @@ import {
   updateKnowledge,
 } from "./knowledge";
 import { addMeetingAction, createMeeting, getMeeting, listMeetings, meetingDigest, promoteMeetingDecision, searchMeetings, updateMeeting } from "./meetings";
+import { completeMilestone, createMilestone, createProject, getProject, listProjects, updateMilestone, updateProject } from "./projects";
+import { addTaskComment, addTaskDependency, completeTask, getTask, removeTaskDependency, setTaskChecklist } from "./project-tasks";
+import { founderPriorities, listOverdue, whatIsBlocking } from "./focus";
+import { bulkCreateTasks, bulkUpdateTasks } from "./bulk-tasks";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -133,6 +143,27 @@ export const TOOLS: ToolDef[] = [
   updateMeeting,
   addMeetingAction,
   promoteMeetingDecision,
+  // projects and richer tasks (projects.read / projects.write; tasks.write for task changes)
+  listProjects,
+  getProject,
+  createProject,
+  updateProject,
+  createMilestone,
+  updateMilestone,
+  completeMilestone,
+  getTask,
+  completeTask,
+  addTaskDependency,
+  removeTaskDependency,
+  addTaskComment,
+  setTaskChecklist,
+  // focus (read): what to do next, what is late, what is stuck
+  founderPriorities,
+  listOverdue,
+  whatIsBlocking,
+  // bulk (kind "bulk": one call, one transaction, the database's bulk budget)
+  bulkCreateTasks,
+  bulkUpdateTasks,
 ];
 
 /** The tools a person with these capabilities may see and call. */

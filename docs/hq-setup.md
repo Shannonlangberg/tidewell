@@ -151,8 +151,9 @@ Each person can see and disconnect their own apps on **Profile > Connected apps*
 ### Limits
 
 - **All calls:** `hq.settings.ai_hourly_limit` per person per rolling hour (default 40, 1 to 1000, set in **Settings > AI and connected apps**), enforced inside the database by `ai_begin_request`. Chat apps can call several tools per question, so a director may want to raise it. A refused call stores nothing.
-- **Writes:** a lower cap per person per rolling hour, default 15, set with `HQ_MCP_WRITE_HOURLY_LIMIT` (1 to 200). Counted from the person's own logged write calls. A safety bound, not a business figure.
-- Each tool must answer within 8 seconds; results are cut at 20,000 characters (with a note saying so); request bodies over 64 kB are refused; at most 200 argument elements per call.
+- **Writes:** a lower cap per person per rolling hour, default 60 (raised from 15 with Projects), set with `HQ_MCP_WRITE_HOURLY_LIMIT` (1 to 200). Counted from the person's own logged single-record write calls. A safety bound, not a business figure.
+- **Bulk task calls** (`bulk_create_tasks`, `bulk_update_tasks`, up to 50 tasks each): one log row and one request against `ai_hourly_limit` per call, not counted by the write cap. Their limit is the database's bulk budget: 6 calls and 300 tasks per person per rolling hour (settings `bulk_calls_per_hour` 1 to 60, `bulk_items_per_hour` 1 to 2000). See docs/hq-mcp.md section 13.
+- Each tool must answer within 8 seconds; results are cut at 20,000 characters (with a note saying so); request bodies over 192 KiB are refused; at most 2,500 argument elements per call (a full 50-task plan fits).
 - **Netlify's synchronous function limit is short** (10 seconds by default). The endpoint is stateless and every tool is a few small queries, but a cold start plus a slow report could approach it.
 
 ### Known limitations of the connection

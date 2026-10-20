@@ -6,6 +6,7 @@ import { todayIn } from "@/lib/hq/format";
 import { staffOptions } from "@/lib/hq/queries/options";
 import { LIST_PAGE_SIZE, RELATED_FILTERS, RELATED_FILTER_LABEL, buildPredicate, defaultDirFor, parseTaskListQuery } from "@/lib/hq/tasks/rules";
 import { listTasks, viewCounts } from "@/lib/hq/tasks/queries";
+import { projectOptions } from "@/lib/hq/projects/queries";
 import { PRIORITIES_DESC } from "@/lib/hq/tasks/rules";
 import { TASK_VIEWS, viewsFor } from "@/lib/hq/tasks/rules";
 import {
@@ -43,14 +44,15 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
   const canWrite = can("tasks.write");
   const canGrowth = can("growth.read");
   const canContractors = can("contractors.read");
+  const canProjects = can("projects.read");
 
-  const query = parseTaskListQuery(sp, { canReadAll, canFilterRelated: canGrowth || canContractors });
+  const query = parseTaskListQuery(sp, { canReadAll, canFilterRelated: canGrowth || canContractors, canFilterProject: canProjects });
   const def = TASK_VIEWS[query.view];
   const today = todayIn(staff.timezone);
   const ctx = { meId: staff.id, today, now: new Date() };
   const views = viewsFor(canReadAll);
 
-  const [list, counts, staffList] = await Promise.all([
+  const [list, counts, staffList, projectList] = await Promise.all([
     listTasks(db, buildPredicate(query, ctx), { sort: query.sort, dir: query.dir, page: query.page, pageSize: LIST_PAGE_SIZE, canGrowth, canContractors }),
     viewCounts(
       db,
@@ -58,6 +60,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
       ctx,
     ),
     def.assigneeFilter ? staffOptions(db) : Promise.resolve([]),
+    canProjects ? projectOptions(db) : Promise.resolve([]),
   ]);
 
   const tabs: TabItem[] = views.map((v) => ({
@@ -153,6 +156,16 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
             options={RELATED_FILTERS.filter((r) => (r === "contractor" ? canContractors : r === "none" ? true : canGrowth)).map((r) => ({ value: r, label: RELATED_FILTER_LABEL[r] }))}
           />
         ) : null}
+        {canProjects && projectList.length > 0 ? (
+          <Select
+            name="project"
+            label="Project"
+            hideLabel
+            placeholder="Any project"
+            defaultValue={query.project ?? ""}
+            options={[{ value: "none", label: "Not in a project" }, ...projectList]}
+          />
+        ) : null}
       </FilterBar>
 
       {query.view === "completed" ? (
@@ -187,6 +200,7 @@ export default async function OperationsPage({ searchParams }: { searchParams: S
               showCompleted={query.view === "completed" || query.view === "all"}
               meId={staff.id}
               empty={empty}
+              showProject={canProjects}
             />
             <Pagination page={list.data.page} pageSize={LIST_PAGE_SIZE} total={list.data.total} pathname={PATH} searchParams={sp} noun="task" className="mt-6" />
           </>

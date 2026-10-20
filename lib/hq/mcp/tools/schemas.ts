@@ -129,6 +129,10 @@ export const listTasksShape = {
   query: z.string().trim().max(100).optional().describe("Optional. Words to match in the task title."),
   priority: z.enum(TASK_PRIORITY_VALUES).optional().describe("Optional. Only tasks with this priority."),
   status: z.enum(TASK_STATUS_VALUES).optional().describe("Optional. Narrow to one status where the view allows it."),
+  project: z.string().trim().min(1).max(200).optional().describe("Optional (needs projects.read). Only tasks in this project: PRJ-0001, its id or its name. With a project, the view's status and date rules still apply (default: open tasks)."),
+  milestone: z.string().trim().min(1).max(200).optional().describe("Optional, with project. Only tasks in this milestone of the project (its name or id)."),
+  parent: z.string().trim().min(1).max(200).optional().describe("Optional. Only the subtasks of this task (its id or title words)."),
+  blocked: z.boolean().optional().describe("Optional. true = only tasks waiting on another unfinished task; false = only tasks that are not."),
   limit,
 };
 
@@ -170,6 +174,9 @@ export const createTaskShape = {
   contact: optRef("contact this task is about"),
   organisation: optRef("organisation this task is about"),
   contractor: optRef("contractor this task is about"),
+  project: z.string().trim().min(1).max(200).optional().describe("Optional (needs projects.write). The project it belongs to: PRJ-0001, its id or its name."),
+  milestone: z.string().trim().min(1).max(200).optional().describe("Optional, with project. The milestone in that project (its name or id)."),
+  parent: z.string().trim().min(1).max(200).optional().describe("Optional. Make it a subtask of this task (one level only, same project): the parent's id or title words."),
 };
 
 export const updateTaskShape = {
@@ -182,6 +189,9 @@ export const updateTaskShape = {
   priority: z.enum(TASK_PRIORITY_VALUES).optional().describe("Optional. New priority."),
   assignee: z.string().trim().max(200).optional().describe('Optional. New assignee: "me", a staff name, a staff id, or "nobody".'),
   description: z.string().trim().max(4000).optional().describe("Optional. Replaces the task's description (the previous text is shown in the result)."),
+  project: z.string().trim().min(1).max(200).optional().describe('Optional (needs projects.write). Move it into this project (PRJ-0001, id or name), or "none" to take it out of its project (its milestone goes too).'),
+  milestone: z.string().trim().min(1).max(200).optional().describe('Optional. The milestone in its project (name or id), or "none".'),
+  blocked_reason: z.string().trim().max(500).optional().describe('Optional. Why it is held up when it is not waiting on another task (for example "waiting for the bank"); "" clears it.'),
 };
 
 export const logInteractionShape = {

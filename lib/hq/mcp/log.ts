@@ -4,7 +4,7 @@
  * where the database's hourly limit is enforced), `ai_finish_request` closes it.
  *
  * What is stored as the "question" is NEVER free text from the chat: only
- *   "mcp <read|write> <tool name>" plus the argument NAMES whose values are record ids
+ *   "mcp <read|write|bulk> <tool name>" plus the argument NAMES whose values are record ids
  * (uuids, or `kind:uuid` ids from search/fetch), for example
  *   "mcp write update_task task_id=6b0c...". Names, notes, search words and anything else a
  * person typed stay out of the log. The database's audit event stores only the length.
@@ -23,7 +23,7 @@ const CLIENT_ID = /^[A-Za-z0-9\-_.:]{1,100}$/;
 /** The database caps the question at 2000 characters. */
 const MAX_SUMMARY = 1900;
 
-export type CallKind = "read" | "write";
+export type CallKind = "read" | "write" | "bulk";
 export type FinishStatus = "answered" | "refused" | "error" | "rate_limited";
 
 function isId(v: unknown): v is string {
@@ -48,7 +48,11 @@ export function callSummary(tool: string, kind: CallKind, args: unknown, clientI
   return s.length > MAX_SUMMARY ? s.slice(0, MAX_SUMMARY) : s;
 }
 
-/** The prefix every write-call summary starts with (the write cap counts these). */
+/**
+ * The prefix every write-call summary starts with (the write cap counts these). Bulk calls are
+ * logged as "mcp bulk <tool> ..." and so are NOT counted by the write cap: their own budget is
+ * enforced in the database (hq.consume_bulk_budget).
+ */
 export const WRITE_PREFIX = "mcp write ";
 
 export type BeginOutcome =

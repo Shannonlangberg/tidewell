@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatDate } from "@/lib/hq/format";
-import { isOverdue, overdueLabel } from "@/lib/hq/tasks/rules";
+import { isOpen, isOverdue, overdueLabel } from "@/lib/hq/tasks/rules";
 import type { TaskActionResult, TaskListItem } from "@/lib/hq/tasks/types";
 import { DataTable, ResponsiveTable, type Column, type SortState } from "../../DataTable";
 import { MobileList } from "../../MobileList";
@@ -31,6 +31,7 @@ export function TasksTable({
   showCompleted,
   meId,
   empty,
+  showProject = false,
 }: {
   rows: readonly TaskListItem[];
   caption: string;
@@ -45,6 +46,8 @@ export function TasksTable({
   /** The signed-in person: below 1024px the Assigned to column is hidden, so someone else's task says who has it under its title. */
   meId: string;
   empty: ReactNode;
+  /** Name each task's project under its title, linked to the project (people with projects.read). A line, not a column, so titles keep their room. */
+  showProject?: boolean;
 }) {
   if (rows.length === 0) return <>{empty}</>;
 
@@ -65,6 +68,13 @@ export function TasksTable({
       cell: (t) => (
         <>
           <Link href={taskHref(t.id)}>{t.title}</Link>
+          {showProject && t.projectId && t.projectName ? (
+            <span className="hq-cell-sub">
+              <Link href={`/hq/projects/${t.projectId}`} className="font-normal text-grey-text underline underline-offset-3">
+                {t.projectName}
+              </Link>
+            </span>
+          ) : null}
           {t.assignedTo !== meId ? (
             <span className="hq-cell-sub lg:hidden">{t.assignedToName ? `Assigned to ${t.assignedToName}` : t.assignedTo ? "Assigned to a colleague" : "Unassigned"}</span>
           ) : null}
@@ -74,7 +84,17 @@ export function TasksTable({
     },
     { key: "due", header: "Due", sortable: true, sortKey: "due", nowrap: true, cell: (t) => <DueCell due={t.dueDate} status={t.status} today={today} /> },
     { key: "priority", header: "Priority", sortable: true, sortKey: "priority", nowrap: true, cell: (t) => <PriorityChip priority={t.priority} /> },
-    { key: "status", header: "Status", nowrap: true, cell: (t) => <TaskStatusChip status={t.status} /> },
+    {
+      key: "status",
+      header: "Status",
+      nowrap: true,
+      cell: (t) => (
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <TaskStatusChip status={t.status} />
+          {t.blocked && isOpen(t.status) ? <StatusChip tone="warning">Blocked</StatusChip> : null}
+        </span>
+      ),
+    },
     {
       key: "assignee",
       header: "Assigned to",
@@ -124,12 +144,16 @@ export function TasksTable({
                     <Link href={taskHref(t.id)} className="hq-mitem__title no-underline after:absolute after:inset-0 after:content-['']">
                       {t.title}
                     </Link>
-                    <span className="hq-mitem__sub">{t.assignedToName ? `Assigned to ${t.assignedToName}` : t.assignedTo ? "Assigned to a colleague" : "Unassigned"}</span>
+                    <span className="hq-mitem__sub">
+                      {t.assignedToName ? `Assigned to ${t.assignedToName}` : t.assignedTo ? "Assigned to a colleague" : "Unassigned"}
+                      {showProject && t.projectName ? ` · ${t.projectName}` : ""}
+                    </span>
                     {hasRelated(t.related) ? <RelatedChips related={t.related} className="relative z-10 mt-2 flex flex-wrap gap-1.5" /> : null}
                     <span className="hq-mitem__row">
                       <span className="flex flex-wrap items-center gap-1.5">
                         {overdue ? <StatusChip tone="error">{overdueLabel(t.dueDate, today)}</StatusChip> : null}
                         <TaskStatusChip status={t.status} />
+                        {t.blocked && isOpen(t.status) ? <StatusChip tone="warning">Blocked</StatusChip> : null}
                         {t.priority !== "normal" ? <PriorityChip priority={t.priority} /> : null}
                       </span>
                       <span className="hq-mitem__meta shrink-0 whitespace-nowrap">{dueMeta(t.dueDate, t.status, today)}</span>

@@ -32,6 +32,10 @@ export type TaskListItem = {
   completedAt: string | null;
   createdAt: string;
   related: TaskRelated;
+  /** Projects: the task's project (named only for people with projects.read) and whether it waits on an open task. */
+  projectId: string | null;
+  projectName: string | null;
+  blocked: boolean;
 };
 
 export type TaskDetail = TaskListItem & {

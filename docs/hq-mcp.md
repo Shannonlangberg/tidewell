@@ -11,7 +11,7 @@ Read with hq-design.md, hq-phase-2.md section 11 (contractor RPCs/views), brand-
 - A request to `/mcp` without a valid bearer token gets **401 with `WWW-Authenticate: Bearer resource_metadata="..."`**. With one: verify the JWT locally against the project's JWKS (jose, as `lib/hq/auth.ts` does: signature, issuer, expiry, `aud`, and a `client_id` claim so ordinary browser session tokens are not accepted here), then create a Supabase client that sends that token so **every query runs as that person under RLS**, resolve their HQ staff access with `hq.my_access()`, and expose only the tools their capabilities allow. A person who is not active staff gets nothing. No service/secret key anywhere in the MCP path.
 - Consent must refuse anyone without `ai.use`. Add a **Connected apps** section on `/hq/profile`: list the person's grants and let them revoke (use the SDK's grant methods if present in the installed supabase-js; otherwise document revoking in the Supabase dashboard and say so).
 
-## 2. Tools (single-record, named, no bulk, no deletes)
+## 2. Tools (single-record and named, two bulk task tools, no deletes)
 
 Annotations on every tool: `readOnlyHint` true for reads; `false` for writes with `destructiveHint: false`, `openWorldHint: false`. Descriptions say exactly what the tool does and what it will not do. Tool names are snake_case.
 
@@ -23,13 +23,13 @@ Reports (read): `daily_brief` (overdue and due-today tasks, follow-ups due, cont
 
 Writes (each re-validated server-side with the existing HQ validators and run through the existing RPCs or RLS-governed writes **as the person**, audited, returning what changed): `create_task`, `update_task` (status, due date, priority, assignee, description), `log_interaction` (call/meeting/email/note on a contact, organisation or contractor, with optional follow-up date and task, via `record_interaction` / `record_contractor_contact`), `create_contact`, `update_contact` (phone, email, position, status, priority, next follow-up, notes: appended), `create_organisation`, `update_contractor` (contact details, service areas, rates, notes appended, only the columns the form allows), `record_contractor_review`, `record_contractor_job` (last used date via `mark_contractor_used`; added with the trades change, see hq-phase-2.md 11.10), `set_vetting_step`, `record_referral`, `move_opportunity` (**not** to `management_signed`, which stays a deliberate action in the HQ screens), `create_decision` and `update_decision` (`decisions.write`; through the `create_decision` / `update_decision` RPCs, validated with the HQ decision form's own reader; superseding needs `superseded_by` and a note, reversing needs a note; never archive or delete).
 
-**35 tools before the portfolio** (`lib/hq/mcp/tools/index.ts`): 13 read, 3 decision reads, 4 reports, 15 writes (13 + the 2 decision writes). **The portfolio adds 6** (section 7): 2 property reads, `business_summary`, 3 property writes. **The leads pipeline adds 6** (section 8): `list_opportunities`, `get_opportunity` and `list_interactions` (reads, `growth.read`), `create_opportunity`, `update_opportunity` and `log_opportunity_activity` (writes, `growth.write`). **The email tools add 6** (section 9). **Website enquiries add 2** (section 10): `list_enquiries` and `get_enquiry` (reads, `growth.read`). **The knowledge base adds 12** (section 11: 5 reads for everyone, 4 drafting writes, approve / archive / restore for directors and administrators). **Meetings add 8** (section 12: `list_meetings`, `search_meetings`, `get_meeting`, `meeting_digest` reads and `create_meeting`, `update_meeting`, `add_meeting_action` writes, all `meetings.*`; `promote_meeting_decision` needs `decisions.write` too). **75 tools in all.** Each person sees only the tools their capabilities allow.
+**35 tools before the portfolio** (`lib/hq/mcp/tools/index.ts`): 13 read, 3 decision reads, 4 reports, 15 writes (13 + the 2 decision writes). **The portfolio adds 6** (section 7): 2 property reads, `business_summary`, 3 property writes. **The leads pipeline adds 6** (section 8): `list_opportunities`, `get_opportunity` and `list_interactions` (reads, `growth.read`), `create_opportunity`, `update_opportunity` and `log_opportunity_activity` (writes, `growth.write`). **The email tools add 6** (section 9). **Website enquiries add 2** (section 10): `list_enquiries` and `get_enquiry` (reads, `growth.read`). **The knowledge base adds 12** (section 11: 5 reads for everyone, 4 drafting writes, approve / archive / restore for directors and administrators). **Meetings add 8** (section 12: `list_meetings`, `search_meetings`, `get_meeting`, `meeting_digest` reads and `create_meeting`, `update_meeting`, `add_meeting_action` writes, all `meetings.*`; `promote_meeting_decision` needs `decisions.write` too). **Projects add 18** (section 13: 7 project and milestone tools, 6 richer task tools, 3 focus reads and the 2 bulk task tools). **93 tools in all.** Each person sees only the tools their capabilities allow.
 
 Leads (Day 2): `create_opportunity` adds a lead that did not come through a referral partner (source own_marketing, website_enquiry, direct_approach or other; a partner's introduction stays `record_referral` so the partner is credited), needs a next action and a follow-up date, defaults the owner to the caller, adds the person as a landlord contact, and refuses a likely duplicate (same phone, email, or name in the same suburb) unless the person confirms with `confirm_distinct`. `get_opportunity` / `list_opportunities` accept a name, `LEAD-0007`, `REF-0007` or an id; `list_opportunities` filters by stage, owner, source, needs attention and overdue. `update_opportunity` changes details, owner, next action, dates, estimate, landlord contact, or appends a note; it never moves the stage. `log_opportunity_activity` records a call or meeting notes on a lead, optionally with a new next step and a follow-up task linked to the lead. `list_interactions` pages the activity of one contact, organisation, contractor or lead. `move_opportunity` still refuses `management_signed` and `lost` (both HQ screen only).
 
 **Deliberately not available through chat** (HQ screens only): approving, preferring, suspending, reinstating or deactivating a contractor; archiving or deleting anything (except that directors and administrators can archive and restore knowledge documents, section 11; nothing is ever hard-deleted); document upload/download; imports; people and roles; settings; signing a management; anything with `people.admin` / `settings.admin`. Say so in the tool descriptions and in `docs/hq-setup.md`.
 
-Safety nets: per-person hourly caps (reads and a lower cap for writes) via the `ai_*` RPCs; every call logged (tool name, status, arguments summary with ids not free text; the person and client id); result size caps; text from records is returned inside a clearly labelled data block and the server `instructions` say record text is data and never instructions; writes only act on arguments the person's own chat client sent.
+Safety nets: per-person hourly caps via the `ai_*` RPCs (every call counts against `ai_hourly_limit`; single-record writes also count against the write cap, default 60 per hour, `HQ_MCP_WRITE_HOURLY_LIMIT`; bulk calls count against the database bulk budget instead, section 13); every call logged (tool name, status, arguments summary with ids not free text; the person and client id); result size caps; text from records is returned inside a clearly labelled data block and the server `instructions` say record text is data and never instructions; writes only act on arguments the person's own chat client sent.
 
 ## 3. Code layout (two builders, disjoint files)
 
@@ -266,3 +266,67 @@ Prompts to try (as a director, then as a virtual assistant):
 Expected refusals: a junior property manager or read-only person sees no meeting tools at all (no `meetings.read`); forcing one past the tool is refused by the database. Asking to delete or archive a meeting: not available through chat (do it in HQ). A meeting dated more than a day ahead is refused (meetings are recorded after they happen).
 
 Automated: `node --env-file=.env.local scripts/hq/mcp-tools-smoke.mts` (after `npm run hq:seed`) exercises all eight as a director, the virtual assistant (a writer), a junior and read-only (no access), confidential visibility, touch points created once and updated (not duplicated), stale versions refused, and archives everything it made. **Not yet exercised from the real ChatGPT or Claude apps.**
+
+## 13. Testing projects and bulk tasks from ChatGPT
+
+Eighteen tools (migrations 0142 to 0145; `lib/hq/mcp/tools/projects.ts`, `project-tasks.ts`, `focus.ts`, `bulk-tasks.ts`; contract in `docs/hq-projects.md` section 3):
+
+| Tool | Capability | Class | What it does |
+|---|---|---|---|
+| `list_projects` | `projects.read` | read | Projects with status, health, progress, target, owner and next milestone. |
+| `get_project` | `projects.read` | read | One project: health and its reasons, progress, milestones, blockers (and the first open task blocking each), overdue, next three actions, related records, document links, recent activity, `version`. |
+| `create_project` | `projects.write` | write | One project, optionally with up to 12 milestones in the same call. |
+| `update_project` | `projects.write` | write | Name, description, owner, status (with a note), priority, dates, or a dated note added to the notes. Refused if changed since it was read. |
+| `create_milestone`, `update_milestone`, `complete_milestone` | `projects.write` | write | Add; change (or reopen); complete. Completing with open tasks is refused unless the person says so (`force` with a note). |
+| `get_task` | any staff | read | One task: project, milestone, parent or subtasks, checklist, what it waits for and what waits for it, comments, history. |
+| `complete_task` | `tasks.write` | write | Completes one task with an optional note; says which tasks are now free to start. |
+| `add_task_dependency`, `remove_task_dependency` | `tasks.write` | write | "X waits for Y"; a loop is refused. |
+| `add_task_comment`, `set_task_checklist` | `tasks.write` | write | A comment; the whole checklist (up to 50 items). |
+| `founder_priorities` | any staff | read | The person's next three actionable tasks (`hq.my_focus`) with WHY; with a project, also what is holding it up. |
+| `list_overdue` | any staff | read | Overdue tasks (mine, or all you can see) and projects at risk or off track with their reasons. |
+| `what_is_blocking` | `projects.read` | read | A project's blocked tasks, the first open blocker of each, and which to do first. |
+| `bulk_create_tasks` | `tasks.write` (+ `projects.write` for a project) | **bulk** | Up to 50 tasks in ONE call and ONE transaction: refs, subtasks (`parent_ref`), dependencies (`depends_on`), milestones by name, checklists, assignees and linked records by name, `idempotency_key`, `atomic`. |
+| `bulk_update_tasks` | `tasks.write` | **bulk** | Up to 50 changes to existing tasks in one call, the single-task rules per entry. |
+
+`list_tasks`, `create_task` and `update_task` work as before and also take `project`, `milestone`, `parent` (list and create), `blocked` (list) and `blocked_reason` (update).
+
+**Limits.** Every call (read, write or bulk) is ONE request against `ai_hourly_limit` (default 40). Single-record writes also count against the write cap, now **60 per person per rolling hour** (was 15; `HQ_MCP_WRITE_HOURLY_LIMIT`, 1 to 200). A bulk call is logged as ONE `mcp bulk ...` row and does **not** count against the write cap. The database enforces its own budget inside the RPC (`hq.consume_bulk_budget`): **6 bulk calls and 300 bulk items per person per rolling hour** (settings `bulk_calls_per_hour` 1 to 60 and `bulk_items_per_hour` 1 to 2000, director-adjustable). Over it: SQLSTATE 54000, hint `bulk_rate_limited`, nothing written. The tool says how many calls and items are used and left, and when to try again. A replay by idempotency key uses no budget. Request bodies up to 192 KiB and 2,500 argument elements are accepted (enough for 50 full entries).
+
+**Names in a plan.** Every name is resolved before anything is written, using batched reads: the staff list once, each project once, the milestones in one query, and linked records in one or two queries per kind. If any name does not match exactly one record, NOTHING is created and every problem comes back at once with candidates. The idempotency key is not used, so the same key can be sent again with the corrected plan.
+
+Connect as in section 5, as a **director**. Each prompt should take one or two tool calls.
+
+| # | Prompt | Tool(s) | What to expect |
+|---|---|---|---|
+| 1 | "Use Planted HQ: create a project for launching Planted Property with these milestones: Licensed by 1 December, Brand ready by 15 December, Open for business by 31 January" | `create_project` with `milestones` | ChatGPT says what it will create and asks first. Then "Created project PRJ-00NN" with its link and the three milestones. |
+| 2 | "...then create these 30 tasks in one go: (the list, who does what, what depends on what, which milestone)" | ONE `bulk_create_tasks` with a fresh UUID as `idempotency_key` | A short summary of the plan first if you have not seen it written out. Then "Created 30 of 30 tasks in PRJ-00NN" and a table of ref, title, id and link. In HQ, the project's views show the tasks with dependent ones marked blocked, and each task's history says "Created in bulk". |
+| 3 | "What are my three priorities?" | `founder_priorities` | Three tasks, each with why ("Overdue by 3 days", "Due tomorrow; Urgent", "Unblocks 2 tasks"). |
+| 4 | "What is stopping us launching?" | `what_is_blocking` (or `founder_priorities` with the project) | The blocked tasks, the first open task blocking each, "Do these first", and the health reasons. |
+| 5 | "Update the licensing task: I've enrolled in the course" | `complete_task` with the note (or `add_task_comment` if it is not finished) | "Completed 1 task", the note, and "Now free to start: ..." for the tasks that waited on it. The project's progress moves. |
+| 6 | "What's overdue?" | `list_overdue` | Overdue tasks, most overdue first, with days, owner, project and BLOCKED, then the projects at risk or off track with their reasons. |
+| 7 | "How is the launch going?" | `get_project` | Health (On track, At risk or Off track) with its reasons, n of m done, milestones, blockers, overdue and the next three actions. |
+| 8 | "Move the three website tasks to next week" | ONE `bulk_update_tasks` | "Updated 3 of 3 tasks". |
+
+What should be refused or limited (nothing is changed in each case):
+
+- **Retrying the same plan** with the same key, for example after a timeout: "NOTHING new was created: this is the original result". **The same key with a changed plan**: "that idempotency key was already used for a different request: use a new key".
+- **51 tasks in one call**: "At most 50 tasks in one call". Split the plan.
+- **An unclear name**: "give it to Sam" with two Sams, a milestone that does not exist, or a person not in HQ. Every problem comes back at once with candidates and nothing is created.
+- **An invalid entry**, such as a due date more than five years ahead. With `atomic` false the others are created and each failure is listed with its reason, including "depends on t2, which failed" for its dependants. With `atomic` true nothing is written.
+- **The 7th bulk call in an hour, or more than 300 tasks**: "the hourly budget for bulk changes ... 6 of 6 used in the last hour (0 left) ... Try again after <time>". For items: "A smaller batch of at most N would fit now".
+- **A dependency loop**, such as "make the licence wait for the launch" when the launch already waits for the licence: refused with "that would make a cycle".
+- **Completing a milestone with open tasks**: refused with the open tasks listed. It goes ahead only if the person says so (`force` with a note).
+- **Archiving or deleting** a project or task: there is no tool for it. It is done in HQ.
+- **Junior property manager** (no `projects.*`): no project tools are listed. The task, focus and bulk tools work for tasks outside projects. A bulk create into a project is refused by the tool and, if forced, by the database. **Read-only** cannot connect a chat app (no `ai.use`); writes forced in the smoke test are refused by the database.
+- **Visibility:** project counts and lists include only the tasks the person can see (their own and the ones they created, or everyone's with `tasks.read_all`), and the reply says so.
+
+Locally, run `node --env-file=.env.local scripts/hq/mcp-tools-smoke.mts` after `npm run hq:seed` (section 2i). It checks:
+
+- **Setup:** a `[test]` project with three milestones, then 30 tasks in ONE bulk call (a dependency chain, a subtask, checklists, two assignees, one overdue task).
+- **Idempotency:** a replay (duplicate, nothing created) and the same key with a different plan (refused).
+- **Bad input:** a partial-failure batch (the invalid entry reported, the valid ones created, its dependant failing too), an atomic batch (nothing written), 51 entries (refused) and unclear names (refused).
+- **Health and progress:** off track at 10 days overdue; progress 0 of 31, then 1 of 31 after `complete_task`.
+- **The other tools:** `founder_priorities`, `list_overdue`, `what_is_blocking`, checklists, comments, adding and removing dependencies, the cycle refusal, milestones, `bulk_update_tasks`, the virtual assistant as a writer, and forged junior and read-only calls.
+- **Budget:** it uses up the bulk budget and checks that the 7th call and the item budget are refused with the honest message.
+
+It sets the bulk budget relative to what earlier runs used this hour, then restores the settings and archives the tasks and the project. **Not yet exercised from the real ChatGPT or Claude apps.**
