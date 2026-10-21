@@ -411,7 +411,26 @@ export function buildContact(v: Values): Enquiry {
  *   turnstile verified server-side, and only when the keys are configured
  */
 
-export const HONEYPOT_FIELD = "company";
+/*
+ * The honeypot must look like nothing a browser or password manager would fill
+ * in: Safari and iCloud Keychain ignore autocomplete="off" and fill a field
+ * named or labelled like a company, name, email, phone or address from the
+ * visitor's contact card, and a real enquiry is then silently discarded. Its
+ * name, id and label avoid every such word (lib/enquiries.test.mts checks
+ * this), and the data- attributes tell 1Password, LastPass, Bitwarden and
+ * Dashlane to leave it alone.
+ */
+export const HONEYPOT_FIELD = "planted_hp";
+export const HONEYPOT_LABEL = "Leave this empty";
+export const HONEYPOT_INPUT_PROPS = {
+  type: "text",
+  tabIndex: -1,
+  autoComplete: "off",
+  "data-1p-ignore": "true",
+  "data-lpignore": "true",
+  "data-bwignore": "true",
+  "data-form-type": "other",
+} as const;
 export const TIMESTAMP_FIELD = "startedAt";
 /** The form tells us whether JavaScript is running, so the action knows
  *  whether to return a state or redirect to the shared success page. */
