@@ -33,7 +33,7 @@ const d = (s: number) => ({ "--d": `${s}s` }) as CSSProperties;
 
 const PRINCIPLES = [
   ["Someone who knows your property", "One person looks after it. When you ring, they already know the property, the tenant and the history, without opening a file."],
-  ["Updates before you ask", "You hear from us while things are happening, not afterwards. Statements arrive on a set cycle, and a message gets a reply the same business day where we can."],
+  ["Updates before you ask", "You hear from us while things are happening, not afterwards. Statements arrive on a set cycle, and messages are answered promptly."],
   ["Inspections that find small things", "Photographed, written up so you can read them, and flagged while a problem is still cheap to fix."],
   ["Systems behind the people", "Records, reports and tasks live in one place, so nothing depends on someone remembering. That is what gives a person time to pick up the phone."],
 ];

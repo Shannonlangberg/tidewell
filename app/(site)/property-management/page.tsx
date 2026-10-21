@@ -76,12 +76,12 @@ const DIFFERENCES = [
   {
     icon: IconCommunication,
     title: "Updates while it happens",
-    body: "You hear from us during a repair or a vacancy, not after it. Statements come on a set cycle, and a message gets a reply the same business day where we can.",
+    body: "You hear from us during a repair or a vacancy, not after it. Statements come on a set cycle, and messages are answered promptly.",
   },
   {
     icon: IconCare,
     title: "Small things found early",
-    body: "A building rewards attention and punishes neglect. We inspect to find the small things early, because that is where the money and the goodwill are saved.",
+    body: "A building rewards attention. We inspect to find the small things early, because that is where the money and the goodwill are saved.",
   },
   {
     icon: IconReporting,

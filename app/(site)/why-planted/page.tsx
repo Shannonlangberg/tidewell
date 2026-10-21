@@ -6,71 +6,70 @@ import { Testimonials } from "@/components/planted/Testimonials";
 export const metadata: Metadata = {
   title: "Why PLANTED.",
   description:
-    "Why PLANTED. exists, what we think good property management looks like, and what we are building to deal with the frustrations owners know well: chasing for updates, slow maintenance, unclear fees and feeling like a number.",
+    "Why PLANTED. exists and what we think good property management looks like: clear updates, maintenance that moves, fees you can read, and a manager who knows you and your property.",
   alternates: { canonical: "/why-planted" },
 };
 
 /*
- * The frustration, then the answer.
+ * What owners want, then how we deliver it.
  *
  * Deliberately not a comparison table. We have no evidence about how any other
  * agency works, so nothing here describes anyone else: the left column is a
- * familiar frustration of owning an investment property, the right is what we
- * are setting PLANTED. up to do about it. That is a claim we can stand behind;
- * "unlike other agents" is not. We have no clients yet, so nothing here says
- * "owners tell us". Several answers are service commitments (reply times,
- * a named person, handover before a manager changes): confirm them before launch.
+ * thing owners want from a manager, the right is how we are setting PLANTED. up
+ * to deliver it. That is a claim we can stand behind; "unlike other agents" is
+ * not. Keep it positive: say what we do, not what goes wrong elsewhere. We have
+ * no clients yet, so nothing here says "owners tell us". Several answers are
+ * service intentions (prompt replies, one person, a heads-up if a manager
+ * changes), worded as aims rather than guarantees.
  */
 const CONCERNS = [
   {
-    title: "Chasing for updates",
-    concern: "Ringing for news, then ringing again because nobody came back to you.",
+    title: "Updates without chasing",
+    concern: "Hearing from your manager without having to ask.",
     answer:
-      "You hear from us while things are happening, not once they are finished. A message gets a reply the same business day where we can, and if we can't give you an answer yet, we tell you when you will have one. We would far rather you rang us than sat wondering.",
+      "You hear from us while things are happening, not once they are finished. We aim to reply promptly, and if we don't have an answer yet, we will tell you when you can expect one. We would far rather you rang us than sat wondering.",
   },
   {
-    title: "Not knowing what is happening",
-    concern:
-      "Learning about a repair, a vacancy or a decision after it has been made, and only finding out the condition of the property when something goes wrong.",
+    title: "Knowing what is happening",
+    concern: "A clear picture of the property at any time, and no surprises.",
     answer:
-      "Updates come when there is something to tell you. Inspections are photographed and written up plainly, including the things you would rather not read, and anything worth attending to, like a failing seal, a tired hot water service or early corrosion, is flagged while it is still small.",
+      "Updates come when there is something to tell you. Inspections are photographed and written up plainly, and anything worth attending to, like a failing seal, an ageing hot water service or early corrosion, is flagged while it is still small.",
   },
   {
-    title: "Feeling like a number",
-    concern: "Being one row on a spreadsheet, with a question that waits its turn behind two hundred others.",
+    title: "Being known, not a number",
+    concern: "A manager who knows you and your property, and has time for your questions.",
     answer:
-      "We build the team around the number of properties, not the other way round. A property manager takes on only as many properties as they can look after properly, and we add people before we add pressure.",
+      "We plan the team around the number of properties, so each manager has the time to know the properties they look after, and the people who own them.",
   },
   {
-    title: "Wondering whether maintenance is moving",
-    concern:
-      "A repair that sits unresolved while the tenant grows frustrated and a small problem quietly becomes an expensive one.",
+    title: "Maintenance that moves",
+    concern: "Repairs sorted quickly, and small jobs kept small.",
     answer:
       "Requests are looked at the day they arrive and sorted by urgency, with safety, security and essential services handled immediately. You set a spending limit, so routine work goes ahead without waiting on your approval, and anything above it comes to you with a quote.",
   },
   {
-    title: "A new manager every few months",
-    concern: "Explaining your property again to someone new, and never being sure who is looking after it this month.",
+    title: "The same person, year after year",
+    concern: "Continuity, so you are not explaining your property again to someone new.",
     answer:
-      "You deal with the same person, and they keep the file up to date so anyone covering for them knows the history: the tenant, the repairs and what has been agreed. If your manager does change, we tell you before it happens, not after.",
+      "You deal with the same person, and they keep the file up to date so anyone covering for them knows the history: the tenant, the repairs and what has been agreed. If your manager does change, we will aim to let you know first.",
   },
   {
-    title: "Fees that need decoding",
-    concern: "A charge on a statement with no explanation, or a fee structure that takes a second reading to make sense of.",
+    title: "Fees you can read",
+    concern: "Costs that are agreed first and easy to follow.",
     answer:
-      "Fees are set out in writing, in plain language, before you sign anything, including what is included and what is not. If something is charged, it was agreed first. We would rather have the awkward conversation up front than defend a line item later.",
+      "Fees are set out in writing, in plain language, before you sign anything, including what is included and what is not. If something is charged, it was agreed first, and we would rather talk it through up front.",
   },
   {
-    title: "Feeling disconnected from your investment",
-    concern: "Owning a significant asset and having no easy way to see how it is going.",
+    title: "A clear view of your investment",
+    concern: "To see how your investment is doing without having to ask.",
     answer:
       "Statements, inspection reports, maintenance history and lease dates are kept together and written to be read, not filed. You should be able to answer most questions yourself, any time, and still be welcome to ring and ask.",
   },
   {
-    title: "Tenants handled differently each time",
-    concern: "Rules applied one way this month and another way next month, so nobody is sure where they stand.",
+    title: "Fair, consistent tenancies",
+    concern: "Tenants who know where they stand, and a process applied the same way each time.",
     answer:
-      "The same process every time: thorough screening before a tenancy, expectations made clear at the start, arrears followed up on the first day they occur, and the lease applied the same way for everyone. Tenants who are dealt with fairly tend to look after a home, and that protects your asset.",
+      "The same process every time: thorough screening before a tenancy, expectations made clear at the start, arrears followed up promptly, and the lease applied the same way for everyone. Tenants who are dealt with fairly tend to look after a home, and that protects your asset.",
   },
 ];
 
@@ -130,20 +129,20 @@ export default function WhyPlantedPage() {
       <Section tone="white" className="rule">
         <div className="shell">
           <SectionHead
-            label="Common frustrations"
-            heading={<>The same frustrations come up again and again.</>}
+            label="What owners want"
+            heading={<>What most owners are looking for.</>}
           >
             <p>
-              None of them are hard to understand. Fixing them takes people who have the time to do the
-              unglamorous parts of the job, and systems that stop things slipping.
+              None of it is complicated. It takes people who have the time to do the unglamorous parts of
+              the job well, and systems that stop things slipping.
             </p>
           </SectionHead>
 
           {/* Column headings sit above the list on wide screens; on narrow ones
               each item carries its own, so the frame never goes missing. */}
           <div className="rule mt-20 hidden gap-x-16 pt-6 md:grid md:grid-cols-12">
-            <p className="label md:col-span-5">The frustration</p>
-            <p className="label md:col-span-6 md:col-start-7">What we do about it</p>
+            <p className="label md:col-span-5">What owners want</p>
+            <p className="label md:col-span-6 md:col-start-7">How we do it</p>
           </div>
 
           <ul className="rule mt-10 md:mt-6">
@@ -151,14 +150,14 @@ export default function WhyPlantedPage() {
               <li key={c.title} className="border-b border-line">
                 <div className="grid gap-x-16 gap-y-8 py-12 md:grid-cols-12">
                   <div className="md:col-span-5">
-                    <p className="label md:hidden">The frustration</p>
+                    <p className="label md:hidden">What owners want</p>
                     <h3 className="display display-sm mt-4 md:mt-0">{c.title}</h3>
                     <p className="mt-4 text-[0.9375rem] leading-relaxed text-ink-muted">
                       {c.concern}
                     </p>
                   </div>
                   <div className="md:col-span-6 md:col-start-7">
-                    <p className="label md:hidden">What we do about it</p>
+                    <p className="label md:hidden">How we do it</p>
                     <p className="mt-4 text-ink-muted md:mt-0">{c.answer}</p>
                   </div>
                 </div>
