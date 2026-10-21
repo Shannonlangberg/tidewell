@@ -11,7 +11,7 @@
  * stage stays move_opportunity (never signed or lost). Decisions can be listed, searched, opened, recorded and updated, never archived.
  * Managed properties can be listed, opened, made from a signed lead, updated and have a handover step
  * set, never archived; adding a property signed before HQ and the business goal are HQ screens only.
- * Emails can be drafted (to someone HQ holds an address for), listed, opened, changed and discarded,
+ * Emails can be drafted (to someone HQ holds, or a typed address that becomes a contact needing a check), listed, opened, changed and discarded,
  * and an APPROVED email sent; approving is a tap in HQ only (chat-send mode aside, see email.ts).
  * Website enquiries can be listed and opened (their text is untrusted public input); marking spam,
  * changing a status and choosing who gets them are HQ screens only.

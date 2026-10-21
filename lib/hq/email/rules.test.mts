@@ -7,7 +7,9 @@ import {
   EMAIL_TEMPLATES,
   emailDbMessage,
   emailRef,
+  normaliseAddress,
   normaliseBody,
+  validateNewRecipient,
   normaliseSubject,
   parseDailyLimit,
   parseEmailRef,
@@ -82,4 +84,22 @@ test("every send error code the provider can return has words", () => {
   }
   assert.equal(sendErrorText("something_new"), sendErrorText("provider_error"));
   assert.match(sendErrorText("timeout"), /may or may not have been delivered/);
+});
+
+test("a typed address is trimmed and lower-cased, and shape-checked like the database", () => {
+  assert.equal(normaliseAddress("  Jane.Citizen@Example.TEST \n"), "jane.citizen@example.test");
+  const ok = validateNewRecipient({ email: "  Jane@Example.test ", name: " Jane Citizen " });
+  assert.deepEqual(ok.errors, {});
+  assert.deepEqual(ok.values, { email: "jane@example.test", name: "Jane Citizen" });
+  for (const bad of ["", "   ", "jane", "jane@nodot", "a b@c.test", "a@@c.test", "@c.test", "a\n@c.test", "a\u0001@c.test", `${"a".repeat(248)}@c.test`]) {
+    assert.ok(validateNewRecipient({ email: bad, name: "Jane" }).errors.to_email, `refuses ${JSON.stringify(bad)}`);
+  }
+  assert.deepEqual(validateNewRecipient({ email: `${"a".repeat(247)}@c.test`, name: "Jane" }).errors, {});
+});
+
+test("a typed name is required, one line, at most 200 characters", () => {
+  for (const bad of [undefined, "", "   ", "n".repeat(201), "Jane\tCitizen", "Jane\nCitizen", "..."]) {
+    assert.ok(validateNewRecipient({ email: "a@b.test", name: bad }).errors.to_name, `refuses ${JSON.stringify(bad)}`);
+  }
+  assert.deepEqual(validateNewRecipient({ email: "a@b.test", name: "n".repeat(200) }).errors, {});
 });

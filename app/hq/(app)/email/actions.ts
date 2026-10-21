@@ -6,7 +6,7 @@ import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { COMMS_TAB_PATH } from "@/lib/hq/communications";
 import { fail, isUuid, type ActionState } from "@/lib/hq/forms";
-import { parseDailyLimit, emailDbMessage, sendErrorText, validateEmailFields } from "@/lib/hq/email/rules";
+import { parseDailyLimit, emailDbMessage, sendErrorText, validateEmailFields, validateNewRecipient } from "@/lib/hq/email/rules";
 import { sendDraft } from "@/lib/hq/email/send";
 import { retainedValues } from "@/lib/hq/tasks/retain";
 import { withToast } from "@/components/hq/flash";
@@ -17,8 +17,9 @@ import { withToast } from "@/components/hq/flash";
  *      approve and send; settings.admin for the settings), so a forged request from a role without it
  *      is redirected out before anything is read or written;
  *   2. takes identity from the session only (the database stamps who drafted, approved and sent);
- *   3. validates every input on the server; the recipient is an id of a contact or staff record,
- *      never an address;
+ *   3. validates every input on the server; the recipient is an id of a contact or staff record, or (only
+ *      for roles holding growth.write) one typed address and name, which the database adds to Contacts
+ *      as needing a check before it drafts to that contact;
  *   4. writes ONLY through the hq email RPCs, which check the capability again, enforce the recipient
  *      rules, the status machine and the limits, and audit. Sending goes through sendDraft()
  *      (begin_email_send -> provider -> finish_email_send), so a double send is impossible.
@@ -65,28 +66,34 @@ const str = (formData: FormData, name: string) => {
 // ── draft ────────────────────────────────────────────────────
 
 export async function createEmailDraftAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { db } = await requireStaff("email.draft");
+  const { db, can } = await requireStaff("email.draft");
   const kind = str(formData, "recipient_kind");
   const recipient = idFrom(formData, "recipient_id");
   const v = validateEmailFields({ subject: str(formData, "subject"), body: str(formData, "body"), template: str(formData, "template") });
   const errors = { ...v.errors };
-  if (!recipient || (kind !== "contact" && kind !== "staff")) errors.recipient_id = "Choose who it is to.";
+  let to: { p_contact?: string; p_staff?: string; p_to_email?: string; p_to_name?: string };
+  if (kind === "new") {
+    // someone HQ does not hold yet: a typed address and name, added to Contacts by the database
+    if (!can("growth.write")) return withValues(fail("Your role can email people HQ already holds. Adding someone new to Contacts needs permission to edit contacts."), formData);
+    const t = validateNewRecipient({ email: str(formData, "to_email"), name: str(formData, "to_name") });
+    Object.assign(errors, t.errors);
+    to = { p_to_email: t.values.email, p_to_name: t.values.name };
+  } else {
+    if (!recipient || (kind !== "contact" && kind !== "staff")) errors.recipient_id = "Choose who it is to.";
+    to = kind === "contact" ? { p_contact: recipient ?? undefined } : { p_staff: recipient ?? undefined };
+  }
   if (Object.keys(errors).length > 0) return withValues(fail(CHECK, errors), formData);
 
-  const { data, error } = await db.rpc("create_email_draft", {
-    p_template: v.values.template,
-    p_subject: v.values.subject,
-    p_body: v.values.body,
-    p_contact: kind === "contact" ? recipient! : undefined,
-    p_staff: kind === "staff" ? recipient! : undefined,
-  });
-  const out = data as { draft_id?: string; ref?: string } | null;
+  const { data, error } = await db.rpc("create_email_draft", { p_template: v.values.template, p_subject: v.values.subject, p_body: v.values.body, ...to });
+  const out = data as { draft_id?: string; ref?: string; new_contact?: boolean; to_name?: string } | null;
   if (error || !out?.draft_id) {
     logged("createEmailDraft", error);
     return withValues(fail(emailDbMessage(error, GENERIC)), formData);
   }
   refresh(out.draft_id);
-  redirect(withToast(`${EMAIL}/${out.draft_id}`, `Draft ${out.ref ?? ""} saved. It is not sent until it is approved.`.replace(/\s+/g, " ")));
+  if (out.new_contact) revalidatePath(`${HQ_BASE}/growth/contacts`);
+  const saved = `Draft ${out.ref ?? ""} saved. It is not sent until it is approved.`.replace(/\s+/g, " ");
+  redirect(withToast(`${EMAIL}/${out.draft_id}`, out.new_contact ? `${saved} ${out.to_name ?? "They"} was added to Contacts, marked as needing a check.` : saved));
 }
 
 export async function updateEmailDraftAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

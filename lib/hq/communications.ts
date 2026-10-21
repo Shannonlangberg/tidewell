@@ -28,7 +28,7 @@ export const COMMS_TAB_LABEL: Record<CommsTab, string> = { enquiries: "Enquiries
 /** One line under the tabs: what this tab holds. */
 export const COMMS_TAB_LINE: Record<CommsTab, string> = {
   enquiries: "Rental appraisal requests and contact forms from the website. Each one is already a lead with an owner and a reply task due the day it arrived.",
-  emails: "Branded emails to people HQ holds an address for. Nothing is sent until someone approves it.",
+  emails: "Branded emails to one person at a time. Nothing is sent until someone approves it.",
 };
 
 export const COMMS_TAB_CAPABILITY: Record<CommsTab, Capability> = { enquiries: "growth.read", emails: "email.draft" };

@@ -84,7 +84,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "contacts" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -121,6 +121,8 @@ export const PRIMARY_NAV: readonly NavItem[] = [
     also: [OLD_ENQUIRIES_LIST, OLD_EMAIL_LIST],
     mobile: "more",
   },
+  // Contacts keep their address under Growth; the longer path wins in navKeyForPath, so this lights on its own pages.
+  { key: "contacts", label: "Contacts", href: HQ_ROUTES.contacts, icon: "user", requires: "growth.read", mobile: "more" },
   { key: "portfolio", label: "Properties", href: HQ_ROUTES.portfolio, icon: "building", requires: "portfolio.read", mobile: "more" },
   { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", mobile: "tab" },
   { key: "projects", label: "Projects", href: HQ_ROUTES.projects, icon: "projects", requires: "projects.read", mobile: "more" },

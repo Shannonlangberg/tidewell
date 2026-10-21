@@ -704,7 +704,13 @@ try {
   const noAddr = await call(director, "draft_email", { recipient: noMailId ? `contact:${noMailId}` : "x", template: "general", subject: "Hi", body: "Hi" });
   check("draft_email refuses a contact with no email on record", outcome(noAddr) === "invalid" && /no email address on record/.test(noAddr.text), noAddr.text);
   const typed = await call(director, "draft_email", { recipient: "someone@elsewhere.test", template: "general", subject: "Hi", body: "Hi" });
-  check("draft_email refuses a typed address (records only)", outcome(typed) === "invalid" && /already holds an address for/.test(typed.text), typed.text);
+  check("draft_email refuses an address in recipient (it takes a name; an address goes in to_email with to_name)", outcome(typed) === "invalid" && /to_email/.test(typed.text) && /to_name/.test(typed.text), typed.text);
+  const both = await call(director, "draft_email", { recipient: `contact:${timId}`, to_email: "both@example.test", to_name: "Both", template: "general", subject: "Hi", body: "Hi" });
+  check("draft_email refuses a recipient AND a typed address together", outcome(both) === "invalid" && /not both/.test(both.text), both.text);
+  const noName = await call(director, "draft_email", { to_email: "noname@example.test", template: "general", subject: "Hi", body: "Hi" });
+  check("draft_email refuses a typed address without a name", outcome(noName) === "invalid" && /to_name is required/.test(noName.text), noName.text);
+  const badAddr = await call(director, "draft_email", { to_email: "not an address", to_name: "Bad Address", template: "general", subject: "Hi", body: "Hi" });
+  check("draft_email refuses a badly shaped address and adds nothing", outcome(badAddr) === "invalid" && /does not look like an email address/.test(badAddr.text), badAddr.text);
   const vague = await call(director, "draft_email", { recipient: RUN, template: "general", subject: "Hi", body: "Hi" });
   check("draft_email with a name matching several people returns candidates and drafts nothing", outcome(vague) === "ambiguous" && Array.isArray(vague.structured?.candidates), vague.text.slice(0, 300));
 
@@ -768,6 +774,54 @@ try {
   if (d3Id) created.emails.push(d3Id);
   const d3send = await call(directorApp, "send_email_draft", { draft: String(d3.structured?.ref ?? ""), confirm_recipient_email: mailbox });
   check("chat-send on: a draft NOT made through this app still needs approval", outcome(d3send) === "refused", d3send.text);
+
+  // a typed address (draft_email to_email + to_name): a new contact marked as needing a check; with chat sending on it can be sent after the person says yes
+  const newAddr = `mcp-smoke-new-${RUN.slice(-8)}@example.test`;
+  const newName = `${RUN} Nina Newcomer`;
+  mark = await auditMark();
+  const nd = await call(directorApp, "draft_email", { to_email: newAddr.toUpperCase(), to_name: newName, template: "introduction", subject: "Hello from PLANTED.", body: "Hi Nina,\n\nNice to meet you." });
+  audit = await auditSince(mark, director.staff.id);
+  const ndId = String(nd.structured?.id ?? "");
+  const ndRef = String(nd.structured?.ref ?? "");
+  const ndContact = String(nd.structured?.contact_id ?? "");
+  if (ndId) created.emails.push(ndId);
+  if (ndContact) created.contacts.push(ndContact);
+  check(
+    "typed address: draft_email adds the person to Contacts as needing a check, says so plainly, and (chat sending on) asks the person to confirm before sending",
+    outcome(nd) === "ok" && nd.structured?.new_contact === true && nd.text.includes(`Added ${newName} <${newAddr}> to HQ contacts, marked as needing a check.`) && /Not sent yet/.test(nd.text) && /confirm_recipient_email/.test(nd.text),
+    nd.text,
+  );
+  check("  ...audited: the contact's creation and the draft", audit.some((a) => a.entity_type === "contact" && a.action === "create" && a.entity_id === ndContact) && audit.some((a) => a.entity_type === "email_draft" && a.action === "create" && a.entity_id === ndId), auditText(audit));
+  const ndC = await director.db.from("contacts").select("email, full_name, needs_verification, verified_at, source, contact_kind").eq("id", ndContact).single();
+  check("  ...the contact: lower-cased address, needs_verification, source email draft, nobody has verified it", ndC.data?.email === newAddr && ndC.data?.full_name === newName && ndC.data?.needs_verification === true && ndC.data?.verified_at === null && ndC.data?.source === "email draft" && ndC.data?.contact_kind === "other", JSON.stringify(ndC.data));
+  const ndRow = await director.db.from("email_drafts").select("recipient_contact_id, to_email, created_via, status").eq("id", ndId).single();
+  check("  ...the draft points at that contact, made through the app, still a draft", ndRow.data?.recipient_contact_id === ndContact && ndRow.data?.to_email === newAddr && ndRow.data?.created_via === "mcp" && ndRow.data?.status === "draft", JSON.stringify(ndRow.data));
+  const ndApprove = await directorApp.db.rpc("approve_email_draft", { p_id: ndId });
+  check("  ...and a connected app still cannot approve it", ndApprove.error?.code === "42501", JSON.stringify(ndApprove.error));
+  const ndSend = await call(directorApp, "send_email_draft", { draft: ndRef, confirm_recipient_email: newAddr });
+  check("chat-send on: the person says yes in chat, so send_email_draft sends the draft to the new address", outcome(ndSend) === "ok" && /^Sent email/.test(ndSend.text) && ndSend.text.includes(`<${newAddr}>`), ndSend.text);
+  const ndSentRow = await director.db.from("email_drafts").select("status, interaction_id").eq("id", ndId).single();
+  if (ndSentRow.data?.interaction_id) created.interactions.push(ndSentRow.data.interaction_id);
+  check("  ...it is on the new contact's timeline", ndSentRow.data?.status === "sent" && !!ndSentRow.data.interaction_id, JSON.stringify(ndSentRow.data));
+  const ndStill = await director.db.from("contacts").select("needs_verification").eq("id", ndContact).single();
+  check("  ...and sending does not mark the contact verified", ndStill.data?.needs_verification === true, JSON.stringify(ndStill.data));
+  const again = await call(director, "draft_email", { to_email: newAddr, to_name: "Somebody Else", template: "general", subject: "Again", body: "Hi again." });
+  const againId = String(again.structured?.id ?? "");
+  if (againId) created.emails.push(againId);
+  check("typing the same address again reuses the contact (no duplicate) and says so", outcome(again) === "ok" && again.structured?.new_contact === false && again.structured?.contact_id === ndContact && /no new contact was added/.test(again.text), again.text);
+  const dupes = await director.db.from("contacts").select("id").eq("email", newAddr).is("deleted_at", null);
+  check("  ...so one live contact holds the address", dupes.data?.length === 1, JSON.stringify(dupes.data));
+  const juniorNew = await forced(junior, "draft_email", { to_email: "junior-new@example.test", to_name: "Junior New", template: "general", subject: "forged", body: "forged" });
+  const juniorRow = await director.db.from("contacts").select("id").eq("email", "junior-new@example.test");
+  check("junior: draft_email with a typed address (forced past the tool) is refused and adds no contact", outcome(juniorNew) !== "ok" && (juniorRow.data ?? []).length === 0, juniorNew.text);
+  const vaNew = await call(assistantApp, "draft_email", { to_email: `mcp-smoke-va-${RUN.slice(-8)}@example.test`, to_name: `${RUN} Vee Newcomer`, template: "general", subject: "From the assistant", body: "Hi Vee." });
+  if (vaNew.structured?.id) created.emails.push(String(vaNew.structured.id));
+  if (vaNew.structured?.contact_id) created.contacts.push(String(vaNew.structured.contact_id));
+  check("virtual assistant (growth.write): can type an address too, and is told to ask for approval", outcome(vaNew) === "ok" && /Added .* to HQ contacts, marked as needing a check/.test(vaNew.text) && /ask a director, an administrator or a business development manager/.test(vaNew.text), vaNew.text);
+
+  // a person can still verify the contact in HQ (the existing flow: clear needs_verification)
+  const verified = await director.db.from("contacts").update({ needs_verification: false }).eq("id", ndContact).select("verified_at, verified_by");
+  check("a person marks the new contact verified in HQ (stamped with who and when)", !!verified.data?.[0]?.verified_at && verified.data[0].verified_by === director.staff.id, JSON.stringify(verified.error ?? verified.data));
   await director.db.from("settings").update({ value: false }).eq("key", "email_chat_send_enabled");
 
   // the daily limit

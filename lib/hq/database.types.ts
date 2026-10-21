@@ -5310,6 +5310,8 @@ export type Database = {
           p_staff?: string
           p_subject: string
           p_template: Database["hq"]["Enums"]["email_template"]
+          p_to_email?: string
+          p_to_name?: string
         }
         Returns: Json
       }

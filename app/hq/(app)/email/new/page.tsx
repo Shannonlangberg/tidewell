@@ -15,8 +15,10 @@ const PATH = "/hq/email/new";
 
 /*
  * Draft an email. Step one: choose who it is to, from HQ's own contacts (with an address) and active
- * staff, by searching names; there is no field to type an address. Step two: template, subject and
- * message. Saving makes a draft only.
+ * staff, by searching names, or (only for roles that hold growth.write as well) "Email someone new".
+ * Step two: template, subject and message; for someone new that is also where their name and address
+ * are typed (never in the URL), and saving adds them to Contacts as needing a check. Saving makes a
+ * draft only.
  */
 export default async function NewEmailPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
@@ -27,6 +29,8 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
   const template = isEmailTemplate(strParam(sp.template, 20)) ? (strParam(sp.template, 20) as Parameters<typeof templateStart>[0]) : "general";
   const canContacts = can("growth.read");
   const canStaff = can("people.read");
+  const canNew = can("growth.write");
+  const wantsNew = canNew && strParam(sp.new, 4) === "1";
 
   const chosen =
     isUuid(contactId) && canContacts ? await recipientById(db, "contact", contactId) : isUuid(staffId) && canStaff ? await recipientById(db, "staff", staffId) : null;
@@ -35,7 +39,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
     <PageHeader
       breadcrumbs={[{ label: "Communications", href: "/hq/communications" }, { label: "Emails", href: "/hq/communications/emails" }, { label: "Draft an email" }]}
       title="Draft an email"
-      description="To one person HQ already holds an address for. Nothing is sent until it is approved."
+      description="To one person. Nothing is sent until it is approved."
     />
   );
 
@@ -54,7 +58,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
               ) : undefined
             }
           >
-            HQ only emails addresses it already holds. Add it to their record first, then draft the email.
+            Add their address to their record first, then draft the email.
           </EmptyState>
         </>
       );
@@ -69,6 +73,21 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
           </Link>
         </p>
         <ComposeForm action={createEmailDraftAction} recipient={chosen} initial={{ template, subject: start.subject, body: start.body }} cancelHref={chosen.kind === "contact" ? `/hq/growth/contacts/${chosen.id}` : "/hq/communications/emails"} />
+      </>
+    );
+  }
+
+  if (wantsNew) {
+    return (
+      <>
+        {header}
+        <p className="mb-6 text-[14px]">
+          <Link href={PATH} className="underline underline-offset-2">
+            Choose someone HQ already holds
+          </Link>
+        </p>
+        <InlineNote className="mb-6">Saving adds them to Contacts, marked as needing a check. Nothing is sent until the email is approved.</InlineNote>
+        <ComposeForm action={createEmailDraftAction} recipient={null} initial={{ template, subject: templateStart(template, "").subject, body: templateStart(template, "").body }} cancelHref="/hq/communications/emails" />
       </>
     );
   }
@@ -90,7 +109,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
         </form>
         {q.length >= 2 ? (
           results.length === 0 ? (
-            <p className="hq-muted">Nobody with an email address on record matches &ldquo;{q}&rdquo;. To email someone new, add them as a contact with their address first.</p>
+            <p className="hq-muted">Nobody with an email address on record matches &ldquo;{q}&rdquo;.{canNew ? " To email them anyway, use Email someone new below." : " To email someone new, a person who can edit contacts needs to add them with their address first."}</p>
           ) : (
             <ul className="hq-email-pick" aria-label="Matching people">
               {results.map((r) => (
@@ -110,9 +129,22 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
             </ul>
           )
         ) : (
-          <p className="hq-muted text-[14px]">Only people with an email address on their HQ record can be chosen. There is no way to type an address.</p>
+          <p className="hq-muted text-[14px]">Search for someone HQ already holds an address for.</p>
         )}
       </section>
+      {canNew ? (
+        <section aria-labelledby="new-h" className="mt-10 grid max-w-2xl gap-3">
+          <SectionLabel as="h2" id="new-h">
+            Email someone new
+          </SectionLabel>
+          <p className="text-[14px]">
+            Not in HQ yet? Type their name and email address on the next step. They are added to Contacts, marked as needing a check, and nothing is sent until the email is approved.
+          </p>
+          <div>
+            <LinkButton href={`${PATH}?new=1`}>Email someone new</LinkButton>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

@@ -61,7 +61,7 @@ export function EmailSettings({ chatSend, dailyLimit }: { chatSend: boolean; dai
             ChatGPT or Claude will be able to send an email it has just drafted (within {CHAT_SEND_WINDOW_MINUTES} minutes) as soon as the person confirms the address in the
             chat, without anyone checking it in HQ first. A chat app can word things badly or misunderstand; the email goes out in PLANTED.&rsquo;s name.
           </p>
-          <p className="mt-2">It still only reaches addresses already on HQ records, one person per email, within the daily limit. You can switch it off at any time.</p>
+          <p className="mt-2">It still reaches one person per email, within the daily limit, and never a contact HQ still marks as needing a check (a new address someone typed is one until a person verifies it). You can switch it off at any time.</p>
         </ConfirmDialog>
       </section>
 

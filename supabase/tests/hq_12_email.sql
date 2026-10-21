@@ -1,7 +1,7 @@
 -- Planted HQ: branded email drafting and approved sending (migrations 0132, 0133).
 -- Structure and security, the capability matrix, forged callers (anon, non-staff, aal1, read_only,
 -- junior, roles without email.send), recipient rules (one recipient, a live contact with an email or an
--- active member of staff, no free-typed address, copied at draft time, re-checked at approval and at
+-- active member of staff (a typed address is hq_12b), copied at draft time, re-checked at approval and at
 -- send), the status machine (double send impossible, closed states, a failed send retried only by a new
 -- approval, stuck sends), the daily send limit and the hourly draft limit at their boundaries, chat-send
 -- mode (off by default, the token's channel, the same app, the 30-minute window), approval rules, RLS
@@ -62,7 +62,7 @@ select ok(not has_table_privilege('anon', 'hq.email_drafts', 'select'), 'anon ho
 
 create temp table zz_rpcs (sig regprocedure) on commit drop;
 insert into zz_rpcs values
-  ('hq.create_email_draft(hq.email_template, text, text, uuid, uuid, uuid)'),
+  ('hq.create_email_draft(hq.email_template, text, text, uuid, uuid, uuid, text, text)'),
   ('hq.update_email_draft(uuid, text, text, hq.email_template)'),
   ('hq.discard_email_draft(uuid, text)'),
   ('hq.approve_email_draft(uuid)'),
@@ -74,9 +74,11 @@ select is((select count(*) from zz_rpcs where has_function_privilege('anon', sig
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq_private'::regnamespace and p.proname like 'email%'
             and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('service_role', p.oid, 'execute'))),
   0::bigint, 'no API role can execute an email helper');
+-- 0146: create_email_draft takes ONE typed address and its name; no other email RPC takes an address, and none takes cc or bcc
 select ok(not exists (select 1 from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.proname like '%email%'
-                        and exists (select 1 from unnest(coalesce(p.proargnames, '{}')) a where a ~* '^p_(to|to_email|email|address|cc|bcc)')),
-  'no email RPC takes a typed address (no to, cc or bcc argument)');
+                        and exists (select 1 from unnest(coalesce(p.proargnames, '{}')) a where a ~* '^p_(to|to_email|email|address|cc|bcc)'
+                                      and not (p.proname = 'create_email_draft' and a in ('p_to_email', 'p_to_name')))),
+  'no email RPC takes an address except create_email_draft''s one typed address (p_to_email, p_to_name): no cc or bcc');
 
 select is((select array_agg(role::text order by role::text) from hq.role_capabilities where capability = 'email.draft'),
   array['administrator', 'business_development_manager', 'director', 'property_manager', 'senior_property_manager', 'virtual_assistant'], 'email.draft: the six drafting roles');
@@ -102,8 +104,8 @@ select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ recipient rules
 select pg_temp.become('dir');
-select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body', pg_temp.fx('alice'), pg_temp.fx('pm'))$$, '22023', 'an email goes to exactly one person: a contact or a member of staff', 'two recipients are refused');
-select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body')$$, '22023', 'an email goes to exactly one person: a contact or a member of staff', 'no recipient is refused');
+select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body', pg_temp.fx('alice'), pg_temp.fx('pm'))$$, '22023', 'an email goes to exactly one person: a contact, a member of staff or one typed address', 'two recipients are refused');
+select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body')$$, '22023', 'an email goes to exactly one person: a contact, a member of staff or one typed address', 'no recipient is refused');
 select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body', pg_temp.fx('alex'))$$, '22023', 'there is no email address on record for this person; add it to their record first', 'a contact with no email is refused');
 select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body', pg_temp.fx('archie'))$$, 'P0002', 'that contact could not be found', 'an archived contact is refused');
 select throws_ok($$select hq.create_email_draft('general', 'Hi', 'Body', null, pg_temp.fx('dir2'))$$, 'P0002', null, 'a member of staff who has left is refused');
