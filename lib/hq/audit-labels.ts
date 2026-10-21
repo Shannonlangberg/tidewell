@@ -38,6 +38,7 @@ export const ENTITY_LABEL: Record<string, string> = {
   // projects (0142, 0144)
   project: "Project",
   project_milestone: "Milestone",
+  planning_item: "Planning item",
   task_batch: "Batch of tasks",
 };
 

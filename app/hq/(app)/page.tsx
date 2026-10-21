@@ -25,7 +25,7 @@ import { EmailDraftsToday } from "@/components/hq/features/email/EmailDraftsToda
 import { EnquiriesToday } from "@/components/hq/features/enquiries/EnquiriesToday";
 import { KnowledgeApprovalsToday } from "@/components/hq/features/knowledge/KnowledgeApprovalsToday";
 import { MeetingsToday } from "@/components/hq/features/meetings/MeetingsToday";
-import { YourFocus } from "@/components/hq/features/projects/YourFocus";
+import { CommandCenter } from "@/components/hq/features/leadership/CommandCenter";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { todayIn } from "@/lib/hq/format";
@@ -49,6 +49,11 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
  * Which sections appear comes from capabilities; only their ORDER comes from the role (property
  * managers see operations first). Every loader runs as the person, so row level security decides
  * what comes back. Empty sections collapse to one line. The reporting figures live on Reports.
+ *
+ * People who hold tasks (tasks.write) see the leadership command center first
+ * (components/hq/features/leadership/CommandCenter.tsx): focus, the business launch, the workboard,
+ * what is waiting and growth. It replaces Your Focus, the business glance and the "overdue and due today"
+ * task list here (the same tasks appear in the focus and on the workboard); everything else below stays.
  *
  * requireStaff() here is the page's own gate: the (app) layout is only the first one.
  */
@@ -102,9 +107,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   );
 
   const canRemind = can("contractors.write") && can("tasks.write");
+  const commandCenter = can("tasks.write");
   const operations = (
     <>
-      {tasks ? (
+      {tasks && !commandCenter ? (
         tasks.ok ? (
           <TasksToday {...tasks.data} today={today} canComplete={plan.canCompleteTasks} returnTo={returnTo} />
         ) : (
@@ -142,9 +148,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader variant="welcome" eyebrow={longDateIn(staff.timezone)} title={welcomeTitle(staff.firstName, staff.timezone)} actions={primaryAction} />
-      <YourFocus />
+      <CommandCenter today={today} searchParams={sp} />
 
-      {figures.length > 0 ? (
+      {figures.length > 0 && !commandCenter ? (
         <ul className="hq-today__figures" aria-label="Today at a glance">
           {figures.map((f) => (
             <li key={f.key}>
@@ -160,7 +166,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         </InlineNote>
       ) : null}
 
-      <BusinessGlanceToday />
+      {commandCenter ? (
+        <p className="hq-label hq-cc-also" id="cc-also">
+          Also today
+        </p>
+      ) : (
+        <BusinessGlanceToday />
+      )}
       <EmailDraftsToday />
       <EnquiriesToday />
       <KnowledgeApprovalsToday />

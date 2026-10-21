@@ -53,10 +53,10 @@ select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ each role's capabilities match the section 4 matrix exactly
 select pg_temp.become('dir');
-select is(pg_temp.caps_my_access(), array['ai.use', 'audit.read', 'contractors.approve', 'contractors.documents', 'contractors.read', 'contractors.write', 'decisions.read', 'decisions.write', 'email.draft', 'email.send', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'knowledge.approve', 'knowledge.read', 'knowledge.write', 'meetings.read', 'meetings.write', 'people.admin', 'people.read', 'portfolio.read', 'portfolio.write', 'projects.read', 'projects.write', 'settings.admin', 'tasks.read_all', 'tasks.write'], 'director: my_access capabilities = all twenty-eight (ten Phase 1, four contractors, ai.use, two decisions, two portfolio, two email, three knowledge, two meetings, two projects)');
+select is(pg_temp.caps_my_access(), array['ai.use', 'audit.read', 'contractors.approve', 'contractors.documents', 'contractors.read', 'contractors.write', 'decisions.read', 'decisions.write', 'email.draft', 'email.send', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'knowledge.approve', 'knowledge.read', 'knowledge.write', 'meetings.read', 'meetings.write', 'people.admin', 'people.read', 'planning.read', 'planning.write', 'portfolio.read', 'portfolio.write', 'projects.read', 'projects.write', 'settings.admin', 'tasks.read_all', 'tasks.write'], 'director: my_access capabilities = all thirty (ten Phase 1, four contractors, ai.use, two decisions, two portfolio, two email, three knowledge, two meetings, two projects, two planning)');
 select is(pg_temp.caps_can(), array['audit.read', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'settings.admin', 'tasks.read_all', 'tasks.write'], 'director: can() = all ten');
 select pg_temp.become('adm');
-select is(pg_temp.caps_my_access(), array['ai.use', 'audit.read', 'contractors.approve', 'contractors.documents', 'contractors.read', 'contractors.write', 'decisions.read', 'decisions.write', 'email.draft', 'email.send', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'knowledge.approve', 'knowledge.read', 'knowledge.write', 'meetings.read', 'meetings.write', 'people.admin', 'people.read', 'portfolio.read', 'portfolio.write', 'projects.read', 'projects.write', 'tasks.read_all', 'tasks.write'], 'administrator: my_access = all except settings.admin');
+select is(pg_temp.caps_my_access(), array['ai.use', 'audit.read', 'contractors.approve', 'contractors.documents', 'contractors.read', 'contractors.write', 'decisions.read', 'decisions.write', 'email.draft', 'email.send', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'knowledge.approve', 'knowledge.read', 'knowledge.write', 'meetings.read', 'meetings.write', 'people.admin', 'people.read', 'planning.read', 'portfolio.read', 'portfolio.write', 'projects.read', 'projects.write', 'tasks.read_all', 'tasks.write'], 'administrator: my_access = all except settings.admin and planning.write');
 select is(pg_temp.caps_can(), array['audit.read', 'growth.delete', 'growth.read', 'growth.write', 'import.run', 'people.admin', 'people.read', 'tasks.read_all', 'tasks.write'], 'administrator: can() = all except settings.admin');
 select pg_temp.become('bdm');
 select is(pg_temp.caps_my_access(), array['ai.use', 'contractors.read', 'decisions.read', 'email.draft', 'email.send', 'growth.read', 'growth.write', 'import.run', 'knowledge.read', 'knowledge.write', 'meetings.read', 'meetings.write', 'people.read', 'portfolio.read', 'projects.read', 'projects.write', 'tasks.read_all', 'tasks.write'], 'business_development_manager: my_access');
@@ -78,8 +78,8 @@ select is(pg_temp.caps_my_access(), array['contractors.read', 'decisions.read', 
 select is(pg_temp.caps_can(), array['growth.read', 'people.read', 'tasks.read_all'], 'read_only: can()');
 select pg_temp.unbecome();
 
-select is((select count(*) from hq.role_capabilities), 134::bigint, 'the matrix holds 134 role/capability rows (41 Phase 1, 20 contractors, 7 ai.use, 7 decisions, 9 portfolio, 9 email, 16 knowledge, 12 meetings, 13 projects)');
-select is((select count(*) from hq.role_capabilities where role = 'director'), 28::bigint, 'director: 28 rows');
+select is((select count(*) from hq.role_capabilities), 137::bigint, 'the matrix holds 137 role/capability rows (41 Phase 1, 20 contractors, 7 ai.use, 7 decisions, 9 portfolio, 9 email, 16 knowledge, 12 meetings, 13 projects, 3 planning)');
+select is((select count(*) from hq.role_capabilities where role = 'director'), 30::bigint, 'director: 30 rows');
 select is((select count(*) from hq.role_capabilities where role = 'administrator' and capability = 'settings.admin'), 0::bigint, 'administrator has no settings.admin row');
 
 -- my_access shape
@@ -105,14 +105,14 @@ select is(hq.my_access() ->> 'aal', 'aal1', 'no aal claim at all is treated as a
 select is(pg_temp.visible_rows(), 0::bigint, 'no aal claim: no hq data is readable');
 select pg_temp.become('dir');
 select is(hq.my_access() ->> 'aal', 'aal2', 'aal2: my_access reports aal2');
-select is(array_length(pg_temp.caps_my_access(), 1), 28, 'aal2: the director holds twenty-eight capabilities');
+select is(array_length(pg_temp.caps_my_access(), 1), 30, 'aal2: the director holds thirty capabilities');
 select is((select count(*) from hq.organisations where deleted_at is null), 3::bigint, 'aal2: data is readable');
 select pg_temp.unbecome();
 
 update hq.settings set value = 'false'::jsonb where key = 'require_mfa';
 select pg_temp.become('dir', 'aal1');
 select is(hq.my_access() ->> 'mfa_required', 'false', 'require_mfa=false: mfa_required is false');
-select is(array_length(pg_temp.caps_my_access(), 1), 28, 'require_mfa=false: aal1 holds all capabilities');
+select is(array_length(pg_temp.caps_my_access(), 1), 30, 'require_mfa=false: aal1 holds all capabilities');
 select is((select count(*) from hq.organisations where deleted_at is null), 3::bigint, 'require_mfa=false: aal1 reads data');
 select lives_ok($$insert into hq.organisations (name, categories) values ('Aal1 Allowed Co', '{other}')$$, 'require_mfa=false: aal1 can write');
 select pg_temp.unbecome();
@@ -153,7 +153,7 @@ select lives_ok($$insert into hq.tasks (title, assigned_to) values ('vis-junior-
 select is((select count(*) from hq.tasks where title = 'vis-junior-own'), 1::bigint, 'junior sees their own task');
 select is((select count(*) from hq.tasks where title = 'vis-dir-for-pm'), 0::bigint, 'junior does not see a task assigned to someone else by someone else');
 select is((select count(*) filter (where id in (select id from fx)) from hq.staff_profiles), 9::bigint, 'junior can read the staff list (people.read)');
-select is((select count(*) from hq.role_capabilities), 134::bigint, 'junior can read the capability matrix');
+select is((select count(*) from hq.role_capabilities), 137::bigint, 'junior can read the capability matrix');
 select pg_temp.unbecome();
 
 -- created_by cannot be spoofed

@@ -110,6 +110,7 @@ async function main() {
   console.log(`Contractor import: ${ccounts.contractors_created} contractors created, ${ccounts.skipped} skipped, ${ccounts.possible_duplicate} possible duplicates reported (${ccounts.rows} rows).`);
 
   await seedSampleProjects(db, ids);
+  await seedCommandCenterSample(db, ids);
 
   console.log("\nLocal HQ logins (fake .test addresses; MFA is off locally):");
   for (const p of PEOPLE) console.log(`  ${p.email.padEnd(24)} ${p.role.padEnd(26)} ${p.full}`);
@@ -220,6 +221,79 @@ async function seedSampleProjects(db: ReturnType<typeof asUser>, ids: Map<string
     const out = bulk.data as { created_count?: number; failed_count?: number };
     console.log(`Sample project "${plan.name}": ${plan.milestones.length} milestone(s), ${out.created_count ?? 0} task(s) (${out.failed_count ?? 0} failed).`);
   }
+}
+
+/*
+ * A labelled SAMPLE for the command center (/hq): a "Sample: business launch" project with launch
+ * requirements, tasks in every Workboard lane, outside waits (with and without dates) and a SAMPLE
+ * funding planning item that three tasks wait on. Local only: the names say "Sample" and nothing here
+ * is Planted's real plan or real money (the planning figure is the founder's own anticipated round
+ * number, marked anticipated and not confirmed). Created through the real RPCs (save_planning_item,
+ * create_project, bulk_create_tasks, set_task_waiting, set_milestone_launch_gate, update_project_task).
+ * Skipped when the project already exists.
+ */
+async function seedCommandCenterSample(db: ReturnType<typeof asUser>, ids: Map<string, string>) {
+  const day = (offset: number) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+  const shannon = ids.get("shannon@planted.test")!;
+  const courtney = ids.get("courtney@planted.test")!;
+  const name = "Sample: business launch";
+  const have = await db.from("projects").select("id").eq("name", name).is("deleted_at", null).maybeSingle();
+  if (have.data) return;
+  const rpc = async (fn: string, args: Record<string, unknown>) => {
+    const r = await db.rpc(fn as never, args as never);
+    if (r.error) throw new Error(`${fn}: ${r.error.message}`);
+    return r.data as Record<string, unknown>;
+  };
+  const funding = await rpc("save_planning_item", {
+    p_kind: "funding",
+    p_title: "Sample: business funding",
+    p_detail: "Local sample. Anticipated, not confirmed and not received: a planning figure, never a balance.",
+    p_amount: 25000,
+    p_expected_text: "within about a month (founder's estimate)",
+  });
+  await rpc("save_planning_item", { p_kind: "context", p_title: "Sample: HQ development is nearly finished", p_detail: "Local sample context note." });
+  const project = await rpc("create_project", { p_name: name, p_description: "Local sample for the command center. Not a real plan.", p_owner: shannon, p_status: "active", p_priority: "high", p_start: day(-30), p_target: day(60) });
+  const projectId = project.project_id as string;
+  const gates = ["Registered to trade", "Systems ready"];
+  const milestones = [
+    { name: "Registered to trade", due: 35 },
+    { name: "Systems ready", due: 21 },
+    { name: "Brand and website", due: -5 },
+    { name: "First landlords", due: 75 },
+  ];
+  const mids = new Map<string, string>();
+  for (const m of milestones) {
+    const r = await rpc("create_milestone", { p_project: projectId, p_name: m.name, p_due: day(m.due) });
+    mids.set(m.name, (r.milestone_id ?? r.id) as string);
+  }
+  for (const g of gates) await rpc("set_milestone_launch_gate", { p_id: mids.get(g), p_gate: true });
+  await rpc("complete_milestone", { p_id: mids.get("Brand and website"), p_force: true });
+  const tasks = [
+    { ref: "site", title: "Sample task: publish the website", milestone: "Brand and website", assignee: shannon, priority: "high", status: "completed", due_date: day(-6) },
+    { ref: "logo", title: "Sample task: final logo files", milestone: "Brand and website", assignee: courtney, status: "completed", due_date: day(-8) },
+    { ref: "hq", title: "Sample task: finish Planted HQ", milestone: "Systems ready", assignee: shannon, priority: "high", status: "in_progress", due_date: day(4) },
+    { ref: "ailo", title: "Sample task: Ailo demo follow-up", milestone: "Systems ready", assignee: shannon, priority: "high", due_date: day(6) },
+    { ref: "trust", title: "Sample task: open the trust account", milestone: "Registered to trade", assignee: shannon, priority: "high", due_date: day(20), depends_on: ["acct"] },
+    { ref: "train", title: "Sample task: enrol in paid property management training", milestone: "Registered to trade", assignee: shannon, priority: "high" },
+    { ref: "acct", title: "Sample task: engage an accountant", milestone: "Registered to trade", assignee: shannon, priority: "normal" },
+    { ref: "regs", title: "Sample task: pay the registrations", milestone: "Registered to trade", assignee: shannon, priority: "normal" },
+    { ref: "refs", title: "Sample task: research referral partners in Kadina", milestone: "First landlords", assignee: shannon, priority: "high", due_date: day(1) },
+    { ref: "intro", title: "Sample task: call three local conveyancers", milestone: "First landlords", assignee: shannon, priority: "normal", due_date: day(0) },
+    { ref: "pack", title: "Sample task: draft the landlord welcome pack", milestone: "First landlords", assignee: courtney, priority: "normal", due_date: day(18) },
+    { ref: "prospect", title: "Sample task: prospecting list for Wallaroo", milestone: "First landlords", assignee: shannon, priority: "normal", due_date: day(9) },
+    { ref: "policy", title: "Sample task: write the maintenance policy", milestone: "Systems ready", assignee: shannon, priority: "low", due_date: day(-2) },
+  ];
+  const bulk = await rpc("bulk_create_tasks", { p_tasks: tasks, p_idempotency_key: `seed-cc-${projectId}`, p_project: projectId, p_atomic: true });
+  const refs = new Map(((bulk.created as { ref: string; id: string }[]) ?? []).map((c) => [c.ref, c.id]));
+  const fundingId = funding.id as string;
+  await rpc("set_task_waiting", { p_task: refs.get("ailo"), p_waiting_on: "Ailo to reply after the demo", p_note: "Sample note: demo done, waiting on their reply." });
+  for (const r of ["train", "acct", "regs"]) await rpc("set_task_waiting", { p_task: refs.get(r), p_planning_item: fundingId });
+  await rpc("update_project_task", { p_id: refs.get("prospect"), p_patch: { planned_for: day(5) } });
+  console.log(`Sample command center: "${name}" with ${milestones.length} milestones (${gates.length} required to open), ${refs.size} tasks, 1 sample funding item.`);
 }
 
 main().catch((e) => {
