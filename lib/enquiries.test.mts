@@ -5,7 +5,7 @@ import "../scripts/hq/ts-hooks.mts"; // lib/enquiries.ts imports "@/lib/planted"
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { processEnquiry, MESSAGES, SUCCESS_PATH, HONEYPOT_FIELD, TIMESTAMP_FIELD, JS_FIELD } = await import("./enquiries.ts");
+const { processEnquiry, MESSAGES, SUCCESS_PATH, HONEYPOT_FIELD, HONEYPOT_LABEL, HONEYPOT_INPUT_PROPS, TIMESTAMP_FIELD, JS_FIELD } = await import("./enquiries.ts");
 type Deps = NonNullable<Parameters<typeof processEnquiry>[2]>;
 
 const ADAPTER_ENV = ["RESEND_API_KEY", "ENQUIRY_TO_EMAIL", "ENQUIRY_WEBHOOK_URL", "TURNSTILE_SECRET_KEY"] as const;
@@ -168,6 +168,45 @@ test("the honeypot is unchanged: a bot sees success, nothing reaches HQ", async 
   const noJs = await processEnquiry("contact", contactForm({ [HONEYPOT_FIELD]: "x" }, false), deps);
   assert.equal(noJs.redirectTo, SUCCESS_PATH);
   assert.equal(calls.hq.length, 0);
+});
+
+// Words browser autofill (Safari, Chrome, Firefox, iCloud Keychain) and password managers use to recognise a
+// field. A honeypot whose name, id or label contains one of them gets the visitor's details filled in, and a
+// real enquiry is then discarded while the visitor is told it was sent (a live test on 21 Oct 2026).
+const AUTOFILL_WORDS = [
+  "company", "organisation", "organization", "org", "business", "employer", "firm", "work", "job", "title",
+  "name", "first", "last", "given", "family", "surname", "nick", "user", "login",
+  "email", "mail", "phone", "tel", "mobile", "fax", "cell",
+  "address", "street", "addr", "line", "suburb", "city", "town", "state", "region", "province", "zip", "post", "postal", "postcode", "country",
+  "url", "website", "web", "site", "homepage", "birth", "dob", "age", "sex", "gender",
+  "card", "cc", "cvv", "cvc", "exp", "pass", "pwd", "otp", "code", "search", "query", "message", "comment", "subject",
+];
+const words = (v: string) => v.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+
+test("the honeypot looks like nothing autofill would fill: name, ids and label", () => {
+  const ids = ["contact", "appraisal"].map((form) => `${form}-${HONEYPOT_FIELD}`);
+  for (const v of [HONEYPOT_FIELD, ...ids, HONEYPOT_LABEL]) {
+    const hit = words(v).filter((w) => AUTOFILL_WORDS.some((a) => w === a || (a.length >= 4 && w.includes(a))));
+    assert.deepEqual(hit, [], `"${v}" contains autofill words: ${hit.join(", ")}`);
+  }
+  assert.notEqual(HONEYPOT_FIELD, "company", "never the old name, which Safari filled from the contact card");
+});
+
+test("the honeypot input opts out of autofill and every common password manager", () => {
+  assert.equal(HONEYPOT_INPUT_PROPS.type, "text");
+  assert.equal(HONEYPOT_INPUT_PROPS.tabIndex, -1);
+  assert.equal(HONEYPOT_INPUT_PROPS.autoComplete, "off");
+  assert.equal(HONEYPOT_INPUT_PROPS["data-1p-ignore"], "true", "1Password");
+  assert.equal(HONEYPOT_INPUT_PROPS["data-lpignore"], "true", "LastPass");
+  assert.equal(HONEYPOT_INPUT_PROPS["data-bwignore"], "true", "Bitwarden");
+  assert.equal(HONEYPOT_INPUT_PROPS["data-form-type"], "other", "Dashlane");
+});
+
+test("a company filled in under the old field name (a cached page, or autofill) no longer discards a real enquiry", async () => {
+  const { deps, calls } = spies(STORED);
+  const out = await processEnquiry("contact", contactForm({ company: "Futures Church" }), deps);
+  assert.equal(out.state.status, "sent");
+  assert.equal(calls.hq.length, 1, "stored in HQ");
 });
 
 test("too fast and invalid submissions never reach HQ", async () => {

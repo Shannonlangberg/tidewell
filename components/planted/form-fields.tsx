@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { HONEYPOT_INPUT_PROPS, HONEYPOT_LABEL } from "@/lib/enquiries";
 
 /*
  * The field primitives both enquiry forms are built from.
@@ -421,7 +422,8 @@ export function CheckboxField({
 /* ── honeypot ────────────────────────────────────────────────────────────
  * Off-screen rather than display:none, so a bot that checks computed styles
  * still fills it in. Hidden from assistive technology and from the tab order,
- * and labelled plainly for the rare person who reaches it anyway.
+ * and labelled plainly for the rare person who reaches it anyway. Its name,
+ * label and attributes (lib/enquiries.ts) keep autofill out of it.
  */
 
 export function Honeypot({ form, name }: { form: string; name: string }) {
@@ -432,8 +434,8 @@ export function Honeypot({ form, name }: { form: string; name: string }) {
       className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden"
       style={{ clipPath: "inset(50%)" }}
     >
-      <label htmlFor={id}>Company (leave this field empty)</label>
-      <input id={id} name={name} type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+      <label htmlFor={id}>{HONEYPOT_LABEL}</label>
+      <input id={id} name={name} {...HONEYPOT_INPUT_PROPS} defaultValue="" />
     </div>
   );
 }
