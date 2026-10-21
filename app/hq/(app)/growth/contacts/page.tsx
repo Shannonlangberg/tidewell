@@ -181,7 +181,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Sea
           </>
         }
       >
-        <SearchInput placeholder="Search by name, organisation or email" defaultValue={query.q} />
+        <SearchInput placeholder="Search by name, organisation, email, phone or role" defaultValue={query.q} />
         <Select
           name="category"
           label="Category"

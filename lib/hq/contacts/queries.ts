@@ -61,7 +61,7 @@ export async function listContacts(db: HqClient, query: ContactListQuery, ctx: L
   const run = async (page: number) => {
     let q = db.from("contact_directory").select("*", { count: "exact" });
 
-    const search = orIlike(["full_name", "organisation_name", "email"], query.q);
+    const search = orIlike(["full_name", "organisation_name", "email", "phone", "position", "location"], query.q);
     if (search) q = q.or(search);
     if (query.category) q = q.contains("categories", [query.category]);
     if (query.status) q = q.eq("relationship_status", query.status as (typeof RELATIONSHIP_STATUSES)[number]);
