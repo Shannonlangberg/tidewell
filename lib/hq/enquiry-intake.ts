@@ -6,10 +6,11 @@ import { ackBegun, clientIp, hashIp, intakeFailure, intakeSuccess, ipSalt, submi
 /*
  * Website enquiries into Planted HQ: the ONE place the public site's path touches the secret key
  * (eslint.config.mjs allows this file, and only this file, among the site's code). It does exactly one
- * thing with it: call the three website functions the database grants to service_role only.
+ * thing with it: call the four website functions the database grants to service_role only.
  * hq.submit_enquiry validates and caps every field again, dedupes, rate-limits, and creates the contact,
  * the lead, the timeline entry and the reply task (migration 0134). hq.begin_enquiry_auto_reply and
- * hq.finish_enquiry_auto_reply decide and record the automatic thank-you to the enquirer (0136); the
+ * hq.finish_enquiry_auto_reply decide and record the automatic thank-you to the enquirer (0136), and
+ * hq.fail_enquiry_auto_reply records that it could not even begin (0154); the
  * email itself is sent by lib/hq/email/enquiry-ack.ts, which never sees this key.
  *
  * The caller (app/(site)/enquiry-actions.ts, through lib/enquiries.ts) has already validated the form
@@ -76,7 +77,10 @@ const ACK_DB_TIMEOUT_MS = 2500;
 export async function beginEnquiryAck(enquiryId: string): Promise<AckBegun> {
   const client = createSecretClient();
   const { data, error } = await client.schema("hq").rpc("begin_enquiry_auto_reply", { p_enquiry_id: enquiryId }).abortSignal(AbortSignal.timeout(ACK_DB_TIMEOUT_MS));
-  if (error) throw Object.assign(new Error("begin_enquiry_auto_reply refused"), { name: "AckBeginError", code: error.code ?? "none" });
+  if (error) {
+    const timedOut = intakeFailure({ name: null, message: error.message ?? null }) === "timeout";
+    throw Object.assign(new Error("begin_enquiry_auto_reply refused"), { name: timedOut ? "TimeoutError" : "AckBeginError", code: error.code ?? "none" });
+  }
   return ackBegun(data);
 }
 
@@ -88,4 +92,11 @@ export async function finishEnquiryAck(enquiryId: string, ok: boolean, messageId
     .rpc("finish_enquiry_auto_reply", { p_enquiry_id: enquiryId, p_ok: ok, ...(messageId ? { p_message_id: messageId } : {}), ...(errorCode ? { p_error: errorCode } : {}) })
     .abortSignal(AbortSignal.timeout(ACK_DB_TIMEOUT_MS));
   if (error) throw Object.assign(new Error("finish_enquiry_auto_reply refused"), { name: "AckFinishError", code: error.code ?? "none" });
+}
+
+/** hq.fail_enquiry_auto_reply (service_role only, 0154): begin errored or timed out, so record that on the enquiry. Throws on error. */
+export async function failEnquiryAck(enquiryId: string, errorCode: "not_begun" | "begin_timeout"): Promise<void> {
+  const client = createSecretClient();
+  const { error } = await client.schema("hq").rpc("fail_enquiry_auto_reply", { p_enquiry_id: enquiryId, p_error: errorCode }).abortSignal(AbortSignal.timeout(ACK_DB_TIMEOUT_MS));
+  if (error) throw Object.assign(new Error("fail_enquiry_auto_reply refused"), { name: "AckFailError", code: error.code ?? "none" });
 }

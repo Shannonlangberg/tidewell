@@ -138,6 +138,8 @@ test("the thank-you chip: sent, not sent (with the reason in words), not confirm
   assert.equal(ackChip("skipped", "address_limit")?.label, "Thank-you not sent");
   assert.equal(ackChip("skipped", "address_limit")?.detail, "this address already had one in the last 24 hours");
   assert.equal(ackChip("skipped", "disabled")?.detail, "automatic thank-yous were switched off");
+  assert.deepEqual(ackChip("failed", "not_begun"), { label: "Thank-you not sent", tone: "warning", detail: "the website could not reach HQ to send it" });
+  assert.equal(ackChip("failed", "begin_timeout")?.detail, "HQ did not answer the website in time");
   assert.equal(ackChip("failed", "timeout")?.detail, "the email service did not answer in time");
   assert.equal(ackChip("failed", "provider_auth")?.detail, "the email service refused it");
   assert.equal(ackChip("skipped", "something_new")?.detail, null);

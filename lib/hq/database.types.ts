@@ -5702,6 +5702,10 @@ export type Database = {
         Args: { p_body: string; p_comment: number }
         Returns: Json
       }
+      fail_enquiry_auto_reply: {
+        Args: { p_enquiry_id: string; p_error?: string }
+        Returns: Json
+      }
       finish_email_send: {
         Args: {
           p_error?: string
