@@ -2655,6 +2655,60 @@ export type Database = {
           },
         ]
       }
+      planning_items: {
+        Row: {
+          amount_anticipated: number | null
+          created_at: string
+          created_by: string | null
+          detail: string | null
+          expected_by: string | null
+          expected_text: string | null
+          id: string
+          kind: Database["hq"]["Enums"]["planning_kind"]
+          ref_number: number
+          sort_order: number
+          status: Database["hq"]["Enums"]["planning_status"]
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          amount_anticipated?: number | null
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          expected_by?: string | null
+          expected_text?: string | null
+          id?: string
+          kind: Database["hq"]["Enums"]["planning_kind"]
+          ref_number?: never
+          sort_order?: number
+          status: Database["hq"]["Enums"]["planning_status"]
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          amount_anticipated?: number | null
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          expected_by?: string | null
+          expected_text?: string | null
+          id?: string
+          kind?: Database["hq"]["Enums"]["planning_kind"]
+          ref_number?: never
+          sort_order?: number
+          status?: Database["hq"]["Enums"]["planning_status"]
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       pods: {
         Row: {
           created_at: string
@@ -2913,6 +2967,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          launch_gate: boolean
           name: string
           project_id: string
           sort_order: number
@@ -2927,6 +2982,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          launch_gate?: boolean
           name: string
           project_id: string
           sort_order?: number
@@ -2941,6 +2997,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          launch_gate?: boolean
           name?: string
           project_id?: string
           sort_order?: number
@@ -3644,9 +3701,13 @@ export type Database = {
           deleted_by: string | null
           description: string | null
           due_date: string | null
+          expected_response_date: string | null
           id: string
           milestone_id: string | null
+          next_follow_up_date: string | null
           parent_task_id: string | null
+          planned_for: string | null
+          planning_item_id: string | null
           priority: Database["hq"]["Enums"]["task_priority"]
           project_id: string | null
           related_contact_id: string | null
@@ -3660,6 +3721,8 @@ export type Database = {
           status: Database["hq"]["Enums"]["task_status"]
           title: string
           updated_at: string
+          waiting_on: string | null
+          waiting_since: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -3672,9 +3735,13 @@ export type Database = {
           deleted_by?: string | null
           description?: string | null
           due_date?: string | null
+          expected_response_date?: string | null
           id?: string
           milestone_id?: string | null
+          next_follow_up_date?: string | null
           parent_task_id?: string | null
+          planned_for?: string | null
+          planning_item_id?: string | null
           priority?: Database["hq"]["Enums"]["task_priority"]
           project_id?: string | null
           related_contact_id?: string | null
@@ -3688,6 +3755,8 @@ export type Database = {
           status?: Database["hq"]["Enums"]["task_status"]
           title: string
           updated_at?: string
+          waiting_on?: string | null
+          waiting_since?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -3700,9 +3769,13 @@ export type Database = {
           deleted_by?: string | null
           description?: string | null
           due_date?: string | null
+          expected_response_date?: string | null
           id?: string
           milestone_id?: string | null
+          next_follow_up_date?: string | null
           parent_task_id?: string | null
+          planned_for?: string | null
+          planning_item_id?: string | null
           priority?: Database["hq"]["Enums"]["task_priority"]
           project_id?: string | null
           related_contact_id?: string | null
@@ -3716,6 +3789,8 @@ export type Database = {
           status?: Database["hq"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
+          waiting_on?: string | null
+          waiting_since?: string | null
         }
         Relationships: [
           {
@@ -3758,6 +3833,13 @@ export type Database = {
             columns: ["parent_task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_planning_item_id_fkey"
+            columns: ["planning_item_id"]
+            isOneToOne: false
+            referencedRelation: "planning_items"
             referencedColumns: ["id"]
           },
           {
@@ -5075,17 +5157,27 @@ export type Database = {
           dependency_count: number | null
           description: string | null
           due_date: string | null
+          expected_response_date: string | null
           id: string | null
           is_blocked: boolean | null
           is_overdue: boolean | null
           milestone_due_date: string | null
           milestone_id: string | null
+          milestone_launch_gate: boolean | null
           milestone_name: string | null
+          next_follow_up_date: string | null
           open_dependency_count: number | null
           open_subtask_count: number | null
           overdue_days: number | null
           parent_task_id: string | null
           parent_title: string | null
+          planned_for: string | null
+          planning_item_id: string | null
+          planning_item_kind: Database["hq"]["Enums"]["planning_kind"] | null
+          planning_item_status:
+            | Database["hq"]["Enums"]["planning_status"]
+            | null
+          planning_item_title: string | null
           priority: Database["hq"]["Enums"]["task_priority"] | null
           project_id: string | null
           project_name: string | null
@@ -5103,6 +5195,8 @@ export type Database = {
           subtask_count: number | null
           title: string | null
           updated_at: string | null
+          waiting_on: string | null
+          waiting_since: string | null
         }
         Relationships: [
           {
@@ -5145,6 +5239,13 @@ export type Database = {
             columns: ["parent_task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_planning_item_id_fkey"
+            columns: ["planning_item_id"]
+            isOneToOne: false
+            referencedRelation: "planning_items"
             referencedColumns: ["id"]
           },
           {
@@ -5864,6 +5965,16 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_task_waiting: {
+        Args: {
+          p_due?: string
+          p_follow_up?: string
+          p_next?: Database["hq"]["Enums"]["task_status"]
+          p_note?: string
+          p_task: string
+        }
+        Returns: Json
+      }
       restore_brand_resource: { Args: { p_id: string }; Returns: Json }
       restore_knowledge_version: {
         Args: {
@@ -5876,6 +5987,21 @@ export type Database = {
       }
       restore_record: {
         Args: { p_entity: string; p_id: string }
+        Returns: Json
+      }
+      save_planning_item: {
+        Args: {
+          p_amount?: number
+          p_clear?: string[]
+          p_detail?: string
+          p_expected_by?: string
+          p_expected_text?: string
+          p_id?: string
+          p_kind?: Database["hq"]["Enums"]["planning_kind"]
+          p_status?: Database["hq"]["Enums"]["planning_status"]
+          p_title?: string
+          p_version?: number
+        }
         Returns: Json
       }
       set_attributed_referral: {
@@ -5923,6 +6049,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_milestone_launch_gate: {
+        Args: { p_gate: boolean; p_id: string }
+        Returns: Json
+      }
       set_project_status: {
         Args: {
           p_id: string
@@ -5933,6 +6063,18 @@ export type Database = {
       }
       set_task_checklist: {
         Args: { p_items: Json; p_task: string }
+        Returns: Json
+      }
+      set_task_waiting: {
+        Args: {
+          p_expected?: string
+          p_follow_up?: string
+          p_note?: string
+          p_planning_item?: string
+          p_since?: string
+          p_task: string
+          p_waiting_on?: string
+        }
         Returns: Json
       }
       set_trade_active: {
@@ -6291,6 +6433,13 @@ export type Database = {
         | "builder"
         | "financial_adviser"
         | "other"
+      planning_kind: "funding" | "dependency" | "context"
+      planning_status:
+        | "anticipated"
+        | "confirmed"
+        | "received"
+        | "current"
+        | "closed"
       priority_level: "high" | "medium" | "low"
       project_status:
         | "planning"
@@ -6634,6 +6783,14 @@ export const Constants = {
         "builder",
         "financial_adviser",
         "other",
+      ],
+      planning_kind: ["funding", "dependency", "context"],
+      planning_status: [
+        "anticipated",
+        "confirmed",
+        "received",
+        "current",
+        "closed",
       ],
       priority_level: ["high", "medium", "low"],
       project_status: [

@@ -399,7 +399,7 @@ Database: migrations `0140_hq_meetings.sql` and `0141_hq_function_acl_meetings.s
 
 **First content: the design-system folder.** On the local stack: `node --env-file=.env.local scripts/hq/import-brand-resources.mts "<folder>"` (add `--dry-run` to see the plan). For the hosted project: `--target live --as <a director's email> --confirm` with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` in the environment (the script refuses a local host with `--target live`, and any other host without it). It is idempotent: re-running adds nothing, and a changed file becomes a new version. The older voice files (the folder's readme, the voice card and the brand book) are imported untouched with a note, and **Voice and wording (current)** is created from the brand voice section of `docs/brand-design-system.md`.
 
-**Through ChatGPT or Claude:** three read-only tools (`list_brand_resources`, `get_brand_resource`, `get_brand_summary`). Text files come back as their content; pictures, PDFs and zips as a download link that works for 10 minutes only. See [hq-mcp.md section 14](hq-mcp.md#14-testing-the-brand-library-resources-from-chatgpt).
+**Through ChatGPT or Claude:** three read-only tools (`list_brand_resources`, `get_brand_resource`, `get_brand_summary`). Text files come back as their content; pictures, PDFs and zips as a download link that works for 10 minutes only. See [hq-mcp.md section 15](hq-mcp.md#15-testing-the-brand-library-resources-from-chatgpt).
 
 Database: migrations `0151_hq_brand_resources.sql`, `0152_hq_brand_resources_rpc.sql`, `0153_hq_function_acl_brand_resources.sql`; tests `supabase/tests/hq_18_brand_resources.sql`, `lib/hq/resources/*.test.mts`.
 

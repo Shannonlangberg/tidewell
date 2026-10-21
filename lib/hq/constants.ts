@@ -69,6 +69,9 @@ export const CAPABILITIES = [
   // Resources (0151): the brand library. Every role reads and downloads; director and administrator add and change.
   "resources.read",
   "resources.manage",
+  // Command center planning items (0148): anticipated funding and founder context (director; administrator reads).
+  "planning.read",
+  "planning.write",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

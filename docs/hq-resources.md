@@ -1,6 +1,6 @@
 # Resources: PLANTED.'s brand library in HQ
 
-`/hq/resources` (nav: **Resources**, in the sidebar and the phone's More sheet) is the home of PLANTED.'s branding: the brand guide, logos and other assets, colours, fonts and type styles, photos, design tokens and UI kit code. Every member of staff can view and download it; connected chat apps (ChatGPT, Claude) can list, read and fetch it through three read-only tools (hq-mcp.md section 14); a director or administrator adds to it and updates it.
+`/hq/resources` (nav: **Resources**, in the sidebar and the phone's More sheet) is the home of PLANTED.'s branding: the brand guide, logos and other assets, colours, fonts and type styles, photos, design tokens and UI kit code. Every member of staff can view and download it; connected chat apps (ChatGPT, Claude) can list, read and fetch it through three read-only tools (hq-mcp.md section 15); a director or administrator adds to it and updates it.
 
 ## What is on the page
 

@@ -26,6 +26,10 @@
  * "what is blocking"; archiving a project, its documents and related records are HQ screens only.
  * The brand library (brand.ts) can be listed, opened (text files as content, pictures and PDFs as a 10-minute
  * signed link) and summarised, by anyone with resources.read; adding, replacing and archiving files are HQ screens only.
+ * The command center (leadership.ts) answers focus, workboard, launch, waiting, the weekly review and
+ * planning items through the dashboard's own rules; it moves tasks between lanes, sets and clears what a
+ * task waits on, proposes (then, if agreed, saves) a week plan, and records planning items; it never
+ * changes a priority or due date unless asked, and a planning amount is never a balance.
  * Nothing anywhere is hard-deleted.
  */
 import type { ToolDef } from "../types";
@@ -62,6 +66,20 @@ import { addTaskComment, addTaskDependency, completeTask, getTask, removeTaskDep
 import { founderPriorities, listOverdue, whatIsBlocking } from "./focus";
 import { bulkCreateTasks, bulkUpdateTasks } from "./bulk-tasks";
 import { getBrandResource, getBrandSummary, listBrandResources } from "./brand";
+import {
+  focusToday,
+  launchProgress,
+  listPlanningItems,
+  moveTaskToLane,
+  planNextWeek,
+  resolveWaitingTool,
+  savePlanningItemTool,
+  setLaunchRequirement,
+  setTaskWaiting,
+  waitingOn,
+  weeklyLeadershipReview,
+  workboard,
+} from "./leadership";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -171,6 +189,19 @@ export const TOOLS: ToolDef[] = [
   listBrandResources,
   getBrandResource,
   getBrandSummary,
+  // command center (leadership.ts): the dashboard's focus, lanes, launch readiness, waiting and planning, through the same rules
+  focusToday,
+  workboard,
+  launchProgress,
+  waitingOn,
+  weeklyLeadershipReview,
+  listPlanningItems,
+  setTaskWaiting,
+  resolveWaitingTool,
+  moveTaskToLane,
+  planNextWeek,
+  savePlanningItemTool,
+  setLaunchRequirement,
 ];
 
 /** The tools a person with these capabilities may see and call. */
