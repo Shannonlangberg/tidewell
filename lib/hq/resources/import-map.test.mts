@@ -41,10 +41,33 @@ const TEXT: Record<string, string> = {
 const plan = planImport(PATHS, (p) => TEXT[p] ?? null);
 const by = (title: string) => plan.entries.find((e) => e.title === title);
 
-test("system files are skipped, everything else is imported", () => {
-  assert.deepEqual(plan.skipped.map((s) => s.path).sort(), [".DS_Store", ".thumbnail", "assets/.DS_Store"]);
+const DEV_FILES = ["_ds_bundle.js", "_ds_manifest.json", "_adherence.oxlintrc.json", "github.md", "thumbnail.html"];
+const KIT_PATHS = PATHS.filter((p) => /^(components|ui_kits)\//.test(p));
+
+test("system and developer files are skipped, the UI kit becomes one zip, everything else is imported", () => {
+  assert.deepEqual(plan.skipped.map((s) => s.path).sort(), [".DS_Store", ".thumbnail", "_adherence.oxlintrc.json", "_ds_bundle.js", "_ds_manifest.json", "assets/.DS_Store", "github.md", "thumbnail.html"]);
   assert.equal(plan.unmapped.length, 0);
-  assert.equal(plan.entries.length, PATHS.length - 3);
+  assert.equal(plan.entries.length, PATHS.length - 3 - DEV_FILES.length - KIT_PATHS.length + 1);
+  assert.equal(plan.entries.filter((e) => e.category === "other").length, 0, "nothing lands in other");
+});
+
+test("the UI kit is one zip: the components and the website, with the stylesheets and tokens it needs", () => {
+  const kits = plan.entries.filter((e) => e.category === "ui_kit");
+  assert.equal(kits.length, 1);
+  const kit = kits[0];
+  assert.equal(kit.title, "Website UI kit (code)");
+  assert.equal(kit.fileName, "planted-website-ui-kit.zip");
+  assert.equal(kit.mime, "application/zip");
+  assert.ok(kit.bundle);
+  for (const p of KIT_PATHS) assert.ok(kit.bundle.includes(p), p);
+  for (const p of ["styles.css", "readme.md", "tokens/colors.css", "styles/base.css"]) assert.ok(kit.bundle.includes(p), p);
+  for (const p of DEV_FILES.filter((d) => d !== "readme.md")) assert.ok(!kit.bundle.includes(p), p);
+  assert.ok(!kit.bundle.some((p) => p.startsWith("assets/")), "logos and photos stay separate resources");
+});
+
+test("the guideline cards carry the foundation tag; the brand book, readme and skill do not", () => {
+  for (const e of plan.entries.filter((x) => /^guidelines\//.test(x.path))) assert.ok(e.tags.includes("foundation"), e.path);
+  for (const p of ["brand/Brand Guidelines.html", "readme.md", "SKILL.md"]) assert.ok(!plan.entries.find((e) => e.path === p)!.tags.includes("foundation"), p);
 });
 
 test("the mapping to categories", () => {
@@ -54,8 +77,8 @@ test("the mapping to categories", () => {
   assert.equal(cat("assets/photos/north-beach.jpg"), "photos");
   for (const p of ["tokens/colors.css", "tokens/typography.css", "tokens/fonts.css", "styles/base.css"]) assert.equal(cat(p), "colours_type", p);
   for (const p of ["styles.css", "tokens/layout.css", "styles/components.css", "brand/guidelines.css"]) assert.equal(cat(p), "tokens", p);
-  for (const p of ["components/actions/Button.jsx", "components/actions/Button.d.ts", "components/actions/Button.prompt.md", "components/forms/FieldParts.jsx", "components/brand/brand.card.html", "ui_kits/website/index.html", "ui_kits/website/image-slot.js"]) assert.equal(cat(p), "ui_kit", p);
-  for (const p of ["_ds_bundle.js", "_ds_manifest.json", "_adherence.oxlintrc.json", "github.md", "thumbnail.html"]) assert.equal(cat(p), "other", p);
+  for (const p of ["components/actions/Button.jsx", "components/actions/Button.d.ts", "components/actions/Button.prompt.md", "components/forms/FieldParts.jsx", "components/brand/brand.card.html", "ui_kits/website/index.html", "ui_kits/website/image-slot.js"]) assert.equal(cat(p), undefined, `${p} is inside the zip, not its own resource`);
+  //assert.equal(cat(p), "ui_kit", p);
   for (const e of plan.entries) assert.ok((RESOURCE_CATEGORIES as readonly string[]).includes(e.category));
 });
 
@@ -77,9 +100,6 @@ test("guideline cards take their title and description from their @dsCard line",
   assert.equal(by("Colors: Primary")?.description, "Forest, ivory, ink — the core of every page");
   assert.equal(by("Colors: Accent")?.description, "Pale lime & the stop", "html entities are decoded");
   assert.equal(by("Type: Text styles")?.category, "guidelines");
-  assert.equal(by("Preview: Actions: Button & RuleLink")?.category, "ui_kit");
-  assert.equal(by("Button usage notes")?.description, "The PLANTED. pill button with a trailing arrow disc.");
-  assert.equal(by("Button component (JSX)")?.description, "The PLANTED. pill button with a trailing arrow disc.");
 });
 
 test("logos: alt/ is tagged as an unadopted alternative direction, the rest are not", () => {
