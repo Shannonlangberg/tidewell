@@ -734,14 +734,14 @@ export const MESSAGES = {
   invalid: "Please check the highlighted fields and try again.",
   /** No adapter configured: honest, and no promise about when. */
   unconfigured:
-    "We're sorry — the enquiry form isn't connected yet, so this wasn't sent. Please try again later.",
-  failed: "We're sorry — something went wrong sending your enquiry and it didn't reach us. Please try again.",
+    "We're sorry, the enquiry form isn't connected yet, so this wasn't sent. Please try again later.",
+  failed: "We're sorry, something went wrong sending your enquiry and it didn't reach us. Please try again.",
   /** HQ's hourly limit (5 per email address and 5 per connection). Honest: it was not sent. */
   rateLimited:
     "We've already received several enquiries from you in the last hour, so this one wasn't sent. Please try again a little later.",
   tooFast: "That came through faster than a form is usually filled in. Please try again.",
   robot: "The security check didn't pass. Reload the page and try again.",
-  sent: "Thank you — your enquiry has reached us.",
+  sent: "Thank you, your enquiry has reached us.",
 } as const;
 
 /* ── one submission, start to finish ─────────────────────────────────────

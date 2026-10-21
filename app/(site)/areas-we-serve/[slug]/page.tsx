@@ -46,7 +46,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
     lede:
       "Kadina is the business end of the Copper Triangle, and its rental market behaves accordingly: steadier, longer and more local than the coast.",
     context: [
-      "Kadina sits a short drive inland from the gulf and carries most of the region's everyday business — the shops, the schools, the health services and the trades. That shapes who rents here. Tenants are more often working locally and looking for somewhere to stay for years rather than a season, which makes tenant selection and tenant retention the part of the job worth doing properly.",
+      "Kadina sits a short drive inland from the gulf and carries most of the region's everyday business: the shops, the schools, the health services and the trades. That shapes who rents here. Tenants are more often working locally and looking for somewhere to stay for years rather than a season, which makes tenant selection and tenant retention the part of the job worth doing properly.",
       "The housing reflects a long history. Character stone cottages sit a street away from post-war brick homes and newer builds on the edge of town, and each of those asks something different of an owner. A well-kept cottage can be the most sought-after rental in its street. A neglected one becomes an expensive problem slowly, and then quickly.",
     ],
     managing: [
@@ -56,7 +56,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
       },
       {
         title: "Comfort away from the breeze",
-        body: "Inland, Kadina gets the full range of a South Australian summer and genuinely cold winter nights. Heating and cooling that works is not a luxury here; it is often the difference between a tenant renewing and a tenant looking.",
+        body: "Inland, Kadina gets the full range of a South Australian summer and properly cold winter nights. Heating and cooling that works is not a luxury here; it is often the difference between a tenant renewing and a tenant looking.",
       },
       {
         title: "Tenancies that last",
@@ -65,7 +65,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
     ],
     presence: [
       "Kadina is where the region's trades and suppliers are based. A manager who is actually here can usually get a quote, a plumber or an electrician moving this week rather than next.",
-      "It also means the manager is a known quantity. In a town this size, how a property is run and how tenants are treated is not a secret — and that reputation is part of what brings good tenants to an owner's property in the first place.",
+      "It also means the manager is a known quantity. In a town this size, how a property is run and how tenants are treated is not a secret, and that reputation is part of what brings good tenants to an owner's property in the first place.",
     ],
   },
 
@@ -91,17 +91,17 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
       },
     ],
     presence: [
-      "Weather arrives across the gulf without much notice. Being close enough to check a property after a front has gone through — rather than waiting for a tenant to report it — is often the difference between a repair and a claim.",
+      "Weather arrives across the gulf without much notice. Being close enough to check a property after a front has gone through, rather than waiting for a tenant to report it, is often the difference between a repair and a claim.",
       "It matters just as much that the trades we use understand coastal work: the right fixings, the right paint system, the right time of year to do it. That knowledge is local, and it does not travel from the city.",
     ],
   },
 
   moonta: {
     lede:
-      "Cornish stone, generous blocks and a protected town character — all three shape what managing a rental here involves.",
+      "Cornish stone, generous blocks and a protected town character all shape what managing a rental here involves.",
     context: [
       "Moonta sits a few minutes inland from the bay and wears its mining history openly. The conservation-listed town centre is the reason the main street looks the way it does, and the reason a change to a frontage can become a planning question rather than a weekend job.",
-      "Away from the centre, the housing is mostly stone and brick on generous blocks, with newer development running toward the bay. Older homes here are often solid and well built, which is not the same as maintenance-free — and the blocks are big enough that garden expectations have to be written down rather than assumed.",
+      "Away from the centre, the housing is mostly stone and brick on generous blocks, with newer development running toward the bay. Older homes here are often solid and well built, which is not the same as maintenance-free, and the blocks are big enough that garden expectations have to be written down rather than assumed.",
     ],
     managing: [
       {
@@ -110,7 +110,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
       },
       {
         title: "Check before you change",
-        body: "Parts of Moonta sit within a protected town character. Before an owner replaces a roof, a fence or a frontage, the local council is the authority on what consent is required — a question much better asked beforehand.",
+        body: "Parts of Moonta sit within a protected town character. Before an owner replaces a roof, a fence or a frontage, the local council is the authority on what consent is required. That is a question much better asked beforehand.",
       },
       {
         title: "Big blocks, clear expectations",
@@ -119,16 +119,16 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
     ],
     presence: [
       "Knowing which streets fall inside the town's protected character, and which tradespeople can actually work on stone, is local knowledge. No checklist produces it.",
-      "Moonta's permanent community is well established, and tenants here notice whether a property is genuinely cared for. A home that has been looked after leases faster, and tends to hold a better tenant for longer.",
+      "Moonta's permanent community is well established, and tenants here notice whether a property is looked after. A home that has been looked after leases faster, and tends to hold a better tenant for longer.",
     ],
   },
 
   "moonta-bay": {
     lede:
-      "A family address a few minutes from the jetty, where the right tenant usually stays and the calendar genuinely matters.",
+      "A family address a few minutes from the jetty, where the right tenant usually stays and the calendar really matters.",
     context: [
       "Moonta Bay is where Moonta meets the water: a long jetty, a swimming beach and a residential strip that has grown steadily over the past two decades. It reads as a place people live rather than a place people visit, and most tenants here are families.",
-      "The housing splits roughly in two. Established family homes a few streets back from the water need attention to the ordinary things — roofs, hot water, heating, fencing. Newer coastal builds closer to the front need attention to what weather does to new materials faster than anyone expects it to.",
+      "The housing splits roughly in two. Established family homes a few streets back from the water need attention to the ordinary things: roofs, hot water, heating, fencing. Newer coastal builds closer to the front need attention to what weather does to new materials faster than anyone expects it to.",
     ],
     managing: [
       {
@@ -154,7 +154,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
     lede: "A quiet pocket north of Wallaroo, where the weather does more wear than any tenant will.",
     context: [
       "North Beach is residential and very little else: no shops, no through traffic, just houses close to the sand. That is precisely why tenants want to be here, and why they tend to stay once they are in.",
-      "Most homes are detached and sit on larger allotments. That gives a tenant space, and gives an owner more to look after — lawns, irrigation, fencing, sheds, and whatever outdoor structure came with the house.",
+      "Most homes are detached and sit on larger allotments. That gives a tenant space, and gives an owner more to look after: lawns, irrigation, fencing, sheds, and whatever outdoor structure came with the house.",
     ],
     managing: [
       {
@@ -178,7 +178,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
 
   "port-hughes": {
     lede:
-      "A small coastal community largely owned from somewhere else — which makes reporting, and someone genuinely on the ground, the whole of the job.",
+      "A small coastal community largely owned from somewhere else, which makes reporting, and someone on the ground, the whole of the job.",
     context: [
       "Port Hughes sits south of Moonta Bay and is small by design: a jetty, a boat ramp, the golf links and a few streets of houses. The rental pool is modest, and a high proportion of the homes are relatively new.",
       "Many owners here live in Adelaide or interstate. They bought for the coast, they visit when they can, and for the rest of the year they need to know what is happening at their property without having to chase anyone for it.",
@@ -190,7 +190,7 @@ const AREA_DETAIL: Record<string, AreaDetail> = {
       },
       {
         title: "Decisions at a distance",
-        body: "An owner living elsewhere needs photographs, a clear explanation and a recommendation — not a forwarded quote and a question mark. Reporting is not administration here; it is the service itself.",
+        body: "An owner living elsewhere needs photographs, a clear explanation and a recommendation, not a forwarded quote and a question mark. Reporting is not administration here; it is the service itself.",
       },
       {
         title: "A modest rental pool",
@@ -219,7 +219,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
   return {
     title: `Property Management in ${area.name}`,
-    description: `${BRAND.name} manages residential investment properties in ${area.name}, on South Australia's Copper Coast. ${area.character}`,
+    description: `Property management for residential investment properties in ${area.name}, on South Australia's Copper Coast. ${area.character}`,
     alternates: { canonical: `/areas-we-serve/${area.slug}` },
   };
 }
@@ -324,7 +324,7 @@ export default async function AreaPage({ params }: { params: Promise<Params> }) 
         <div className="shell">
           <SectionHead
             label={`Managing in ${area.name}`}
-            heading={<>What looking after a rental here actually involves.</>}
+            heading={<>What a rental here involves.</>}
           >
             {area.character}
           </SectionHead>
@@ -406,8 +406,8 @@ export default async function AreaPage({ params }: { params: Promise<Params> }) 
               Thinking about renting out a property in {area.name}?
             </h2>
             <p className="lede mx-auto mt-8 max-w-xl">
-              Start with an appraisal of what it could reasonably rent for, and a straight
-              conversation about what managing it well would involve.
+              Start with a rental appraisal: what it could reasonably rent for, and a straight
+              conversation about what looking after it would involve.
             </p>
             <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
               <Button href="/rental-appraisal" variant="light">

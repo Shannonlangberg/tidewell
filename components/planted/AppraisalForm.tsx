@@ -546,7 +546,7 @@ export function AppraisalForm({ turnstileSiteKey }: { turnstileSiteKey: string |
             maxLength={2000}
             optional
             error={errors.message}
-            hint="Recent works, tenancy details, access notes — whatever helps."
+            hint="Recent works, tenancy details, access notes, anything that helps."
           />
           <CheckboxField
             form={FORM}

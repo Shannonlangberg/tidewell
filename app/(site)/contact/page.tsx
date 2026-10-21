@@ -13,7 +13,7 @@ import { ENQUIRY_TYPE_BY_PARAM, turnstileSiteKey } from "@/lib/enquiries";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: `Get in touch with ${BRAND.name} Residential property management on South Australia's Copper Coast: tell us about your property and we'll come back to you.`,
+  description: `Get in touch with ${BRAND.name}. Tell us about your property or ask a question, and a person will come back to you. Residential property management on South Australia's Copper Coast.`,
   alternates: { canonical: "/contact" },
 };
 
@@ -105,8 +105,8 @@ export default async function ContactPage({
               ) : (
                 <div className="prose-measure mt-8 text-ink-muted">
                   <p>
-                    The form is the way to reach {BRAND.name} It comes directly to us, and
-                    we&rsquo;ll reply by email or phone, whichever you ask for.
+                    The form is the way to reach {BRAND.name} It comes straight to us, and
+                    we&rsquo;ll reply by email or phone, whichever you prefer.
                   </p>
                 </div>
               )}

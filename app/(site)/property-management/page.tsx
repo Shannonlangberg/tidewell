@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: "Property Management, Copper Coast",
   description:
-    "What PLANTED. property management covers, from rental appraisal and leasing through to inspections, maintenance coordination, reporting, renewals and the end of a tenancy.",
+    "What PLANTED. looks after for rental property owners: appraisal, leasing, rent and arrears, inspections, maintenance, reporting, renewals and the end of a tenancy. Based on the Copper Coast, South Australia.",
   alternates: { canonical: "/property-management" },
 };
 
@@ -35,7 +35,7 @@ const SERVICES = [
   },
   {
     title: "Tenant applications and screening",
-    body: "Every application is checked properly — identity, income and employment, rental history, references and the tenancy databases. We set out what we found alongside a recommendation, because who lives in your property is your decision to make.",
+    body: "Every application is checked properly: identity, income and employment, rental history, references and the tenancy databases. We set out what we found alongside a recommendation, because who lives in your property is your decision to make.",
   },
   {
     title: "Lease preparation and administration",
@@ -51,7 +51,7 @@ const SERVICES = [
   },
   {
     title: "Maintenance coordination",
-    body: "Requests are triaged on arrival and sorted by urgency, with safety, security and essential services dealt with immediately. Work is placed with local trades who understand what coastal conditions do to a building, and followed through to completion rather than left for you to chase.",
+    body: "Requests are triaged on arrival and sorted by urgency, with safety, security and essential services dealt with immediately. Work goes to local trades who know the area and the age of the building, and is followed through to completion rather than left for you to chase.",
   },
   {
     title: "Owner communication and reporting",
@@ -70,33 +70,33 @@ const SERVICES = [
 const DIFFERENCES = [
   {
     icon: IconLocal,
-    title: "Relationships",
-    body: "Owners, tenants and trades are people we intend to still be dealing with in ten years. That shapes how every conversation is handled, including the difficult ones.",
+    title: "One person who knows it",
+    body: "Your property has a person looking after it, and they know the tenant, the history and what was agreed last time. You are not starting from scratch on every call.",
   },
   {
     icon: IconCommunication,
-    title: "Communication",
-    body: "You hear from us while things are happening rather than afterwards, from a person who knows the property without looking it up.",
+    title: "Updates while it happens",
+    body: "You hear from us during a repair or a vacancy, not after it. Statements come on a set cycle, and messages are answered promptly.",
   },
   {
     icon: IconCare,
-    title: "Care",
-    body: "A building rewards attention and punishes neglect. We inspect to find the small things early, because that is where the money and the goodwill are saved.",
+    title: "Small things found early",
+    body: "A building rewards attention. We inspect to find the small things early, because that is where the money and the goodwill are saved.",
   },
   {
     icon: IconReporting,
-    title: "Clarity",
-    body: "Fees in writing before anything is signed, statements that show the full picture, and no line item you have to ring us to understand.",
+    title: "Fees in writing",
+    body: "Set out before anything is signed, with what is included and what is not. Statements show the full picture, and there is no line item you have to ring us to understand.",
   },
   {
     icon: IconModern,
-    title: "Modern systems",
-    body: "Digital records, documented processes and information you can get to when you want it, so nothing depends on one person remembering.",
+    title: "Records in one place",
+    body: "Statements, inspection reports, maintenance history and lease dates are kept together, so nothing depends on one person remembering and you can find them when you want them.",
   },
   {
     icon: IconStewardship,
-    title: "Long-term thinking",
-    body: "Decisions are weighed against the next decade of ownership, not the next statement. Sometimes the right advice is to spend rather than save.",
+    title: "Advice for the next decade",
+    body: "Decisions are weighed against the next ten years of ownership, not the next statement. Sometimes the right advice is to spend rather than save.",
   },
 ];
 
@@ -126,7 +126,7 @@ const FAQS: FaqItem[] = [
       <>
         <p>
           Start with your current management agreement: it sets out how the appointment ends and how
-          much notice is required. Everything after that is largely administrative — notice is given,
+          much notice is required. Everything after that is largely administrative: notice is given,
           and the file, keys, condition reports, bond details and tenant records are transferred
           across.
         </p>
@@ -191,13 +191,13 @@ const FAQS: FaqItem[] = [
     a: (
       <>
         <p>
-          Yes. Distance is the main reason detailed reporting exists — the point of photographs and
+          Yes. Distance is the main reason detailed reporting exists. The point of photographs and
           written inspections is that you can see the condition of your property without standing in
           it.
         </p>
         <p>
           Statements, inspection reports and maintenance updates reach you wherever you are, and the
-          inspections, the site visits and the trades are all handled here on the Copper Coast.
+          inspections, site visits and trades are all handled locally, on the Copper Coast.
         </p>
       </>
     ),
@@ -229,15 +229,16 @@ export default function PropertyManagementPage() {
             <Label>{BRAND.descriptor}</Label>
           </div>
           <h1 className="display display-xl reveal reveal-2 mt-8 max-w-[17ch]">
-            Property management with a different perspective.
+            Property management that keeps you in the picture.
           </h1>
           <div className="prose-measure reveal reveal-3 mt-10">
             <p className="lede">
-              Your property is more than an address. It&rsquo;s an investment in your future.
+              Most of your involvement should be reading a statement and making the occasional
+              decision.
             </p>
             <p className="mt-6 text-ink-muted">
-              At {BRAND.name}, our approach is built around protecting your asset, supporting your
-              tenants and making ownership more straightforward.
+              We look after the rest, and tell you what is happening while it is happening. Here is
+              what that covers, and how we go about it.
             </p>
           </div>
           <div className="reveal reveal-4 mt-12 flex flex-col gap-4 sm:flex-row">
@@ -256,11 +257,10 @@ export default function PropertyManagementPage() {
         <div className="shell">
           <SectionHead
             label="What we do"
-            heading={<>Everything a tenancy needs, looked after properly.</>}
+            heading={<>What management covers.</>}
           >
             <p>
-              Management is a long list of small obligations done on time. These are the parts of it
-              {" "}{BRAND.name} takes on, and what each one actually involves.
+              These are the jobs that make up a tenancy, and what each one involves.
             </p>
           </SectionHead>
 
@@ -287,12 +287,11 @@ export default function PropertyManagementPage() {
       <Section tone="ivory">
         <div className="shell">
           <SectionHead
-            label="The difference"
-            heading={<>What makes {BRAND.name} different?</>}
+            label="How we work"
+            heading={<>What you can expect from us.</>}
           >
             <p>
-              Not a longer list of services. A different set of priorities about how those services
-              are carried out.
+              Six things we hold ourselves to on every property.
             </p>
           </SectionHead>
 
@@ -342,8 +341,8 @@ export default function PropertyManagementPage() {
                 Start with an appraisal.
               </h2>
               <p className="lede lede-light mt-8 max-w-xl">
-                It costs nothing, commits you to nothing, and you come away knowing what your
-                property is worth as a rental and what looking after it properly would involve.
+                It costs nothing and commits you to nothing. You will know what the property could
+                rent for and what looking after it would involve.
               </p>
             </div>
             <div className="flex items-end md:col-span-4 md:col-start-9">

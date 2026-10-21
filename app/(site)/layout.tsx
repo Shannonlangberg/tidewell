@@ -12,7 +12,7 @@ import "./planted.css";
  */
 
 const DESCRIPTION =
-  "Residential property management on South Australia's Copper Coast. Proactive care, clear communication and local knowledge for owners of investment properties in Kadina, Wallaroo, Moonta and the surrounding communities.";
+  "Residential property management that starts with people. Based on South Australia's Copper Coast, for owners of investment properties in Kadina, Wallaroo, Moonta and the communities around them.";
 
 export const metadata: Metadata = {
   ...(CONTACT.url ? { metadataBase: new URL(CONTACT.url) } : {}),

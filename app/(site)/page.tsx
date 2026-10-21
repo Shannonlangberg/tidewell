@@ -13,7 +13,7 @@ import { Words } from "@/components/planted/Motion";
 export const metadata: Metadata = {
   title: `${BRAND.name} | ${BRAND.descriptor}, Copper Coast`,
   description:
-    "Residential property management on South Australia's Copper Coast. Proactive care, clear communication and local knowledge for owners and tenants in Kadina, Wallaroo, Moonta and nearby.",
+    "Residential property management that starts with people. Based on South Australia's Copper Coast, for owners and tenants in Kadina, Wallaroo, Moonta and nearby.",
   alternates: { canonical: "/" },
 };
 
@@ -32,18 +32,18 @@ export const metadata: Metadata = {
 const d = (s: number) => ({ "--d": `${s}s` }) as CSSProperties;
 
 const PRINCIPLES = [
-  ["Proactive care", "Regular inspections, attentive maintenance coordination and a long-term approach to protecting your investment."],
-  ["Clear communication", "Clear updates, responsive service and a property management relationship built around transparency."],
-  ["Local knowledge", "A grounded understanding of the Copper Coast rental market and the communities we serve."],
-  ["Modern systems", "Efficient digital processes, accessible information and thoughtful systems designed to make ownership easier."],
+  ["Someone who knows your property", "One person looks after it. When you ring, they already know the property, the tenant and the history, without opening a file."],
+  ["Updates before you ask", "You hear from us while things are happening, not afterwards. Statements arrive on a set cycle, and messages are answered promptly."],
+  ["Inspections that find small things", "Photographed, written up so you can read them, and flagged while a problem is still cheap to fix."],
+  ["Systems behind the people", "Records, reports and tasks live in one place, so nothing depends on someone remembering. That is what gives a person time to pick up the phone."],
 ];
 
 const SERVICES = [
-  ["Rental market appraisal", "We look at the property in its own context: condition, presentation, layout, position and what comparable homes nearby are being advertised and leased for. You get a considered rental range and the reasoning behind it."],
+  ["Rental market appraisal", "We look at the property in its own context: condition, presentation, layout, position and what comparable homes nearby are being advertised and leased for. You get a rental range and the reasoning behind it."],
   ["Marketing and leasing", "Proper photography, an honest description and a listing placed where people actually look for a rental. Inspections are run in person, and you hear how the interest is tracking."],
-  ["Tenant screening", "Every application is checked properly — identity, income and employment, rental history, references and the tenancy databases. Who lives in your property is your decision to make."],
-  ["Routine inspections", "Carried out in person, with photographs and a written report you can actually read. We look for early wear and work that is cheaper now than later."],
-  ["Maintenance coordination", "Requests are triaged on arrival. Work is placed with local trades who understand what coastal conditions do to a building, and followed through to completion."],
+  ["Tenant screening", "Every application is checked properly: identity, income and employment, rental history, references and the tenancy databases. Who lives in your property is your decision to make."],
+  ["Routine inspections", "Carried out in person, with photographs and a written report you can actually read. We look for early wear and for work that is cheaper to do now than later."],
+  ["Maintenance coordination", "Every request is looked at the day it arrives. Work goes to local trades who know the area and the age of the building, and is followed through to completion."],
   ["Reporting and renewals", "Statements on a predictable cycle, set out so the numbers are easy to follow. Renewal conversations start well before a lease ends, and the decision stays yours."],
 ];
 
@@ -54,13 +54,13 @@ const TENANT_CARDS: { title: string; body: string; photo?: { src: string; alt: s
     photo: { src: "/photos/north-beach.jpg", alt: "A limestone house with a deep wraparound verandah and the sea beyond" },
   },
   {
-    title: "Maintenance, handled",
-    body: "Requests are triaged on arrival. Anything affecting safety, security or an essential service is acted on straight away.",
+    title: "Repairs that get seen to",
+    body: "Every request is looked at the day it arrives. Anything that affects safety, security or an essential service is dealt with straight away.",
     placeholder: "Local tradesperson at a front door — to commission",
   },
   {
     title: "Moving on, fairly",
-    body: "The outgoing inspection is completed against the original condition report, so fair wear is a matter of record rather than opinion.",
+    body: "The final inspection is compared with the condition report from the start of the tenancy, so fair wear and tear is on record rather than a matter of opinion.",
     photo: { src: "/photos/wallaroo.jpg", alt: "A sandstone villa with a bullnose verandah and cast-iron lacework" },
   },
 ];
@@ -116,7 +116,7 @@ export default function HomePage() {
         <div className="hero-copy">
           <div>
             <p className="label rv" style={d(0.1)}>
-              Property management · Copper Coast
+              Residential property management
             </p>
             <Lines
               as="h1"
@@ -124,19 +124,19 @@ export default function HomePage() {
               className="display-hero mt-[clamp(1.5rem,3vw,2.5rem)]"
               delay={0.15}
               lines={[
-                "A better place",
+                "Good property management",
                 <>
-                  for your <span className="it">property.</span>
+                  starts with <span className="it">people.</span>
                 </>,
               ]}
             />
             <div className="rv mt-[clamp(1.5rem,2.5vw,2.25rem)]" style={d(0.55)}>
               <p className="lede">
-                Thoughtful, relationship-led property management for owners and tenants across the
-                Copper Coast. Local knowledge, proactive care and clear communication.
+                Owning an investment property should feel easier. You should know who is looking after
+                it, what is happening with it, and that someone genuinely cares.
               </p>
               <div className="hero-actions">
-                <Button href="#contact">Book a rental appraisal</Button>
+                <Button href="#contact">Let&rsquo;s talk about your property</Button>
                 <RuleLink href="#approach" arrow={false}>
                   How we work <Arrow direction="down" size={12} />
                 </RuleLink>
@@ -144,16 +144,16 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-foot rv" style={d(0.8)}>
-            <p className="m-0 font-medium">People. Property. Potential.</p>
+            <p className="m-0 font-medium">{BRAND.name} {BRAND.descriptor}</p>
             <p className="text-muted m-0 max-w-[22rem] text-right text-[0.875rem]">
-              {AREAS.map((a) => a.name).join(" · ")}
+              For owners, and the people who rent from them.
             </p>
           </div>
         </div>
         <div className="hero-media reveal-img" style={d(0.2)}>
           <Image
             src="/photos/12-bayview-road.jpg"
-            alt="A contemporary Copper Coast home at dusk, lit from within"
+            alt="A contemporary home at dusk, lit from within"
             width={1600}
             height={1333}
             sizes="(min-width: 64rem) 50vw, 100vw"
@@ -162,7 +162,7 @@ export default function HomePage() {
           />
           <div className="glass">
             <span>
-              <b className="font-medium">Copper Coast,</b> South Australia
+              <b className="font-medium">A better place</b> for your property
             </span>
             <span aria-hidden="true" className="inline-flex items-center gap-2 opacity-85">
               Scroll <Arrow direction="down" size={12} />
@@ -180,7 +180,7 @@ export default function HomePage() {
           </h2>
           <div className="pl-grid mt-[clamp(3rem,6vw,5rem)]">
             <div className="md:col-span-10 md:col-start-3">
-              <Words text="Your investment property deserves more than routine management. We believe exceptional property management starts with genuine care, clear communication and a long-term perspective." />
+              <Words text="Most of property management is small things done on time, and telling you about them before you have to ask. That is what we are building PLANTED around." />
             </div>
           </div>
           <div className="principles">
@@ -205,10 +205,9 @@ export default function HomePage() {
           <div className="pl-grid mt-[clamp(3rem,6vw,5rem)] gap-y-12">
             <div className="md:col-span-5">
               <div className="md:sticky md:top-24">
-                <Lines id="owners-h" lines={["Consider it", <span key="c" className="it">cared for.</span>]} />
+                <Lines id="owners-h" lines={["What we look after", <span key="c" className="it">for you.</span>]} />
                 <p className="lede rv mt-7">
-                  Management is a long list of small obligations done on time. These are the parts of it{" "}
-                  {BRAND.name} takes on, and what each one actually involves.
+                  Management is a long list of small jobs done on time. Here is each one in plain terms.
                 </p>
                 <div className="rv mt-9">
                   <Button href="#contact" variant="light">
@@ -255,13 +254,13 @@ export default function HomePage() {
               lines={[
                 "A home that’s",
                 <>
-                  genuinely <span className="it">looked after.</span>
+                  <span className="it">looked after.</span>
                 </>,
               ]}
             />
             <p className="lede rv max-w-[26rem]">
-              Good tenancies are built on respect on both sides. We keep things clear, fair and responsive,
-              from the first inspection to the day you move on.
+              Good tenancies depend on both sides being treated fairly. You will know who to call, what
+              happens next and when.
             </p>
           </div>
           <div className="cards3">
@@ -294,14 +293,14 @@ export default function HomePage() {
           <div className="pl-grid mt-[clamp(3rem,6vw,5rem)] gap-y-6">
             <div className="flex flex-col justify-between gap-12 md:col-span-5">
               <div>
-                <Lines id="people-h" lines={["Relationships,", <span key="m" className="it">measured in decades.</span>]} />
+                <Lines id="people-h" lines={["The people", <span key="m" className="it">behind it.</span>]} />
                 <div className="rv mt-7 grid max-w-[30rem] gap-[1.1rem]">
                   <p className="lede text-ink">
-                    Owners, tenants and trades are people we intend to still be dealing with in ten years. That
-                    shapes how every conversation is handled, including the difficult ones.
+                    We want to still be dealing with the same owners, tenants and trades in ten years. That
+                    changes how you handle every conversation, including the hard ones.
                   </p>
                   <p className="text-muted m-0">
-                    When you call, you reach the person who already knows your property, without looking it up.
+                    When you ring, you reach someone who already knows your property.
                   </p>
                 </div>
                 <div className="rv mt-8">
@@ -324,18 +323,18 @@ export default function HomePage() {
       {/* ── 05 Community ────────────────────────────────────────── */}
       <section id="community" className="section !pt-0" aria-labelledby="community-h">
         <div className="shell">
-          <SecRule label="Community" n="05" className="rv" />
+          <SecRule label="Where we begin" n="05" className="rv" />
         </div>
         <TownRail
           head={
             <>
               <Lines
                 id="community-h"
-                lines={["Proudly local.", <span key="b" className="it">Built for what comes next.</span>]}
+                lines={["Where we", <span key="b" className="it">are starting.</span>]}
               />
               <p className="lede rv mt-6">
-                Beginning on South Australia&rsquo;s Copper Coast, {BRAND.name} is built around the communities
-                we know and the people who invest in them.
+                {BRAND.name} begins on South Australia&rsquo;s Copper Coast, in the towns below. We will add
+                a place to this list only once we can look after properties there properly.
               </p>
             </>
           }
@@ -383,9 +382,8 @@ export default function HomePage() {
                 ]}
               />
               <p className="lede rv mt-7">
-                Start with a rental appraisal. It costs nothing, commits you to nothing, and you come away
-                knowing what your property is worth as a rental and what looking after it properly would
-                involve.
+                A good first step is a rental appraisal. It costs nothing and commits you to nothing. You
+                come away knowing what the property could rent for and what looking after it would involve.
               </p>
               <dl className="rv mt-12 grid gap-5">
                 {CONTACT.phone && (
@@ -427,7 +425,7 @@ export default function HomePage() {
       {/* Phones: the next step at thumb height once the hero has gone, hidden
           again at the contact band (Motion.tsx toggles it). */}
       <div className="mcta" aria-hidden="true" inert>
-        <Button href="#contact">Book a rental appraisal</Button>
+        <Button href="#contact">Let&rsquo;s talk</Button>
       </div>
     </>
   );
