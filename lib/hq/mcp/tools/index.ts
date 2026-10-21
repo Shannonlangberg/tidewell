@@ -24,6 +24,8 @@
  * tasks get projects, milestones, subtasks, dependencies, checklists and comments, can be created or
  * changed 50 at a time, and the focus tools answer "what are my priorities", "what is overdue" and
  * "what is blocking"; archiving a project, its documents and related records are HQ screens only.
+ * The brand library (brand.ts) can be listed, opened (text files as content, pictures and PDFs as a 10-minute
+ * signed link) and summarised, by anyone with resources.read; adding, replacing and archiving files are HQ screens only.
  * The command center (leadership.ts) answers focus, workboard, launch, waiting, the weekly review and
  * planning items through the dashboard's own rules; it moves tasks between lanes, sets and clears what a
  * task waits on, proposes (then, if agreed, saves) a week plan, and records planning items; it never
@@ -63,6 +65,7 @@ import { completeMilestone, createMilestone, createProject, getProject, listProj
 import { addTaskComment, addTaskDependency, completeTask, getTask, removeTaskDependency, setTaskChecklist } from "./project-tasks";
 import { founderPriorities, listOverdue, whatIsBlocking } from "./focus";
 import { bulkCreateTasks, bulkUpdateTasks } from "./bulk-tasks";
+import { getBrandResource, getBrandSummary, listBrandResources } from "./brand";
 import {
   focusToday,
   launchProgress,
@@ -182,6 +185,10 @@ export const TOOLS: ToolDef[] = [
   // bulk (kind "bulk": one call, one transaction, the database's bulk budget)
   bulkCreateTasks,
   bulkUpdateTasks,
+  // brand resources (read only: the library is added to and changed in HQ by a director or administrator)
+  listBrandResources,
+  getBrandResource,
+  getBrandSummary,
   // command center (leadership.ts): the dashboard's focus, lanes, launch readiness, waiting and planning, through the same rules
   focusToday,
   workboard,

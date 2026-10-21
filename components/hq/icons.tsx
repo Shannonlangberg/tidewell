@@ -45,7 +45,10 @@ export type IconName =
   | "clock"
   | "inbox"
   | "book"
-  | "projects";
+  | "projects"
+  | "resources"
+  | "download"
+  | "copy";
 
 const GLYPHS: Record<IconName, ReactNode> = {
   // Four panels of different heights: a layout, not a gauge.
@@ -149,6 +152,28 @@ const GLYPHS: Record<IconName, ReactNode> = {
     <>
       <path d="M12 6.5C10.5 5.2 8.3 4.5 4.5 4.5v13c3.8 0 6 .7 7.5 2 1.5-1.3 3.7-2 7.5-2v-13c-3.8 0-6 .7-7.5 2Z" />
       <path d="M12 6.5v13" />
+    </>
+  ),
+  // A framed picture (hills and a sun): the brand library.
+  resources: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m4 18 5-4.5 3.5 3 3-2.5 4.5 4" />
+    </>
+  ),
+  // An arrow into a tray.
+  download: (
+    <>
+      <path d="M12 4.5v10" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M5 19.5h14" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+      <path d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2" />
     </>
   ),
   task: (
@@ -332,3 +357,6 @@ export const BuildingIcon = make("building");
 export const LinkIcon = make("link");
 export const ClockIcon = make("clock");
 export const InboxIcon = make("inbox");
+export const ResourcesIcon = make("resources");
+export const DownloadIcon = make("download");
+export const CopyIcon = make("copy");

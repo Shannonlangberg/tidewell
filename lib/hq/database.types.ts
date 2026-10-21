@@ -89,6 +89,138 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_resource_versions: {
+        Row: {
+          change_note: string | null
+          content_sha256: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          file_name: string
+          id: string
+          label: string
+          mime_type: string
+          resource_id: string
+          size_bytes: number
+          storage_path: string
+          version_number: number
+        }
+        Insert: {
+          change_note?: string | null
+          content_sha256: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          file_name: string
+          id?: string
+          label: string
+          mime_type: string
+          resource_id: string
+          size_bytes: number
+          storage_path: string
+          version_number: number
+        }
+        Update: {
+          change_note?: string | null
+          content_sha256?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          file_name?: string
+          id?: string
+          label?: string
+          mime_type?: string
+          resource_id?: string
+          size_bytes?: number
+          storage_path?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_resource_versions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "brand_resource_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_resource_versions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "brand_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_resources: {
+        Row: {
+          category: Database["hq"]["Enums"]["brand_resource_category"]
+          content_sha256: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          note: string | null
+          ref_number: number
+          size_bytes: number
+          sort_order: number
+          storage_path: string
+          tags: string[]
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: string
+        }
+        Insert: {
+          category: Database["hq"]["Enums"]["brand_resource_category"]
+          content_sha256: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          note?: string | null
+          ref_number?: never
+          size_bytes: number
+          sort_order?: number
+          storage_path: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string
+        }
+        Update: {
+          category?: Database["hq"]["Enums"]["brand_resource_category"]
+          content_sha256?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          note?: string | null
+          ref_number?: never
+          size_bytes?: number
+          sort_order?: number
+          storage_path?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
       bulk_usage: {
         Row: {
           at: string
@@ -3878,6 +4010,34 @@ export type Database = {
       }
     }
     Views: {
+      brand_resource_overview: {
+        Row: {
+          category: Database["hq"]["Enums"]["brand_resource_category"] | null
+          content_sha256: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          deleted_at: string | null
+          description: string | null
+          file_name: string | null
+          id: string | null
+          mime_type: string | null
+          note: string | null
+          ref: string | null
+          ref_number: number | null
+          size_bytes: number | null
+          sort_order: number | null
+          storage_path: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_name: string | null
+          version: string | null
+          version_number: number | null
+        }
+        Relationships: []
+      }
       contact_directory: {
         Row: {
           categories: Database["hq"]["Enums"]["partner_category"][] | null
@@ -5327,6 +5487,10 @@ export type Database = {
         Args: { p_document: string; p_version: number }
         Returns: Json
       }
+      archive_brand_resource: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: Json
+      }
       archive_record: {
         Args: { p_entity: string; p_id: string; p_reason?: string }
         Returns: Json
@@ -5561,6 +5725,25 @@ export type Database = {
         Returns: Json
       }
       growth_summary: { Args: { p_since?: string }; Returns: Json }
+      import_brand_resource: {
+        Args: {
+          p_actor: string
+          p_category: Database["hq"]["Enums"]["brand_resource_category"]
+          p_change_note?: string
+          p_content_sha256: string
+          p_description: string
+          p_file_name: string
+          p_mime_type: string
+          p_note?: string
+          p_resource: string
+          p_size_bytes: number
+          p_sort_order?: number
+          p_storage_path: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: Json
+      }
       link_decision_task: {
         Args: { p_decision: string; p_task: string }
         Returns: Json
@@ -5728,6 +5911,22 @@ export type Database = {
         }
         Returns: Json
       }
+      register_brand_resource: {
+        Args: {
+          p_category: Database["hq"]["Enums"]["brand_resource_category"]
+          p_content_sha256: string
+          p_description: string
+          p_file_name: string
+          p_mime_type: string
+          p_note?: string
+          p_size_bytes: number
+          p_sort_order?: number
+          p_storage_path: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: Json
+      }
       reinstate_contractor: {
         Args: { p_contractor: string; p_note?: string }
         Returns: Json
@@ -5753,6 +5952,19 @@ export type Database = {
         Args: { p_ids: string[]; p_project: string }
         Returns: Json
       }
+      replace_brand_resource_file: {
+        Args: {
+          p_change_note?: string
+          p_content_sha256: string
+          p_file_name: string
+          p_id: string
+          p_mime_type: string
+          p_size_bytes: number
+          p_storage_path: string
+          p_version_label?: string
+        }
+        Returns: Json
+      }
       resolve_task_waiting: {
         Args: {
           p_due?: string
@@ -5763,6 +5975,7 @@ export type Database = {
         }
         Returns: Json
       }
+      restore_brand_resource: { Args: { p_id: string }; Returns: Json }
       restore_knowledge_version: {
         Args: {
           p_base_version: number
@@ -5902,6 +6115,18 @@ export type Database = {
       }
       unlink_meeting: {
         Args: { p_id: string; p_kind: string; p_meeting: string }
+        Returns: Json
+      }
+      update_brand_resource: {
+        Args: {
+          p_category: Database["hq"]["Enums"]["brand_resource_category"]
+          p_description: string
+          p_id: string
+          p_note: string
+          p_sort_order: number
+          p_tags: string[]
+          p_title: string
+        }
         Returns: Json
       }
       update_decision: {
@@ -6063,6 +6288,14 @@ export type Database = {
     }
     Enums: {
       ailo_status: "not_started" | "set_up" | "live"
+      brand_resource_category:
+        | "guidelines"
+        | "logos"
+        | "photos"
+        | "colours_type"
+        | "tokens"
+        | "ui_kit"
+        | "other"
       contact_kind: "partner" | "landlord" | "other"
       contractor_document_type:
         | "licence"
@@ -6389,6 +6622,15 @@ export const Constants = {
   hq: {
     Enums: {
       ailo_status: ["not_started", "set_up", "live"],
+      brand_resource_category: [
+        "guidelines",
+        "logos",
+        "photos",
+        "colours_type",
+        "tokens",
+        "ui_kit",
+        "other",
+      ],
       contact_kind: ["partner", "landlord", "other"],
       contractor_document_type: [
         "licence",

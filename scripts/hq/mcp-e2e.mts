@@ -523,8 +523,10 @@ async function toolChecks(ctx: Ctx): Promise<void> {
       check(`junior: forcing ${name} is refused`, r.isError === true, textOf(r).slice(0, 100));
     }
   }
-  // Nothing in the tool list can approve, archive, delete, import or touch people/settings.
-  const banned = ctx.dirTools.filter((n) => /approve|prefer|suspend|reinstate|deactivate|archive|delete|import|document|setting|role|sign_management/.test(n));
+  // Nothing in the tool list can approve, archive, delete, import or touch people/settings. The one deliberate exception is the
+  // knowledge base (docs/hq-mcp.md section 11): approvers can approve (only while a director has switched it on), archive and restore documents.
+  const KNOWLEDGE_APPROVER_TOOLS = ["approve_knowledge", "archive_knowledge", "restore_knowledge_document"];
+  const banned = ctx.dirTools.filter((n) => !KNOWLEDGE_APPROVER_TOOLS.includes(n) && /approve|prefer|suspend|reinstate|deactivate|archive|delete|import|document|setting|role|sign_management/.test(n));
   check("no tool approves, archives, deletes, imports, handles documents, people or settings", banned.length === 0, banned.join(", "));
   if (has("move_opportunity")) {
     const opp = await db.from("opportunities").select("id, stage").is("deleted_at", null).neq("stage", "management_signed").limit(1).maybeSingle();

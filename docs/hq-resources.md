@@ -1,0 +1,54 @@
+# Resources: PLANTED.'s brand library in HQ
+
+`/hq/resources` (nav: **Resources**, in the sidebar and the phone's More sheet) is the home of PLANTED.'s branding: the brand guide, logos and other assets, colours, fonts and type styles, photos, design tokens and UI kit code. Every member of staff can view and download it; connected chat apps (ChatGPT, Claude) can list, read and fetch it through three read-only tools (hq-mcp.md section 15); a director or administrator adds to it and updates it.
+
+## What is on the page
+
+- **Brand at a glance.** The colours (click a swatch to copy its hex; each shows its name, hex, RGB, CMYK where the brand book gives it, what it is for and where to use it), the two typefaces as specimens with their weights, how each is used and the Google Fonts links (the design system has no font files), the name rules, and a strip of the main logo lockups. The colours and type come from `lib/hq/brand.ts`, whose values come only from the design-system folder (`tokens/colors.css`, `tokens/typography.css`, `tokens/fonts.css`, `readme.md`, the brand book); `lib/hq/resources/brand.test.mts` pins them. The logo strip is the library's own files.
+- **The files**, grouped by category, with search (title, file name, description, tags, or a number like RES-0007) and a category filter. Each file shows a thumbnail for pictures (SVG, PNG, JPEG) or its type, its type, size and version, a "Has a note" mark and tags, and a **Download** button. **Download all** (a zip of the whole library) and a zip per category.
+- **A resource's page** (`/hq/resources/<id>`): a preview (pictures through a short-lived signed link in an `<img>`; text, CSS, Markdown, JSON, JavaScript and HTML files as text in a code block with a Copy text button when they are under 150 KB; PDFs, zips and fonts are download only), its details (category, file, type, size, version, who added it and when, tags, SHA-256 fingerprint), its **note** as a banner, the **version history** with a download for every earlier file, **Download** and **Copy link**.
+
+**HQ never renders an uploaded file as a page.** An SVG is shown only through `<img>` (scripts in it cannot run), HTML is shown as its source and offered as a download, and every download is served as an attachment. HQ does not scan files for malware: only add files you trust.
+
+## Categories
+
+`guidelines` (the brand book and guideline cards, readme, SKILL, and "Voice and wording (current)"), `logos` (artwork and PNG exports; the two unadopted alternative directions carry the tag *unadopted alternative direction*), `photos`, `colours_type` (colour and type tokens, font loading, base styles), `tokens` (the rest of the design-system CSS), `ui_kit` (component JSX and types, their usage notes, the website UI kit), `other`.
+
+## Who can do what
+
+| | view, search, download, copy a link, chat tools | add a file, change details, replace the file, archive, restore |
+|---|---|---|
+| Every role that signs in to HQ (director, administrator, senior property manager, property manager, junior property manager, business development manager, virtual assistant, read-only) | yes (`resources.read`) | no |
+| Director, administrator | yes | yes (`resources.manage`) |
+
+The matrix is data (`hq.role_capabilities`; an assumption for the owner to confirm). Chat apps never add, change or archive anything.
+
+## Adding and updating files (a director or administrator)
+
+- **Add a file:** Resources, **Add a file**. Choose the file (SVG, PNG, JPEG, PDF, CSS, JavaScript, JSON, Markdown, text, HTML, ZIP or a WOFF, WOFF2, TTF or OTF font, up to **10 MB**), a title (unique), a category, an optional description, tags (comma separated, up to 12) and an optional **note**. The note shows as a banner on the resource and in chat (use it for a warning such as "part of this is out of date"). The browser works out the file's SHA-256 and uploads it straight to private storage with a signed upload link (so the file never passes through the server); HQ then reads it back, checks its size and fingerprint, and registers it.
+- **Replace the file** (on the resource's page): upload the new file; the resource now points at it as the next version (`v2`, `v3`, or a label you type). The **old file is kept** and stays downloadable from the version history. The new file must differ from the current one.
+- **Edit details:** title, category, description, tags, note and order (a number from 0 to 9999; lower comes first within a category).
+- **Archive / Restore:** an archived resource leaves the library for staff and for chat; nothing is erased (files and versions stay) and a director or administrator can restore it. There is no delete.
+- The same content cannot be in the same category twice, and a title can be used once; the form says so in plain words and nothing is uploaded when it can tell in advance.
+
+Plain-language messages you may see: *Another resource already has that title. Choose a different one.* / *This file is already in the library as RES-0007 "Title" (the same content in the same category).* / *That kind of file cannot be added. The library takes SVG, PNG, JPEG, PDF, CSS, JavaScript, JSON, Markdown, text, HTML, ZIP and font (WOFF, WOFF2, TTF, OTF) files.* / *That file is larger than 10 MB. Choose a smaller one.* / *That file is empty.* / *That file is the same as the current version.* / *The upload did not finish. Check your connection and try again.* / *The uploaded file does not match the one you chose. Try again.*
+
+## Importing the design-system folder
+
+```bash
+node --env-file=.env.local scripts/hq/import-brand-resources.mts "/path/to/PLANTED. Design System" [--target local|live] [--dry-run] [--as <staff email>] [--confirm]
+```
+
+- **Local by default.** `--target local` refuses any host that is not the local stack. `--target live` reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` from the environment, refuses a local host, needs `--as <email of an active director or administrator>` and, for a real run, `--confirm`; `--dry-run` shows the plan and changes nothing. Always dry-run first.
+- **It maps the folder** (lib/hq/resources/import-map.ts): guidelines (`guidelines/*.html`, `brand/Brand Guidelines.html`, `readme.md`, `SKILL.md`), logos (`assets/logos/**`, `alt/` tagged), photos (`assets/photos`), colours and type (`tokens/colors.css`, `typography.css`, `fonts.css`, `styles/base.css`), tokens (`styles.css`, `tokens/layout.css`, `styles/components.css`, `brand/guidelines.css`), UI kit (`components/**`, `ui_kits/**`), other (`_ds_bundle.js`, `_ds_manifest.json`, `_adherence.oxlintrc.json`, `github.md`, `thumbnail.html`). `.DS_Store`, `.thumbnail` and other dot files are skipped; a file the map does not know goes under Other with its path as the title. Titles and descriptions come from the files' own `@dsCard` lines, their first line, or the map.
+- **Idempotent.** A file whose content is already in the category is left alone; a file whose title exists but whose content changed becomes a **new version** of that resource (the old file is kept); anything else is added. Running it twice adds nothing. (A resource whose title was edited in HQ is not found by title; its unchanged file is still recognised by content.)
+- **The voice rule.** The folder's `readme.md` ("Approved phrases"), `guidelines/voice.html` and the voice section of the brand book still list phrases the business has dropped ("Property management, thoughtfully reimagined", "People. Property. Potential.", "More than management. Peace of mind.", "Consider it cared for."). They are imported **untouched** with the note *Parts of the voice guidance in this file are out of date. Where it conflicts with "Voice and wording (current)", follow that document.* The importer also creates **Voice and wording (current)** from section 11 of `docs/brand-design-system.md` (the test, do and don't, liked lines, approved phrases) plus the tagline rule and *PLANTED. in headings and UI; PLANTED in running prose.*, and re-running it after that section changes adds a new version. `get_brand_summary` repeats the current rules and lists the dropped phrases only as dropped.
+- **The secret key.** The importer is a local script, not app code: it reads the key from the environment, never imports `lib/supabase/secret.ts` (so the ESLint boundary in docs/backend-design.md section 6 does not apply to it, as for the seed scripts) and calls one function, `hq.import_brand_resource`, which only `service_role` can execute. That function acts for the named member of staff (an active director or administrator, checked inside) so the library's rules apply and the audit trail says "Imported ... by <name>". Stored files are uploaded with the same key.
+
+## How it is protected
+
+Private bucket `brand-resources` (10 MiB per file, a type allowlist from `hq_private.brand_mimes()`); tables `hq.brand_resources` (RES-0001 numbers; the row describes the current file) and `hq.brand_resource_versions` (append-only); view `hq.brand_resource_overview` (security invoker). RLS enabled and forced; the API may only read; every write goes through `register_brand_resource`, `update_brand_resource`, `replace_brand_resource_file`, `archive_brand_resource` and `restore_brand_resource` (security definer, capability and second-step checked, search path pinned, audited as entity `brand_resource`: create, update, replace_file, archive, restore, import). Storage policies: `resources.read` may read a file that belongs to a resource version they can see; `resources.manage` may add a file under `<resource id>/<object id>-<name>` and read any object of that shape (so the server can check an upload before it is registered); there is no update or delete policy, so nobody can overwrite or remove a stored file through the API. Downloads are signed links (60 seconds) made with the person's own session and sent as attachments; the zip is built by `/hq/resources/zip` as the person (a small dependency-free "stored" zip writer, `lib/hq/resources/zip.ts`: the whole library or one category, each file read with the person's own session, built in memory and refused above 80 MB with a message pointing at the per-category zip).
+
+Migrations `0151_hq_brand_resources.sql`, `0152_hq_brand_resources_rpc.sql`, `0153_hq_function_acl_brand_resources.sql`; tests `supabase/tests/hq_18_brand_resources.sql` (152 tests; every rule and every role), `lib/hq/resources/*.test.mts`, `lib/hq/mcp/tools/brand-*.test.mts`; the chat tools are checked by `scripts/hq/mcp-tools-smoke.mts` section 2j.
+
+**Not yet:** resources in global search (`Cmd/Ctrl+K`; the Resources page and `list_brand_resources` cover it), image resizing for thumbnails (a thumbnail loads the whole picture), a way to reorder by drag, editing a stored file in place (replace it instead), removing a file or version (there is no delete), and notifying people when the brand changes.
