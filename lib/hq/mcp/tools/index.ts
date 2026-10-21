@@ -24,6 +24,8 @@
  * tasks get projects, milestones, subtasks, dependencies, checklists and comments, can be created or
  * changed 50 at a time, and the focus tools answer "what are my priorities", "what is overdue" and
  * "what is blocking"; archiving a project, its documents and related records are HQ screens only.
+ * The brand library (brand.ts) can be listed, opened (text files as content, pictures and PDFs as a 10-minute
+ * signed link) and summarised, by anyone with resources.read; adding, replacing and archiving files are HQ screens only.
  * Nothing anywhere is hard-deleted.
  */
 import type { ToolDef } from "../types";
@@ -59,6 +61,7 @@ import { completeMilestone, createMilestone, createProject, getProject, listProj
 import { addTaskComment, addTaskDependency, completeTask, getTask, removeTaskDependency, setTaskChecklist } from "./project-tasks";
 import { founderPriorities, listOverdue, whatIsBlocking } from "./focus";
 import { bulkCreateTasks, bulkUpdateTasks } from "./bulk-tasks";
+import { getBrandResource, getBrandSummary, listBrandResources } from "./brand";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -164,6 +167,10 @@ export const TOOLS: ToolDef[] = [
   // bulk (kind "bulk": one call, one transaction, the database's bulk budget)
   bulkCreateTasks,
   bulkUpdateTasks,
+  // brand resources (read only: the library is added to and changed in HQ by a director or administrator)
+  listBrandResources,
+  getBrandResource,
+  getBrandSummary,
 ];
 
 /** The tools a person with these capabilities may see and call. */

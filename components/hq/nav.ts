@@ -43,6 +43,8 @@ export const HQ_ROUTES = {
   decisions: `${HQ_BASE}/decisions`,
   /** The Knowledge base: procedures, policies, checklists and how PLANTED. speaks (approved versions for staff). */
   knowledge: `${HQ_BASE}/knowledge`,
+  /** Resources: PLANTED.'s brand library (guide, logos, photos, colours and type, tokens, UI kit). Everyone reads and downloads it. */
+  resources: `${HQ_BASE}/resources`,
   /** Meetings: minutes, summaries and action items, mostly saved from ChatGPT or Claude through the HQ connector. */
   meetings: `${HQ_BASE}/meetings`,
   meetingNew: `${HQ_BASE}/meetings/new`,
@@ -84,7 +86,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "contacts" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "settings" | "profile";
+export type NavKey = "dashboard" | "growth" | "contacts" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "resources" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -132,6 +134,7 @@ export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "meetings", label: "Meetings", href: HQ_ROUTES.meetings, icon: "calendar", requires: "meetings.read", mobile: "more" },
   { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", mobile: "more" },
   { key: "knowledge", label: "Knowledge", href: HQ_ROUTES.knowledge, icon: "book", requires: "knowledge.read", mobile: "more" },
+  { key: "resources", label: "Resources", href: HQ_ROUTES.resources, icon: "resources", requires: "resources.read", mobile: "more" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */

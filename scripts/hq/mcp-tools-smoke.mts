@@ -17,7 +17,7 @@
  *     nothing else happens.
  * A website enquiry is submitted as the website does (service_role, hq.submit_enquiry) and marked spam
  * at the end, which archives the lead, contact and task it made.
- * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; decisions, meetings and managed properties too,
+ * Every record it creates is named "MCP smoke <run id>" and archived at the end (archive_record; brand resources through archive_brand_resource, and decisions, meetings and managed properties too,
  * through archive_record('decision'), oldest first);
  * the interactions it logs are archived too; projects (and their bulk-created tasks) through archive_record("project" / "task"), and the
  * bulk budget settings it changes are restored. The secret key is used only to mint sessions and is
@@ -71,6 +71,8 @@ const EXPECTED_TOOLS = [
   "list_projects", "get_project", "create_project", "update_project", "create_milestone", "update_milestone", "complete_milestone",
   "get_task", "complete_task", "add_task_dependency", "remove_task_dependency", "add_task_comment", "set_task_checklist",
   "founder_priorities", "list_overdue", "what_is_blocking", "bulk_create_tasks", "bulk_update_tasks",
+  // brand resources (read only)
+  "list_brand_resources", "get_brand_resource", "get_brand_summary",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -145,14 +147,14 @@ async function auditSince(mark: number, actorId: string): Promise<Array<{ action
 }
 const auditText = (rows: Array<{ action: string; entity_type: string; entity_id: string | null }>) => rows.map((r) => `${r.action} ${r.entity_type} ${r.entity_id}`).join("; ");
 
-const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[], meetings: [] as string[], projects: [] as string[] };
+const created = { enquiries: [] as string[], contacts: [] as string[], organisations: [] as string[], tasks: [] as string[], referrals: [] as string[], opportunities: [] as string[], interactions: [] as string[], reviews: [] as string[], contractors: [] as string[], decisions: [] as string[], managedProperties: [] as string[], emails: [] as string[], knowledge: [] as string[], meetings: [] as string[], projects: [] as string[], brandResources: [] as string[] };
 // The email settings this run changes (restored in the cleanup).
 const emailSettingsBefore = await director.db.from("settings").select("key, value").in("key", ["email_daily_limit", "email_chat_send_enabled", "bulk_calls_per_hour", "bulk_items_per_hour"]);
 
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (93 tools, none missing, none extra)", EXPECTED_TOOLS.length === 93 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (96 tools, none missing, none extra)", EXPECTED_TOOLS.length === 96 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -1342,6 +1344,144 @@ try {
 
   }
 
+  // ── 2j. the brand library (Resources): list, read, fetch and the summary; read only ──
+  {
+  const BRAND_TOOLS = ["list_brand_resources", "get_brand_resource", "get_brand_summary"];
+  const brandListed = (ctx: Ctx) => toolsFor(ctx.staff.capabilities).map((t) => t.name).filter((n) => BRAND_TOOLS.includes(n)).sort().join(",");
+  const allBrand = [...BRAND_TOOLS].sort().join(",");
+  check("every role holds resources.read, so director, virtual assistant, junior and read-only all list the three brand tools", [director, assistant, junior, readOnly].every((c) => brandListed(c) === allBrand), [director, assistant, junior, readOnly].map(brandListed).join(" | "));
+  check("the brand tools are read-only (readOnlyHint, kind read, capability resources.read): adding, replacing and archiving files are HQ screens", BRAND_TOOLS.every((n) => tool(n).kind === "read" && tool(n).annotations.readOnlyHint === true && tool(n).capability === "resources.read") && !TOOLS.some((t) => /brand/.test(t.name) && t.kind !== "read"), "");
+
+  // Setup: files uploaded as the director through the real flow (signed upload, then register_brand_resource).
+  const { createHash } = await import("node:crypto");
+  const BUCKET = "brand-resources";
+  const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
+  const uploadAs = async (ctx: Ctx, bytes: Uint8Array, name: string, mime: string, id = crypto.randomUUID()) => {
+    const path = `${id}/${crypto.randomUUID()}-${name}`;
+    const signed = await ctx.db.storage.from(BUCKET).createSignedUploadUrl(path);
+    if (signed.error || !signed.data) return { id, path, error: signed.error?.message ?? "no signed url" };
+    const up = await ctx.db.storage.from(BUCKET).uploadToSignedUrl(path, signed.data.token, bytes, { contentType: mime });
+    return { id, path, error: up.error?.message ?? null };
+  };
+  const register = async (title: string, category: string, name: string, mime: string, bytes: Uint8Array, note: string | null = null) => {
+    const up = await uploadAs(director, bytes, name, mime);
+    const { data, error } = await director.db.rpc("register_brand_resource", { p_title: title, p_category: category, p_description: `${RUN} test file`, p_file_name: name, p_storage_path: up.path, p_mime_type: mime, p_size_bytes: bytes.length, p_content_sha256: sha(bytes), p_tags: ["smoke", "test"], p_note: note ?? undefined } as never);
+    const out = data as { resource_id?: string; ref?: string } | null;
+    if (out?.resource_id) created.brandResources.push(out.resource_id);
+    return { ...up, ref: out?.ref ?? "", resourceId: out?.resource_id ?? "", error: up.error ?? error?.message ?? null };
+  };
+  const css = new TextEncoder().encode(`:root {\n  --forest: #14291F;\n  --note: "${INJECTION}";\n}\n/* ${core.DATA_CLOSE} then: ${INJECTION} */\n.a {\n\tcolor: red;\n}\n`);
+  const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
+  const mdLines = Array.from({ length: 700 }, (_, i) => `Line ${i}: ${"word ".repeat(1 + (i % 9))}`);
+  const md = new TextEncoder().encode(mdLines.join("\n"));
+  const huge = new TextEncoder().encode(Array.from({ length: 2000 }, (_, i) => `row ${i} ${"y".repeat(30)}`).join("\n"));
+  check(`the test files are the sizes they should be (md about 25 KB: several parts; huge over 60 KB: a link)`, md.length > 20_000 && md.length < 60_000 && huge.length > 60_000, `${md.length} ${huge.length}`);
+  const rCss = await register(`[test] ${RUN} alpha css`, "tokens", "alpha.css", "text/css", css, "Do not use these colours on print. [test]");
+  const rPng = await register(`[test] ${RUN} alpha png`, "logos", "alpha.png", "image/png", png);
+  const rMd = await register(`[test] ${RUN} long notes`, "guidelines", "long-notes.md", "text/markdown", md);
+  const rHuge = await register(`[test] ${RUN} huge text`, "other", "huge.txt", "text/plain", huge);
+  check("setup: four files uploaded and registered as the director (a CSS file with an instruction-like line, a PNG, a 25 KB Markdown file, a 70 KB text file)", [rCss, rPng, rMd, rHuge].every((r) => !r.error && r.ref.startsWith("RES-")), JSON.stringify([rCss, rPng, rMd, rHuge].map((r) => r.error)));
+
+  // list
+  const bl = await call(director, "list_brand_resources", { search: RUN });
+  check("director: list_brand_resources finds the four test files by a search, with RES numbers, type, size, version, tags and the note", outcome(bl) === "ok" && bl.structured?.count === 4 && [rCss, rPng, rMd, rHuge].every((r) => bl.text.includes(r.ref)) && /Note: Do not use these colours/.test(bl.text) && /v1/.test(bl.text) && /tags: smoke, test/.test(bl.text), bl.text.slice(0, 900));
+  check("  ...record text is inside the labelled data block", core.hasDataBlock(bl.text), bl.text.slice(0, 300));
+  const blCat = await call(director, "list_brand_resources", { search: RUN, category: "logos" });
+  check("list_brand_resources: a category filter narrows it (logos: the PNG only)", outcome(blCat) === "ok" && blCat.structured?.count === 1 && blCat.text.includes(rPng.ref), blCat.text.slice(0, 400));
+  const blRef = await call(director, "list_brand_resources", { search: rMd.ref });
+  check("list_brand_resources: a RES number finds exactly that file", outcome(blRef) === "ok" && blRef.structured?.count === 1 && blRef.text.includes("long notes"), blRef.text.slice(0, 400));
+  const blNone = await call(director, "list_brand_resources", { search: `${RUN} zzz-nothing` });
+  check("list_brand_resources: nothing found says so plainly (empty)", outcome(blNone) === "empty" && /No brand resources found/.test(blNone.text), blNone.text);
+  const blAll = await call(director, "list_brand_resources", {});
+  check("list_brand_resources with no filter pages at 25 and says how to ask for the next page", outcome(blAll) === "ok" && (blAll.structured?.count as number) <= 25 && ((blAll.structured?.total as number) <= 25 || (/page 1 of/.test(blAll.text) && /call list_brand_resources again with page 2/.test(blAll.text))), blAll.text.slice(0, 500));
+  check("  ...and a reply stays under the 12,000-character result cap", blAll.text.length <= 12_000, String(blAll.text.length));
+  const blBad = await call(director, "list_brand_resources", { page: 0 });
+  check("list_brand_resources: an invalid page is refused with a plain list of problems", outcome(blBad) === "invalid" && /page/.test(blBad.text), blBad.text);
+
+  // get: text as content, in the data block
+  const gCss = await call(director, "get_brand_resource", { resource: rCss.ref });
+  check("get_brand_resource (a CSS file): the content comes back inline, with its note first, in the data block, indentation kept", outcome(gCss) === "ok" && gCss.structured?.delivery === "inline" && /NOTE: Do not use these colours/.test(gCss.text) && /--forest: #14291F;/.test(gCss.text) && /\n  --forest/.test(gCss.text) && /The whole file/.test(gCss.text) && /carries a NOTE/.test(gCss.text), gCss.text.slice(0, 700));
+  const closeMarkers = gCss.text.split(core.DATA_CLOSE).length - 1;
+  check("  ...a file that contains the block's closing marker and an instruction cannot break out: still one well-formed block, and the instruction stays inside it", core.hasDataBlock(gCss.text) && closeMarkers === 1 && gCss.text.indexOf(INJECTION) > gCss.text.indexOf(core.DATA_OPEN) && gCss.text.indexOf(INJECTION) < gCss.text.lastIndexOf(core.DATA_CLOSE), gCss.text.slice(0, 600));
+  const gByTitle = await call(director, "get_brand_resource", { resource: `[test] ${RUN} alpha css` });
+  check("get_brand_resource by the exact title finds the same file", outcome(gByTitle) === "ok" && gByTitle.structured?.ref === rCss.ref, gByTitle.text.slice(0, 300));
+  const gAmb = await call(director, "get_brand_resource", { resource: `${RUN} alpha` });
+  check("get_brand_resource by words that match two files returns both as candidates and asks, never a guess", outcome(gAmb) === "ambiguous" && (gAmb.structured?.candidates as unknown[] | undefined)?.length === 2 && gAmb.text.includes(rCss.ref) && gAmb.text.includes(rPng.ref), gAmb.text.slice(0, 500));
+  const gNone = await call(director, "get_brand_resource", { resource: "RES-9999" });
+  check("get_brand_resource of a number that does not exist says not found", outcome(gNone) === "not_found", gNone.text);
+
+  // get: a picture is a 10-minute signed link
+  const gPng = await call(director, "get_brand_resource", { resource: rPng.ref });
+  const pngUrl = String(gPng.structured?.download_url ?? "");
+  check("get_brand_resource (a PNG): a signed download link, said to work for 10 minutes only and when it stops", outcome(gPng) === "ok" && gPng.structured?.delivery === "link" && gPng.structured?.expires_in_seconds === 600 && /10 minutes only/.test(gPng.text) && /stops working at/.test(gPng.text) && /ask again for a fresh one/.test(gPng.text) && pngUrl.startsWith("http"), gPng.text.slice(0, 600));
+  const fetched = pngUrl ? await fetch(pngUrl) : null;
+  const fetchedBytes = fetched ? new Uint8Array(await fetched.arrayBuffer()) : new Uint8Array();
+  check("  ...the link works: it downloads exactly the uploaded bytes, as an attachment", !!fetched && fetched.status === 200 && sha(fetchedBytes) === sha(png) && /attachment/.test(fetched.headers.get("content-disposition") ?? ""), `${fetched?.status} ${fetched?.headers.get("content-disposition")}`);
+  const noBare = await fetch(pngUrl.split("?")[0]);
+  check("  ...the file is not public: the same address without the token is refused", noBare.status >= 400, String(noBare.status));
+
+  // get: a long text in parts
+  let offset = 0;
+  let rebuilt = "";
+  let parts = 0;
+  let partsOk = true;
+  for (let guard = 0; guard < 10; guard += 1) {
+    const g = await call(director, "get_brand_resource", { resource: rMd.ref, offset });
+    const lines = (g.text.split(core.DATA_OPEN)[1]?.split(core.DATA_CLOSE)[0] ?? "").replace(/\n$/, "").split("\n").slice(1);
+    const at = lines.indexOf("--- file content ---");
+    rebuilt += lines.slice(at + 1).join("\n");
+    parts += 1;
+    partsOk = partsOk && outcome(g) === "ok" && g.text.length <= 12_000 && g.structured?.delivery === "inline";
+    const next = g.structured?.next_offset;
+    if (typeof next !== "number") break;
+    offset = next;
+  }
+  check(`get_brand_resource (a 25 KB Markdown file): ${parts} parts, each under the result cap, with the next offset named, and together they are the whole file exactly`, partsOk && parts > 1 && rebuilt === mdLines.join("\n"), `${parts} parts; ${rebuilt.length} vs ${md.length}`);
+  const gPast = await call(director, "get_brand_resource", { resource: rMd.ref, offset: 60_000 });
+  check("  ...an offset past the end is refused plainly", outcome(gPast) === "invalid" && /past the end/.test(gPast.text), gPast.text.slice(0, 300));
+  const gHuge = await call(director, "get_brand_resource", { resource: rHuge.ref });
+  check("get_brand_resource (a text file over 60 KB): not inlined; a 10-minute link and a plain statement why", outcome(gHuge) === "ok" && gHuge.structured?.delivery === "link" && /over the 60 KB/.test(gHuge.text) && /10 minutes only/.test(gHuge.text), gHuge.text.slice(0, 500));
+
+  // the summary
+  const sum = await call(director, "get_brand_summary", {});
+  const dropped = ["Property management, thoughtfully reimagined", "People. Property. Potential.", "More than management. Peace of mind.", "Consider it cared for."];
+  const approvedLine = sum.text.split("\n").find((l) => l.startsWith("- Approved lines:")) ?? "";
+  const droppedLine = sum.text.split("\n").find((l) => l.startsWith("- DROPPED")) ?? "";
+  check("get_brand_summary: every colour with its hex, both typefaces with the Google Fonts link, and the logo files for light and dark", outcome(sum) === "ok" && ["#14291F", "#F7F5EF", "#EAE7DF", "#A6B09B", "#E4F0A5", "#1D241E"].every((h) => sum.text.includes(h)) && /Hanken Grotesk/.test(sum.text) && /Cormorant Garamond/.test(sum.text) && /fonts\.googleapis\.com\/css2\?family=Hanken\+Grotesk/.test(sum.text) && /planted-lockup-forest\.svg/.test(sum.text) && /planted-lockup-ivory-lime\.svg/.test(sum.text), sum.text.slice(0, 900));
+  check("  ...the current voice rules: the test, do and don't lists, the approved lines, and the PLANTED. / PLANTED rule", /thoughtful, capable property manager/.test(sum.text) && /- Do:/.test(sum.text) && /- Don't:/.test(sum.text) && /A better place for your property\./.test(approvedLine) && /Good property management starts with people\./.test(approvedLine) && /PLANTED\. in headings and UI; PLANTED in running prose/.test(sum.text), approvedLine);
+  check("  ...the dropped phrases are never presented as approved (only in the DROPPED line, named as such)", dropped.every((p) => !approvedLine.includes(p) && droppedLine.includes(p)) && /Voice and wording \(current\)/.test(sum.text), `${approvedLine}\n${droppedLine}`);
+  check("  ...and it says which resources to open for more, and stays under the result cap", /OPEN FOR MORE/.test(sum.text) && /Voice and wording \(current\)/.test(sum.text) && sum.text.length <= 12_000, String(sum.text.length));
+
+  // every role that holds resources.read can read: the junior, read-only and the assistant
+  for (const [who, ctx] of [["virtual assistant", assistant], ["junior", junior], ["read-only", readOnly]] as Array<[string, Ctx]>) {
+    const l = await call(ctx, "list_brand_resources", { search: RUN });
+    const g = await call(ctx, "get_brand_resource", { resource: rCss.ref });
+    const s = await call(ctx, "get_brand_summary", {});
+    check(`${who}: list, get and summary all work (resources.read)`, outcome(l) === "ok" && l.structured?.count === 4 && outcome(g) === "ok" && outcome(s) === "ok", `${l.text.slice(0, 200)}\n${g.text.slice(0, 200)}`);
+  }
+  // no write path through chat, and none through the database for these roles
+  for (const [who, ctx] of [["virtual assistant", assistant], ["junior", junior], ["read-only", readOnly]] as Array<[string, Ctx]>) {
+    const up = await uploadAs(ctx, new TextEncoder().encode("forged"), "forged.css", "text/css");
+    const reg = await ctx.db.rpc("register_brand_resource", { p_title: `[test] ${RUN} ${who} forged`, p_category: "other", p_description: "", p_file_name: "forged.css", p_storage_path: up.path, p_mime_type: "text/css", p_size_bytes: 6, p_content_sha256: sha(new TextEncoder().encode("forged")) } as never);
+    const arch = await ctx.db.rpc("archive_brand_resource", { p_id: rCss.resourceId, p_reason: "forged" } as never);
+    const upd = await ctx.db.rpc("update_brand_resource", { p_id: rCss.resourceId, p_title: "Hijacked", p_description: "", p_category: "tokens", p_tags: [], p_note: "", p_sort_order: 0 } as never);
+    const still = await director.db.from("brand_resources").select("title, deleted_at").eq("id", rCss.resourceId).single();
+    check(`${who}: cannot upload a file, register, update or archive (the bucket policy and the RPCs refuse); the resource is unchanged`, !!up.error && reg.error?.code === "42501" && arch.error?.code === "42501" && upd.error?.code === "42501" && still.data?.title === `[test] ${RUN} alpha css` && still.data?.deleted_at === null, `${up.error} | ${reg.error?.code} ${arch.error?.code} ${upd.error?.code} ${JSON.stringify(still.data)}`);
+  }
+  // a person whose role lacked resources.read would be refused by the tool itself (the capability gate)
+  const noRead = { ...junior, staff: { ...junior.staff, capabilities: junior.staff.capabilities.filter((c) => c !== "resources.read") } };
+  const nrl = await tool("list_brand_resources").handler({}, noRead);
+  const nrg = await tool("get_brand_resource").handler({ resource: rCss.ref }, noRead);
+  const nrs = await tool("get_brand_summary").handler({}, noRead);
+  check("without resources.read each brand tool refuses before anything is read: \"Refused: your HQ role does not include resources.read\"", [nrl, nrg, nrs].every((r) => outcome(r) === "refused" && /does not include resources\.read/.test(r.text)), `${nrl.text}`);
+
+  // archived: nobody is served an archived resource through chat
+  const arch = await director.db.rpc("archive_brand_resource", { p_id: rHuge.resourceId, p_reason: "mcp-tools-smoke" } as never);
+  const gArch = await call(director, "get_brand_resource", { resource: rHuge.ref });
+  const lArch = await call(director, "list_brand_resources", { search: rHuge.ref });
+  check("an archived resource is not listed or served through chat, even to the director who can still see it in HQ", !arch.error && outcome(gArch) === "not_found" && outcome(lArch) === "empty", `${arch.error?.message} ${gArch.text} ${lArch.text}`);
+  }
+
   // ── 3. a junior property manager ─────────────────────────────
   // tasks.write, people.read, contractors.read: no growth, no contractor writes.
   const jWrites: Array<[string, Record<string, unknown>]> = [
@@ -1439,6 +1579,11 @@ try {
   for (const id of created.enquiries) {
     const { error } = await director.db.rpc("mark_enquiry_spam", { p_id: id, p_note: "mcp-tools-smoke cleanup" });
     if (error) console.log(`cleanup: could not mark enquiry ${id} as spam (${error.code})`);
+  }
+  // brand resources: archived (stored files are never deleted: the bucket has no delete policy)
+  for (const id of created.brandResources) {
+    const { error } = await director.db.rpc("archive_brand_resource", { p_id: id, p_reason: "mcp-tools-smoke cleanup" });
+    if (error && error.code !== "P0002") console.log(`cleanup: could not archive brand resource ${id} (${error.code})`);
   }
   // decisions first, in the order created (a decision another one is superseded by is archived after it)
   await archive("decision", created.decisions);
