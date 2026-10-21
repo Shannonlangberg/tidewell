@@ -68,12 +68,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const today = typeof todayResult.data === "string" ? todayResult.data : todayIn(staff.timezone);
 
   const skip = Promise.resolve(null);
+  // The command center (tasks.write) shows Growth and relationships itself, so these lists are not loaded for it.
+  const growthBelow = plan.growth && !can("tasks.write");
   const [calls, leads, attention, quiet, referrals, tasks, contractors] = await Promise.all([
-    plan.growth ? attempt("today: call", () => loadCallToday(db, today)) : skip,
-    plan.growth ? attempt("today: lead follow-ups", () => loadLeadFollowUps(db, { today, staffId: staff.id, mine: true })) : skip,
-    plan.growth ? attempt("today: leads needing attention", () => loadLeadAttention(db)) : skip,
-    plan.growth ? attempt("today: gone quiet", () => loadGoneQuiet(db)) : skip,
-    plan.growth ? attempt("today: new referrals", () => loadNewReferrals(db, today)) : skip,
+    growthBelow ? attempt("today: call", () => loadCallToday(db, today)) : skip,
+    growthBelow ? attempt("today: lead follow-ups", () => loadLeadFollowUps(db, { today, staffId: staff.id, mine: true })) : skip,
+    growthBelow ? attempt("today: leads needing attention", () => loadLeadAttention(db)) : skip,
+    growthBelow ? attempt("today: gone quiet", () => loadGoneQuiet(db)) : skip,
+    growthBelow ? attempt("today: new referrals", () => loadNewReferrals(db, today)) : skip,
     plan.tasks ? attempt("today: tasks", () => loadTasksToday(db, { staffId: staff.id, today, team: plan.seesTeamTasks })) : skip,
     plan.contractors ? attempt("today: contractors", () => loadContractorsToday(db, today)) : skip,
   ]);
@@ -132,7 +134,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   );
 
   const VIEW_LABEL: Record<TodayView, string> = { growth: "Leads and partners", operations: "Tasks and contractors" };
-  const both = plan.views.length > 1;
+  // With the command center, Growth and relationships covers leads and partners, so only the operations view stays below.
+  const views = commandCenter ? plan.views.filter((v) => v !== "growth") : plan.views;
+  const both = views.length > 1;
   const first = plan.views[0];
   const primaryAction =
     first === "growth" && can("growth.write") ? (
@@ -178,11 +182,11 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       <KnowledgeApprovalsToday />
       <MeetingsToday />
 
-      {plan.views.length === 0 ? (
+      {views.length === 0 ? (
         <QuietLine>Nothing needs you today.</QuietLine>
       ) : (
         <div className="hq-today" data-cols={both ? "2" : "1"}>
-          {plan.views.map((v) => (
+          {views.map((v) => (
             <div key={v} className="hq-today__view" aria-label={both ? VIEW_LABEL[v] : undefined} role={both ? "region" : undefined}>
               {both ? <p className="hq-label hq-today__viewlabel">{VIEW_LABEL[v]}</p> : null}
               {v === "growth" ? growth : operations}

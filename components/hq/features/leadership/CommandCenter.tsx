@@ -4,7 +4,6 @@ import { requireStaff } from "@/lib/hq/auth";
 import type { HqClient } from "@/lib/hq/db";
 import {
   FOCUS_MAX,
-  LANES,
   LANE_HINT,
   LANE_LABEL,
   POINTS,
@@ -22,7 +21,6 @@ import {
   planningAmount,
   planningIsLive,
   planningStatusLabel,
-  upcomingCommitments,
   waitsOf,
   compareMilestone,
   type FocusPick,
@@ -56,9 +54,13 @@ import { DoneButton, EditButton, FollowUpDate, GateToggle, LaneMenu, LaunchProje
  *   A  Today: my focus      at most three tasks, from the deterministic score (lib/hq/leadership/rules.ts),
  *                           each with its reasons; the rest of today folded away
  *   B  Business launch      requirements met (launch-gate milestones) APART from tasks done, the
- *                           milestones as a timeline, the next milestone and action, blockers, commitments
- *   C  The workboard        Do now, In motion, Waiting, Coming next: worked out from each task's status,
- *                           dependencies and waiting fields (a view, never a status)
+ *                           milestones as a timeline, the next milestone and action, and how many tasks
+ *                           hold the launch up (listed once, under Waiting on)
+ *   C  The workboard        Do now, In motion, Coming next: worked out from each task's status,
+ *                           dependencies and waiting fields (a view, never a status); Waiting is a link
+ *                           to D, and the focus tasks are one short line
+ *
+ * Each task is shown in full ONCE: focus tasks in A, held-up tasks in D, everything else on the board.
  *   D  Waiting on           planning items such as the anticipated funding (never a balance) with the
  *                           tasks that wait on them, then each outside wait with its dates and follow-up
  *   E  Growth               counts from HQ records only: leads, appraisals, follow-ups, partners, the
@@ -119,11 +121,9 @@ export async function CommandCenter({ today, searchParams }: { today: string; se
         moving={mine.ok ? lanes.in_motion.length : null}
         waiting={mine.ok ? lanes.waiting.length : null}
         decisions={decisions?.ok ? decisions.data : null}
-        launch={launchProject && milestones?.ok && projectTasks?.ok ? launchReadiness(milestones.data, projectTasks.data, { done: launchProject.progressDone, total: launchProject.progressTotal }, today) : null}
-        growth={growth?.ok ? growth.data : null}
       />
 
-      {mine.ok ? <FocusSection picks={focus} also={alsoDueToday(myTasks, today, meId, new Set(focus.map((f) => f.task.id)))} today={today} ctx={ctx} /> : <Quiet id="focus">My focus: {FAILED}</Quiet>}
+      {mine.ok ? <FocusSection picks={focus} also={alsoDueToday(myTasks, today, meId, new Set(focus.map((f) => f.task.id)))} today={today} ctx={ctx} launchId={launchProject?.id ?? null} /> : <Quiet id="focus">My focus: {FAILED}</Quiet>}
 
       {launch ? (
         launch.ok ? (
@@ -140,9 +140,9 @@ export async function CommandCenter({ today, searchParams }: { today: string; se
         )
       ) : null}
 
-      {mine.ok ? <Workboard lanes={lanes} today={today} ctx={ctx} meId={meId} everyone={everyone} canEveryone={can("tasks.read_all")} /> : null}
+      {mine.ok ? <Workboard lanes={lanes} today={today} ctx={ctx} meId={meId} everyone={everyone} canEveryone={can("tasks.read_all")} focusIds={focus.map((f) => f.task.id)} launchId={launchProject?.id ?? null} /> : null}
 
-      {mine.ok ? <WaitingSection tasks={visible} mine={myTasks} planning={planning ? (planning.ok ? plan : null) : undefined} today={today} meId={meId} canPlanningWrite={can("planning.write")} /> : null}
+      {mine.ok ? <WaitingSection tasks={visible} mine={myTasks} planning={planning ? (planning.ok ? plan : null) : undefined} today={today} canPlanningWrite={can("planning.write")} launchId={launchProject?.id ?? null} /> : null}
 
       {growth ? growth.ok ? <GrowthSection g={growth.data} canPortfolio={can("portfolio.read")} /> : <Quiet id="growth">Growth: {FAILED}</Quiet> : null}
     </div>
@@ -182,24 +182,26 @@ function Head({ id, eyebrow, title, aside, lead }: { id: string; eyebrow: string
 
 const PRIORITY_WORD: Record<string, string> = { urgent: "Urgent", high: "High", normal: "Normal", low: "Low" };
 
-function Meta({ t, today, owner }: { t: LeaderTask; today: string; owner?: boolean }) {
+/** where: only project and milestone (the reason line beside it already says the dates and priority). launchId: the launch project's name is not repeated. */
+function Meta({ t, today, owner, where, launchId }: { t: LeaderTask; today: string; owner?: boolean; where?: boolean; launchId?: string | null }) {
   const due = daysFrom(today, t.dueDate);
   const parts: ReactNode[] = [];
-  if (t.projectName && t.projectId)
+  if (t.projectName && t.projectId && t.projectId !== launchId)
     parts.push(
       <Link key="p" href={PROJECT(t.projectId)} className="hq-cc-meta__link">
         {t.projectName}
       </Link>,
     );
   if (t.milestoneName) parts.push(<span key="m">{t.milestoneName}</span>);
-  if (t.dueDate)
+  if (t.dueDate && !where)
     parts.push(
       <span key="d" className={cx(due !== null && due < 0 && "hq-cc-late")}>
         {due !== null && due < 0 ? `Was due ${dayWords(t.dueDate, today)}` : `Due ${dayWords(t.dueDate, today)}`}
       </span>,
     );
-  if (t.priority === "urgent" || t.priority === "high") parts.push(<span key="pr">{PRIORITY_WORD[t.priority]} priority</span>);
+  if (!where && (t.priority === "urgent" || t.priority === "high")) parts.push(<span key="pr">{PRIORITY_WORD[t.priority]} priority</span>);
   if (owner) parts.push(<span key="o">{t.assignedToName ?? "Nobody yet"}</span>);
+  if (parts.length === 0) return null;
   return (
     <p className="hq-cc-meta">
       {parts.map((p, i) => (
@@ -213,35 +215,13 @@ function Meta({ t, today, owner }: { t: LeaderTask; today: string; owner?: boole
 
 // ── the five-second line ─────────────────────────────────────
 
-function Glance({
-  focus,
-  moving,
-  waiting,
-  decisions,
-  launch,
-  growth,
-}: {
-  focus: number | null;
-  moving: number | null;
-  waiting: number | null;
-  decisions: PendingDecision[] | null;
-  launch: ReturnType<typeof launchReadiness> | null;
-  growth: GrowthPanel | null;
-}) {
+/** Four answers only; launch readiness and the goal are said once, in their own sections. */
+function Glance({ focus, moving, waiting, decisions }: { focus: number | null; moving: number | null; waiting: number | null; decisions: PendingDecision[] | null }) {
   const items: { key: string; href: string; label: string; value: string; tone?: "quiet" | "attention" }[] = [];
   if (focus !== null) items.push({ key: "focus", href: "#cc-focus", label: "Focus today", value: focus === 0 ? "Clear" : `${focus} ${focus === 1 ? "task" : "tasks"}` });
   if (moving !== null) items.push({ key: "moving", href: "#cc-board", label: "Moving", value: `${moving} in motion`, tone: moving === 0 ? "quiet" : undefined });
   if (waiting !== null) items.push({ key: "waiting", href: "#cc-waiting", label: "Waiting", value: `${waiting} held up`, tone: waiting === 0 ? "quiet" : undefined });
   if (decisions !== null) items.push({ key: "decisions", href: "/hq/decisions?status=proposed", label: "Decisions", value: decisions.length === 0 ? "None need you" : `${decisions.length} need you`, tone: decisions.length ? "attention" : "quiet" });
-  if (launch)
-    items.push({
-      key: "launch",
-      href: "#cc-launch",
-      label: "Ready to open",
-      value: launch.gatesTotal > 0 ? `${launch.gatesDone} of ${launch.gatesTotal} requirements` : "Requirements not marked",
-      tone: launch.gatesTotal === 0 ? "quiet" : undefined,
-    });
-  if (growth && growth.managed !== null && growth.goal !== null) items.push({ key: "goal", href: "#cc-growth", label: "Goal", value: `${growth.managed} of ${growth.goal} managed` });
   if (items.length === 0) return null;
   return (
     <nav className="hq-cc-glance" aria-label="Today at a glance">
@@ -261,14 +241,13 @@ function Glance({
 
 // ── A. Today: my focus ───────────────────────────────────────
 
-function FocusSection({ picks, also, today, ctx }: { picks: FocusPick[]; also: LeaderTask[]; today: string; ctx: EditContext }) {
+function FocusSection({ picks, also, today, ctx, launchId }: { picks: FocusPick[]; also: LeaderTask[]; today: string; ctx: EditContext; launchId: string | null }) {
   return (
     <section className="hq-cc-section" aria-labelledby="cc-focus-h" id="cc-focus">
       <Head
         id="cc-focus-h"
         eyebrow="Today"
         title="My focus"
-        lead={picks.length ? `The ${picks.length === 1 ? "one thing" : `${picks.length === 2 ? "two" : "three"} things`} that matter most today, and why. Priorities are never changed for you.` : null}
         aside={
           <Link href="/hq/operations/tasks/new" className="hq-cc-textlink">
             New task
@@ -288,7 +267,7 @@ function FocusSection({ picks, also, today, ctx }: { picks: FocusPick[]; also: L
               <h3 className="hq-cc-focus__title">
                 <Link href={TASK(p.task.id)}>{p.task.title}</Link>
               </h3>
-              <Meta t={p.task} today={today} />
+              <Meta t={p.task} today={today} where launchId={launchId} />
               <p className="hq-cc-why">
                 <span className="sr-only">Why: </span>
                 {p.why}
@@ -315,7 +294,7 @@ function FocusSection({ picks, also, today, ctx }: { picks: FocusPick[]; also: L
                     <p className="hq-cc-row__title">
                       <Link href={TASK(t.id)}>{t.title}</Link>
                     </p>
-                    <Meta t={t} today={today} />
+                    <Meta t={t} today={today} launchId={launchId} />
                   </div>
                   <div className="hq-cc-actions">
                     <DoneButton taskId={t.id} title={t.title} />
@@ -386,8 +365,6 @@ function LaunchSection({
   const r = launchReadiness(milestones, tasks, { done: project.progressDone, total: project.progressTotal }, today);
   const ordered = [...milestones].sort(compareMilestone);
   const blockers = tasks.filter((t) => laneOf(t, today) === "waiting" && t.parentId === null);
-  const commitments = upcomingCommitments(milestones, tasks, today).slice(0, 6);
-  const gatePct = r.gatesTotal ? Math.round((100 * r.gatesDone) / r.gatesTotal) : 0;
   const taskPct = r.tasksTotal ? Math.floor((100 * r.tasksDone) / r.tasksTotal) : 0;
   const health = project.health as ProjectHealth;
 
@@ -426,10 +403,10 @@ function LaunchSection({
                       <li key={m.id} className={cx("hq-cc-gates__seg", m.status === "done" && "is-done")} title={`${m.name}: ${m.status === "done" ? "done" : "open"}`} />
                     ))}
                 </ol>
-                <p className="hq-cc-meter__hint">Counts only the milestones that must be done before opening{r.openGates.length ? `. Still to meet: ${r.openGates.map((m) => m.name).join(", ")}` : ""}.</p>
+                {r.openGates.length ? <p className="hq-cc-meter__hint">Still to meet: {r.openGates.map((m) => m.name).join(", ")}</p> : null}
               </>
             ) : (
-              <p className="hq-cc-meter__hint">No milestone is marked as required to open yet, so no readiness figure is shown. Task completion alone is not launch readiness.</p>
+              <p className="hq-cc-meter__hint">No milestone is marked as required to open yet.</p>
             )}
           </div>
           <div className="hq-cc-meter hq-cc-meter--quiet">
@@ -441,7 +418,6 @@ function LaunchSection({
             <span className="hq-cc-rule" role="meter" aria-label="Tasks done" aria-valuemin={0} aria-valuemax={100} aria-valuenow={taskPct}>
               <span style={{ width: `${taskPct}%` }} />
             </span>
-            <p className="hq-cc-meter__hint">Every task counts the same here, from paperwork to licensing.</p>
           </div>
           {canGates && ordered.length > 0 ? (
             <details className="hq-cc-fold hq-cc-fold--quiet">
@@ -453,7 +429,6 @@ function LaunchSection({
               </div>
             </details>
           ) : null}
-          {gatePct === 100 && r.gatesTotal > 0 ? <p className="hq-cc-meter__hint">Every launch requirement is met.</p> : null}
         </div>
 
         {ordered.length > 0 ? (
@@ -479,55 +454,24 @@ function LaunchSection({
         )}
       </div>
 
-      <div className="hq-cc-launch__cols">
-        <div>
-          <h3 className="hq-cc-subhead">Next</h3>
-          {r.nextMilestone ? <p className="hq-cc-next__ms">{r.nextMilestone.name}{r.nextMilestone.dueDate ? `, ${dayWords(r.nextMilestone.dueDate, today)}` : ""}</p> : <p className="hq-cc-small">No open milestone.</p>}
+      <div className="hq-cc-launch__next">
+        <p className="hq-cc-subhead">Next</p>
+        <p className="hq-cc-next__ms">
+          {r.nextMilestone ? `${r.nextMilestone.name}${r.nextMilestone.dueDate ? `, ${dayWords(r.nextMilestone.dueDate, today)}` : ""}` : "No open milestone"}
           {r.nextAction ? (
-            <p className="hq-cc-next__task">
+            <>
+              {" · "}
               <Link href={TASK(r.nextAction.id)}>{r.nextAction.title}</Link>
-              <span className="hq-cc-small"> · {laneWhy(r.nextAction, today)}</span>
-            </p>
-          ) : (
-            <p className="hq-cc-small">Nothing in it can move right now.</p>
-          )}
-        </div>
-        <div>
-          <h3 className="hq-cc-subhead">
-            Blocking the launch <span className="hq-today__count">{blockers.length}</span>
-          </h3>
-          {blockers.length === 0 ? (
-            <p className="hq-cc-small">Nothing is held up.</p>
-          ) : (
-            <ul className="hq-cc-mini">
-              {blockers.slice(0, 5).map((t) => (
-                <li key={t.id}>
-                  <Link href={TASK(t.id)}>{t.title}</Link>
-                  <span className="hq-cc-small">{waitsOf(t)[0]?.text}</span>
-                </li>
-              ))}
-              {blockers.length > 5 ? <li className="hq-cc-small">and {blockers.length - 5} more on the workboard</li> : null}
-            </ul>
-          )}
-        </div>
-        <div>
-          <h3 className="hq-cc-subhead">Coming up (three weeks)</h3>
-          {commitments.length === 0 ? (
-            <p className="hq-cc-small">Nothing dated in the next three weeks.</p>
-          ) : (
-            <ul className="hq-cc-mini">
-              {commitments.map((c) => (
-                <li key={`${c.kind}-${c.id}`}>
-                  {c.kind === "task" ? <Link href={TASK(c.id)}>{c.title}</Link> : <span className="hq-cc-mini__ms">{c.title}</span>}
-                  <span className={cx("hq-cc-small", c.overdue && "hq-cc-late")}>
-                    {c.overdue ? `Was due ${dayWords(c.date, today)}` : dayWords(c.date, today)}
-                    {c.kind === "milestone" ? " · milestone" : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+            </>
+          ) : null}
+        </p>
+        {blockers.length > 0 ? (
+          <a href="#cc-waiting" className="hq-cc-textlink">
+            {blockers.length === 1 ? "1 task is" : `${blockers.length} tasks are`} holding the launch up
+          </a>
+        ) : (
+          <p className="hq-cc-small">Nothing is holding the launch up.</p>
+        )}
       </div>
     </section>
   );
@@ -537,14 +481,20 @@ function LaunchSection({
 
 const LANE_SHOWN = 6;
 
-function Workboard({ lanes, today, ctx, meId, everyone, canEveryone }: { lanes: Record<Lane, LeaderTask[]>; today: string; ctx: EditContext; meId: string; everyone: boolean; canEveryone: boolean }) {
+const BOARD_LANES: readonly Lane[] = ["do_now", "in_motion", "coming_next"];
+
+/**
+ * Three full lanes. Waiting is ONE place, the Waiting on section, so here it is a count and a link; your
+ * focus tasks (already shown in full above) are one short numbered line in their lane.
+ */
+function Workboard({ lanes, today, ctx, meId, everyone, canEveryone, focusIds, launchId }: { lanes: Record<Lane, LeaderTask[]>; today: string; ctx: EditContext; meId: string; everyone: boolean; canEveryone: boolean; focusIds: string[]; launchId: string | null }) {
+  const waiting = lanes.waiting.length;
   return (
     <section className="hq-cc-section" aria-labelledby="cc-board-h" id="cc-board">
       <Head
         id="cc-board-h"
         eyebrow="Work"
         title="The workboard"
-        lead="Worked out from each task's status, what it waits on and its dates. Moving a card changes its status or your plan, never its priority or due date."
         aside={
           canEveryone ? (
             <div className="hq-cc-scope" role="group" aria-label="Whose tasks">
@@ -558,24 +508,42 @@ function Workboard({ lanes, today, ctx, meId, everyone, canEveryone }: { lanes: 
           ) : null
         }
       />
+      <a href="#cc-waiting" className="hq-cc-waitlink">
+        <span className="hq-cc-waitlink__dot" aria-hidden />
+        <span>
+          <b>{waiting}</b> {waiting === 1 ? "task is" : "tasks are"} waiting
+        </span>
+        <span className="hq-cc-small">See Waiting on</span>
+      </a>
       <div className="hq-cc-board">
-        {LANES.map((l) => {
-          const list = lanes[l];
+        {BOARD_LANES.map((l) => {
+          const inFocus = lanes[l].filter((t) => focusIds.includes(t.id)).sort((a, b) => focusIds.indexOf(a.id) - focusIds.indexOf(b.id));
+          const list = lanes[l].filter((t) => !focusIds.includes(t.id));
           return (
             <section key={l} className={cx("hq-cc-lane", `hq-cc-lane--${l}`)} aria-labelledby={`cc-lane-${l}`}>
               <header className="hq-cc-lane__head">
                 <h3 id={`cc-lane-${l}`} className="hq-cc-lane__title">
-                  {LANE_LABEL[l]} <span className="hq-today__count">{list.length}</span>
+                  {LANE_LABEL[l]} <span className="hq-today__count">{lanes[l].length}</span>
                 </h3>
                 <p className="hq-cc-lane__hint">{LANE_HINT[l]}</p>
               </header>
+              {inFocus.length > 0 ? (
+                <ol className="hq-cc-focusmini" aria-label="In your focus">
+                  {inFocus.map((t) => (
+                    <li key={t.id}>
+                      <span className="hq-cc-focusmini__n">{focusIds.indexOf(t.id) + 1}</span>
+                      <a href="#cc-focus">{t.title}</a>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
               {list.length === 0 ? (
-                <p className="hq-cc-small hq-cc-lane__empty">{l === "waiting" ? "Nothing is held up." : l === "do_now" ? "Nothing is pressing." : "Empty."}</p>
+                inFocus.length ? null : <p className="hq-cc-small hq-cc-lane__empty">{l === "do_now" ? "Nothing is pressing." : "Empty."}</p>
               ) : (
                 <>
                   <ul className="hq-cc-cards">
                     {list.slice(0, LANE_SHOWN).map((t) => (
-                      <Card key={t.id} t={t} today={today} ctx={ctx} owner={everyone || t.assignedTo !== meId} />
+                      <Card key={t.id} t={t} today={today} ctx={ctx} owner={everyone || t.assignedTo !== meId} launchId={launchId} />
                     ))}
                   </ul>
                   {list.length > LANE_SHOWN ? (
@@ -583,7 +551,7 @@ function Workboard({ lanes, today, ctx, meId, everyone, canEveryone }: { lanes: 
                       <summary>{list.length - LANE_SHOWN} more</summary>
                       <ul className="hq-cc-cards">
                         {list.slice(LANE_SHOWN).map((t) => (
-                          <Card key={t.id} t={t} today={today} ctx={ctx} owner={everyone || t.assignedTo !== meId} />
+                          <Card key={t.id} t={t} today={today} ctx={ctx} owner={everyone || t.assignedTo !== meId} launchId={launchId} />
                         ))}
                       </ul>
                     </details>
@@ -594,15 +562,11 @@ function Workboard({ lanes, today, ctx, meId, everyone, canEveryone }: { lanes: 
           );
         })}
       </div>
-      <p className="hq-cc-foot">
-        Lists and filters: <Link href="/hq/operations?view=today">Due today</Link> · <Link href="/hq/operations?view=week">This week</Link> · <Link href="/hq/operations?view=waiting">Waiting</Link> ·{" "}
-        <Link href="/hq/operations">My tasks</Link> · <Link href="/hq/projects">Projects</Link> · <Link href="/hq/operations?view=completed">Completed</Link>
-      </p>
     </section>
   );
 }
 
-function Card({ t, today, ctx, owner }: { t: LeaderTask; today: string; ctx: EditContext; owner: boolean }) {
+function Card({ t, today, ctx, owner, launchId }: { t: LeaderTask; today: string; ctx: EditContext; owner: boolean; launchId: string | null }) {
   const why = laneWhy(t, today);
   const late = /^Overdue/.test(why);
   return (
@@ -611,7 +575,7 @@ function Card({ t, today, ctx, owner }: { t: LeaderTask; today: string; ctx: Edi
         <Link href={TASK(t.id)}>{t.title}</Link>
       </p>
       <p className={cx("hq-cc-card__why", late && "hq-cc-late")}>{why}</p>
-      <Meta t={{ ...t, dueDate: late || /^Due /.test(why) ? null : t.dueDate }} today={today} owner={owner} />
+      <Meta t={{ ...t, dueDate: late || /^Due /.test(why) ? null : t.dueDate }} today={today} owner={owner} launchId={launchId} />
       {t.checklistTotal > 0 ? (
         <p className="hq-cc-small">
           Checklist {t.checklistDone} of {t.checklistTotal}
@@ -627,7 +591,7 @@ function Card({ t, today, ctx, owner }: { t: LeaderTask; today: string; ctx: Edi
 
 // ── D. Waiting on ────────────────────────────────────────────
 
-function WaitingSection({ tasks, mine, planning, today, meId, canPlanningWrite }: { tasks: LeaderTask[]; mine: LeaderTask[]; planning: PlanningItem[] | null | undefined; today: string; meId: string; canPlanningWrite: boolean }) {
+function WaitingSection({ tasks, mine, planning, today, canPlanningWrite, launchId }: { tasks: LeaderTask[]; mine: LeaderTask[]; planning: PlanningItem[] | null | undefined; today: string; canPlanningWrite: boolean; launchId: string | null }) {
   const waiting = tasks.filter((t) => laneOf(t, today) === "waiting");
   const live = (planning ?? []).filter(planningIsLive);
   const context = (planning ?? []).filter((p) => p.kind === "context" && p.status === "current");
@@ -635,9 +599,9 @@ function WaitingSection({ tasks, mine, planning, today, meId, canPlanningWrite }
   for (const t of waiting) if (t.planningItemId) onItem.set(t.planningItemId, [...(onItem.get(t.planningItemId) ?? []), t]);
   // The table lists the person's OWN outside waits (someone or something outside the task list). A task that
   // only waits for another task is a dependency chain: it stays on the workboard, not here.
-  const others = mine.filter((t) => laneOf(t, today) === "waiting" && !(t.planningItemId && live.some((p) => p.id === t.planningItemId)) && waitsOf(t).some((w) => w.kind !== "dependency"));
-  const chained = mine.filter((t) => laneOf(t, today) === "waiting" && waitsOf(t).every((w) => w.kind === "dependency")).length;
-  const canMoveNow = mine.filter((t) => t.assignedTo === meId && laneOf(t, today) !== "waiting" && laneOf(t, today) !== null).length;
+  // Every held-up task of the person's (the workboard links here instead of listing them), except the ones
+  // grouped under a planning item above.
+  const others = mine.filter((t) => laneOf(t, today) === "waiting" && !(t.planningItemId && live.some((p) => p.id === t.planningItemId)));
 
   return (
     <section className="hq-cc-section" aria-labelledby="cc-waiting-h" id="cc-waiting">
@@ -695,7 +659,7 @@ function WaitingSection({ tasks, mine, planning, today, meId, canPlanningWrite }
                       {list.map((t) => (
                         <li key={t.id}>
                           <Link href={TASK(t.id)}>{t.title}</Link>
-                          {t.projectName ? <span className="hq-cc-small">{t.projectName}</span> : null}
+                          {t.projectName && t.projectId !== launchId ? <span className="hq-cc-small">{t.projectName}</span> : null}
                         </li>
                       ))}
                     </ul>
@@ -706,17 +670,6 @@ function WaitingSection({ tasks, mine, planning, today, meId, canPlanningWrite }
               </li>
             );
           })}
-          {canMoveNow > 0 ? (
-            <li className="hq-cc-plan hq-cc-plan--meanwhile">
-              <p className="hq-cc-plan__kind">Meanwhile</p>
-              <p className="hq-cc-plan__title">
-                {canMoveNow} of your tasks can move now, without waiting on anything.
-              </p>
-              <a href="#cc-board" className="hq-cc-textlink">
-                See them on the workboard
-              </a>
-            </li>
-          ) : null}
         </ul>
       ) : null}
 
@@ -740,7 +693,7 @@ function WaitingSection({ tasks, mine, planning, today, meId, canPlanningWrite }
               <div key={t.id} className="hq-cc-waits__row" role="row">
                 <span role="cell" className="hq-cc-waits__task">
                   <Link href={TASK(t.id)}>{t.title}</Link>
-                  {t.projectName ? <span className="hq-cc-small">{t.projectName}</span> : null}
+                  {t.projectName && t.projectId !== launchId ? <span className="hq-cc-small">{t.projectName}</span> : null}
                 </span>
                 <span role="cell" className="hq-cc-waits__on">
                   <span className="hq-cc-waits__label">Waiting on</span>
@@ -774,11 +727,6 @@ function WaitingSection({ tasks, mine, planning, today, meId, canPlanningWrite }
         </div>
       ) : null}
 
-      {chained > 0 ? (
-        <p className="hq-cc-foot">
-          {chained === 1 ? "1 more of your tasks waits" : `${chained} more of your tasks wait`} for another task to finish: see the Waiting lane on the <a href="#cc-board">workboard</a>.
-        </p>
-      ) : null}
 
       {context.length > 0 ? (
         <div className="hq-cc-context">
@@ -814,7 +762,7 @@ function GrowthSection({ g, canPortfolio }: { g: GrowthPanel; canPortfolio: bool
   const managedPct = g.managed !== null && g.goal ? Math.min(100, Math.round((100 * g.managed) / g.goal)) : 0;
   return (
     <section className="hq-cc-section" aria-labelledby="cc-growth-h" id="cc-growth">
-      <Head id="cc-growth-h" eyebrow="Growth" title="Growth and relationships" lead="Counts from HQ records only. No rates or forecasts." />
+      <Head id="cc-growth-h" eyebrow="Growth" title="Growth and relationships" />
       <ul className="hq-cc-stats">
         {stats.map((s) => (
           <li key={s.key}>

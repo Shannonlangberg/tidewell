@@ -5596,3 +5596,33 @@
   .hq-cc-taskpanel__list dt { color: var(--planted-grey-text); font-size: 12px; }
   .hq-cc-taskpanel__list dd { font-size: 14px; color: var(--planted-charcoal); overflow-wrap: anywhere; }
 }
+/* Command center, trimmed (each task in full once): the Waiting link above the board, focus tasks as one
+   numbered line in their lane, three lanes, and the launch's single "Next" row. */
+@layer components {
+  .hq-cc-waitlink {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--planted-border);
+    border-radius: var(--radius-pill);
+    color: var(--planted-charcoal);
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .hq-cc-waitlink:hover { border-color: var(--planted-charcoal); }
+  .hq-cc-waitlink__dot { align-self: center; width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-dot); }
+  .hq-cc-waitlink b { font-weight: 600; }
+  .hq-cc-waitlink .hq-cc-small { margin-left: auto; text-decoration: underline; text-underline-offset: 3px; }
+  @media (min-width: 1200px) { .hq-cc-board { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .hq-cc-focusmini { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .hq-cc-focusmini li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--planted-white); font-size: 13.5px; }
+  .hq-cc-focusmini a { color: var(--planted-charcoal); text-decoration: none; overflow-wrap: anywhere; }
+  .hq-cc-focusmini a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .hq-cc-focusmini__n { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--planted-lime); color: var(--planted-forest); font-size: 12px; font-weight: 600; }
+  .hq-cc-launch__next { display: grid; gap: 6px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--planted-border); }
+  .hq-cc-launch__next .hq-cc-subhead { margin: 0; }
+  .hq-cc-launch__next a:not(.hq-cc-textlink) { color: var(--planted-charcoal); text-underline-offset: 3px; text-decoration-color: var(--planted-border); }
+}
