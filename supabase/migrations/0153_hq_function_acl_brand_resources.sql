@@ -1,7 +1,7 @@
--- 0150_hq_function_acl_brand_resources.sql
--- Function privileges for Resources (0148, 0149).
+-- 0153_hq_function_acl_brand_resources.sql
+-- Function privileges for Resources (0151, 0152).
 --
--- Like 0139, this file states exactly the functions 0148 and 0149 create rather than revoking everything
+-- Like 0139, this file states exactly the functions 0151 and 0152 create rather than revoking everything
 -- and re-stating the whole list: a function created by CREATE FUNCTION gets the schema's default
 -- privileges (execute for public, and on Supabase also for anon, authenticated and service_role), so each
 -- new one is revoked from every API role here, and then granted where it is meant to be called.

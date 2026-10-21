@@ -1,11 +1,11 @@
--- 0149_hq_brand_resources_rpc.sql
--- The write side of Resources (0148): register a file the caller has ALREADY uploaded to the private
+-- 0152_hq_brand_resources_rpc.sql
+-- The write side of Resources (0151): register a file the caller has ALREADY uploaded to the private
 -- bucket brand-resources (signed upload URL, as with contractor documents, 0116), change a resource's
 -- details, replace its file, archive and restore it, and one service-role function for the importer
 -- (scripts/hq/import-brand-resources.mts).
 --
 -- Every RPC is security definer, pins its search_path, checks resources.manage INSIDE (the database, not
--- the caller's token, decides) and is audited as entity brand_resource. Function privileges: 0150.
+-- the caller's token, decides) and is audited as entity brand_resource. Function privileges: 0153.
 -- Errors: 42501 permission denied, 22023 invalid argument, P0002 not found, 23505 already registered,
 -- 23514 a rule (same content already in the category, title taken, nothing to replace with).
 --
@@ -14,7 +14,7 @@
 -- A new resource takes its id from the first part of the path; a replacement uses the resource's own id
 -- and a NEW object id, and the old object is kept (it stays downloadable from the version list).
 
--- ------------------------------------------------------------------ helpers (no API role may execute these: 0150)
+-- ------------------------------------------------------------------ helpers (no API role may execute these: 0153)
 create function hq_private.brand_ref(p_n bigint) returns text
 language sql immutable parallel safe set search_path = pg_catalog as $$
   select 'RES-' || lpad(p_n::text, greatest(4, length(p_n::text)), '0')

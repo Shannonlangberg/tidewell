@@ -1,4 +1,4 @@
--- Planted HQ: Resources, the brand library (migrations 0148, 0149, 0150).
+-- Planted HQ: Resources, the brand library (migrations 0151, 0152, 0153).
 -- The bucket and its policies, the capability matrix (resources.read for every role, resources.manage for
 -- director and administrator only), forged callers (anon, a login with no HQ profile, every role that may
 -- only read), RLS (live rows for readers, archived rows for managers), no direct writes, the register /

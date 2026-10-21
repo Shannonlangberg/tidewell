@@ -1,4 +1,4 @@
--- 0148_hq_brand_resources.sql
+-- 0151_hq_brand_resources.sql
 -- Resources: the home of PLANTED.'s branding in HQ (brand guide, logos, photos, colours and type,
 -- design tokens, UI kit code). Every member of staff can view and download it, connected chat apps can
 -- list, read and fetch it (hq-mcp.md section 14), and a director or administrator adds to it and
@@ -6,7 +6,7 @@
 -- URL, then a register RPC) and the Knowledge base (0138).
 --
 -- TABLES (schema hq; RLS enabled and forced; the API may only SELECT; every write goes through the
--- security definer RPCs in 0149):
+-- security definer RPCs in 0152):
 --   brand_resources          one row per resource, shown as RES-0001 (ref_number). It describes the CURRENT
 --                            file. Soft deletion only (archive_brand_resource / restore_brand_resource);
 --                            never deleted, and no stored object is ever removed.
@@ -46,7 +46,7 @@ from (values
 on conflict do nothing;
 
 -- ------------------------------------------------------------------ the one list of accepted file types
--- Used by the bucket, the table and the RPCs, so the three can never disagree. Not granted to any API role (0150).
+-- Used by the bucket, the table and the RPCs, so the three can never disagree. Not granted to any API role (0153).
 create function hq_private.brand_mimes() returns text[]
 language sql immutable parallel safe set search_path = pg_catalog as $$
   select array[

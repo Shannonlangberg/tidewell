@@ -343,7 +343,7 @@ It sets the bulk budget relative to what earlier runs used this hour, then resto
 
 ## 14. Testing the brand library (Resources) from ChatGPT
 
-Three read-only tools (migrations 0148 to 0150; `lib/hq/mcp/tools/brand.ts`, `brand-schemas.ts`, `brand-text.ts`; feature description in [hq-resources.md](hq-resources.md)), for everyone with `resources.read` (every role that can sign in to HQ):
+Three read-only tools (migrations 0151 to 0153; `lib/hq/mcp/tools/brand.ts`, `brand-schemas.ts`, `brand-text.ts`; feature description in [hq-resources.md](hq-resources.md)), for everyone with `resources.read` (every role that can sign in to HQ):
 
 | Tool | What it does |
 |---|---|

@@ -126,7 +126,7 @@ if (!staff.data || !staff.data.is_active) stop(`No active member of staff has th
 const actorId = staff.data.id;
 
 const live = await hq.from("brand_resources").select("id, ref_number, title, category, content_sha256, version").is("deleted_at", null);
-if (live.error) stop(`Could not read hq.brand_resources (${live.error.code}). Are migrations 0148 to 0150 applied?`);
+if (live.error) stop(`Could not read hq.brand_resources (${live.error.code}). Are migrations 0151 to 0153 applied?`);
 const byTitle = new Map((live.data ?? []).map((r) => [r.title.trim().toLowerCase(), r]));
 const byContent = new Map((live.data ?? []).map((r) => [`${r.category}|${r.content_sha256}`, r]));
 const refOf = (n: number) => `RES-${String(n).padStart(4, "0")}`;

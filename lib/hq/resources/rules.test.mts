@@ -43,10 +43,10 @@ import {
   zipFileName,
 } from "./rules.ts";
 
-/* The resource rules mirror migrations 0148 and 0149; the vocabulary and the limits are pinned to the migration's own text. */
+/* The resource rules mirror migrations 0151 and 0152; the vocabulary and the limits are pinned to the migration's own text. */
 
-const M148 = readFileSync(new URL("../../../supabase/migrations/0148_hq_brand_resources.sql", import.meta.url), "utf8");
-const M149 = readFileSync(new URL("../../../supabase/migrations/0149_hq_brand_resources_rpc.sql", import.meta.url), "utf8");
+const M151 = readFileSync(new URL("../../../supabase/migrations/0151_hq_brand_resources.sql", import.meta.url), "utf8");
+const M152 = readFileSync(new URL("../../../supabase/migrations/0152_hq_brand_resources_rpc.sql", import.meta.url), "utf8");
 
 const form = (o: Record<string, string>) => {
   const f = new FormData();
@@ -58,7 +58,7 @@ const UUID_B = "6b0c1f2e-0000-4000-8000-000000000002";
 const SHA = "a".repeat(64);
 
 test("the categories match hq.brand_resource_category", () => {
-  const m = /create type hq\.brand_resource_category as enum \(([^)]*)\)/.exec(M148);
+  const m = /create type hq\.brand_resource_category as enum \(([^)]*)\)/.exec(M151);
   assert.ok(m);
   assert.deepEqual([...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]), [...RESOURCE_CATEGORIES]);
   for (const c of RESOURCE_CATEGORIES) {
@@ -68,35 +68,35 @@ test("the categories match hq.brand_resource_category", () => {
 });
 
 test("the accepted file types match the bucket's allowlist (hq_private.brand_mimes)", () => {
-  const m = /create function hq_private\.brand_mimes\(\)[\s\S]*?select array\[([\s\S]*?)\]::text\[\]/.exec(M148);
+  const m = /create function hq_private\.brand_mimes\(\)[\s\S]*?select array\[([\s\S]*?)\]::text\[\]/.exec(M151);
   assert.ok(m);
   assert.deepEqual([...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]), [...RESOURCE_MIME_TYPES]);
 });
 
 test("the limits match the database", () => {
   assert.equal(MAX_RESOURCE_BYTES, 10485760);
-  assert.match(M148, /file_size_limit[\s\S]*10485760/);
-  assert.match(M148, /char_length\(btrim\(title\)\) between 1 and 200/);
+  assert.match(M151, /file_size_limit[\s\S]*10485760/);
+  assert.match(M151, /char_length\(btrim\(title\)\) between 1 and 200/);
   assert.equal(TITLE_MAX, 200);
-  assert.match(M148, /char_length\(description\) <= 2000/);
+  assert.match(M151, /char_length\(description\) <= 2000/);
   assert.equal(DESCRIPTION_MAX, 2000);
-  assert.match(M148, /char_length\(btrim\(note\)\) between 1 and 1000/);
+  assert.match(M151, /char_length\(btrim\(note\)\) between 1 and 1000/);
   assert.equal(NOTE_MAX, 1000);
-  assert.match(M148, /cardinality\(tags\) <= 12/);
+  assert.match(M151, /cardinality\(tags\) <= 12/);
   assert.equal(TAGS_MAX, 12);
-  assert.match(M148, /\{0,39\}/);
+  assert.match(M151, /\{0,39\}/);
   assert.equal(TAG_MAX, 40);
-  assert.match(M148, /sort_order between 0 and 9999/);
+  assert.match(M151, /sort_order between 0 and 9999/);
   assert.equal(SORT_MAX, 9999);
-  assert.match(M148, /char_length\(btrim\(version\)\) between 1 and 40/);
+  assert.match(M151, /char_length\(btrim\(version\)\) between 1 and 40/);
   assert.equal(VERSION_LABEL_MAX, 40);
-  assert.match(M149, /brand_line\(p_change_note, 300/);
+  assert.match(M152, /brand_line\(p_change_note, 300/);
   assert.equal(CHANGE_NOTE_MAX, 300);
 });
 
 test("the capabilities are in the constants and the migration gives read to all eight roles and manage to two", () => {
   assert.ok(CAPABILITIES.includes("resources.read") && CAPABILITIES.includes("resources.manage"));
-  const rows = [...M148.matchAll(/\('([a-z_]+)', 'resources\.(read|manage)'\)/g)].map((m) => `${m[1]}:${m[2]}`);
+  const rows = [...M151.matchAll(/\('([a-z_]+)', 'resources\.(read|manage)'\)/g)].map((m) => `${m[1]}:${m[2]}`);
   const roles = ["director", "administrator", "senior_property_manager", "property_manager", "junior_property_manager", "business_development_manager", "virtual_assistant", "read_only"];
   for (const r of roles) assert.ok(rows.includes(`${r}:read`), `${r} reads`);
   assert.deepEqual(rows.filter((r) => r.endsWith(":manage")).sort(), ["administrator:manage", "director:manage"]);
@@ -159,7 +159,7 @@ test("storage-safe names and the only path shape the bucket accepts", () => {
   assert.equal(isStoragePathFor(UUID_A, `${UUID_A}/notes.pdf`), false);
   assert.equal(isStoragePathFor(UUID_A, `${UUID_A}/${UUID_B}-bad name.pdf`), false);
   // the same shape the database and the bucket policy use
-  assert.match(M148, /\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{12\}-\[A-Za-z0-9\._-\]\{1,120\}\$/);
+  assert.match(M151, /\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{12\}-\[A-Za-z0-9\._-\]\{1,120\}\$/);
 });
 
 test("tags are tidied and checked", () => {
@@ -243,7 +243,7 @@ test("RES numbers", () => {
   assert.equal(parseResourceRef("Primary lockup"), null);
   assert.equal(resourceRef(7), "RES-0007");
   assert.equal(resourceRef(12345), "RES-12345");
-  assert.match(M148, /'RES-' \|\| lpad\(r\.ref_number::text, greatest\(4/);
+  assert.match(M151, /'RES-' \|\| lpad\(r\.ref_number::text, greatest\(4/);
 });
 
 test("sizes, zip names and database messages read plainly", () => {

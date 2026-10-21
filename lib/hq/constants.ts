@@ -66,7 +66,7 @@ export const CAPABILITIES = [
   // Projects (0142): read projects (every role but junior PM) and create/manage them.
   "projects.read",
   "projects.write",
-  // Resources (0148): the brand library. Every role reads and downloads; director and administrator add and change.
+  // Resources (0151): the brand library. Every role reads and downloads; director and administrator add and change.
   "resources.read",
   "resources.manage",
 ] as const;

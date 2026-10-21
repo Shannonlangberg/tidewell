@@ -401,7 +401,7 @@ Database: migrations `0140_hq_meetings.sql` and `0141_hq_function_acl_meetings.s
 
 **Through ChatGPT or Claude:** three read-only tools (`list_brand_resources`, `get_brand_resource`, `get_brand_summary`). Text files come back as their content; pictures, PDFs and zips as a download link that works for 10 minutes only. See [hq-mcp.md section 14](hq-mcp.md#14-testing-the-brand-library-resources-from-chatgpt).
 
-Database: migrations `0148_hq_brand_resources.sql`, `0149_hq_brand_resources_rpc.sql`, `0150_hq_function_acl_brand_resources.sql`; tests `supabase/tests/hq_18_brand_resources.sql`, `lib/hq/resources/*.test.mts`.
+Database: migrations `0151_hq_brand_resources.sql`, `0152_hq_brand_resources_rpc.sql`, `0153_hq_function_acl_brand_resources.sql`; tests `supabase/tests/hq_18_brand_resources.sql`, `lib/hq/resources/*.test.mts`.
 
 ## Known limitations and open decisions
 

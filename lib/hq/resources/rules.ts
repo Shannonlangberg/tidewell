@@ -1,6 +1,6 @@
 /*
  * Resources, the brand library: vocabulary and rules shared by the screens, the Server Actions, the zip
- * route, the importer and the MCP tools. They mirror what the database enforces (migrations 0148, 0149):
+ * route, the importer and the MCP tools. They mirror what the database enforces (migrations 0151, 0152):
  * the database is the control, these give people the same answer earlier and in plain words.
  *
  * The browser's check is a courtesy. The Server Actions repeat it, the storage bucket refuses other types
