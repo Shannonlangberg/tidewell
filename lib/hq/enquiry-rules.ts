@@ -173,6 +173,8 @@ const ACK_REASON_TEXT: Record<string, string> = {
   hourly_cap: "the hourly limit for thank-you emails was reached",
   not_configured: "email sending is not set up",
   timeout: "the email service did not answer in time",
+  not_begun: "the website could not reach HQ to send it",
+  begin_timeout: "HQ did not answer the website in time",
 };
 
 /**

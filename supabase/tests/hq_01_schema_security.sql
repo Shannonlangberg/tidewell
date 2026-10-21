@@ -8,7 +8,7 @@
 begin;
 \ir hq_fixture.inc
 select pg_temp.seed_hq();
-select plan(188);
+select plan(189);
 
 -- ------------------------------------------------------------ extensions and schemas
 select has_extension('extensions', 'pg_trgm', 'pg_trgm is installed in extensions');
@@ -91,7 +91,7 @@ select throws_ok('select hq.growth_summary(null)', '42501', null, 'anon cannot c
 select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ function privileges (from pg_proc)
-select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 114::bigint, 'hq holds 113 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades, 5 decisions, 3 leads, 6 portfolio, 6 email, 4 enquiries, 2 enquiry thank-you, 6 knowledge, 8 meetings, 26 projects, 4 command center, 6 brand resources) plus bootstrap_first_director');
+select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 115::bigint, 'hq holds 114 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades, 5 decisions, 3 leads, 6 portfolio, 6 email, 4 enquiries, 3 enquiry thank-you, 6 knowledge, 8 meetings, 26 projects, 4 command center, 6 brand resources) plus bootstrap_first_director');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and (p.proacl is null or exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0))),
   0::bigint, 'no hq or hq_private function is executable by public');
@@ -99,15 +99,16 @@ select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regname
             and has_function_privilege('anon', p.oid, 'execute')),
   0::bigint, 'anon can execute no hq or hq_private function');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('authenticated', p.oid, 'execute')),
-  109::bigint, 'authenticated can execute the 109 staff RPCs (every RPC but bootstrap_first_director, submit_enquiry, the two thank-you RPCs and import_brand_resource)');
+  109::bigint, 'authenticated can execute the 109 staff RPCs (every RPC but bootstrap_first_director, submit_enquiry, the three thank-you RPCs and import_brand_resource)');
 select ok(not has_function_privilege('authenticated', 'hq.bootstrap_first_director(uuid,text,text,text)', 'execute'), 'authenticated cannot execute bootstrap_first_director');
 select ok(not has_function_privilege('authenticated', 'hq.submit_enquiry(hq.enquiry_kind,text,text,text,text,text,jsonb,text,text)', 'execute'), 'authenticated cannot execute submit_enquiry (the website calls it with the secret key)');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
-  5::bigint, 'service_role can execute exactly five hq functions');
+  6::bigint, 'service_role can execute exactly six hq functions');
 select ok(has_function_privilege('service_role', 'hq.bootstrap_first_director(uuid,text,text,text)', 'execute'), '... bootstrap_first_director');
 select ok(has_function_privilege('service_role', 'hq.submit_enquiry(hq.enquiry_kind,text,text,text,text,text,jsonb,text,text)', 'execute'), '... submit_enquiry');
 select ok(has_function_privilege('service_role', 'hq.begin_enquiry_auto_reply(uuid)', 'execute')
       and has_function_privilege('service_role', 'hq.finish_enquiry_auto_reply(uuid,boolean,text,text)', 'execute'), '... and begin_enquiry_auto_reply and finish_enquiry_auto_reply');
+select ok(has_function_privilege('service_role', 'hq.fail_enquiry_auto_reply(uuid,text)', 'execute'), '... and fail_enquiry_auto_reply');
 select ok(not has_function_privilege('authenticated', 'hq.begin_enquiry_auto_reply(uuid)', 'execute')
       and not has_function_privilege('authenticated', 'hq.finish_enquiry_auto_reply(uuid,boolean,text,text)', 'execute'), 'authenticated cannot execute the two thank-you RPCs');
 select ok(has_function_privilege('service_role', 'hq.import_brand_resource(uuid,uuid,text,hq.brand_resource_category,text,text,text,text,bigint,text,text[],text,integer,text)', 'execute'), '... and import_brand_resource (the importer script)');
@@ -119,7 +120,7 @@ select is((select array_agg(p.proname::text order by p.proname) from pg_proc p w
   '... and they are the capability helpers, normalise_name, abn_is_valid and expiry_state');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq_private'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
   1::bigint, 'service_role can execute only normalise_name in hq_private');
-select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 113::bigint, 'every hq function but one is security definer');
+select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 114::bigint, 'every hq function but one is security definer');
 select ok(not (select prosecdef from pg_proc where pronamespace = 'hq'::regnamespace and proname = 'global_search'), 'global_search is security invoker, so RLS decides what it returns');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and not coalesce(p.proconfig::text, '') ~ 'search_path=(pg_catalog|"?pg_catalog, public, extensions)'),

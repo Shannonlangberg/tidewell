@@ -19,7 +19,8 @@ import { deliverViaSendGrid, sendGridConfigured } from "./sendgrid";
  * through `store` = lib/hq/enquiry-intake.ts): the switch, one per address per 24 hours, 30 per hour
  * across HQ, never twice for one enquiry, never for spam. begin flips the enquiry to `sending`, so a
  * retry or a duplicate cannot send again; finish records what the provider said (and, when sent, the
- * timeline entry on the lead).
+ * timeline entry on the lead). When begin itself errors or times out, fail records that (0154), so an
+ * enquiry never reads "not attempted" after the site tried.
  *
  * This is the third file allowed to import lib/hq/email/sendgrid.ts (eslint.config.mjs); SENDGRID_API_KEY
  * is still read only there. Provider rule as for every HQ email: SendGrid in production; elsewhere the
@@ -37,6 +38,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export type AckStore = {
   begin: (enquiryId: string) => Promise<AckBegun>;
   finish: (enquiryId: string, ok: boolean, messageId: string | null, errorCode: string | null) => Promise<void>;
+  fail: (enquiryId: string, errorCode: "not_begun" | "begin_timeout") => Promise<void>;
 };
 
 export type AckOutcome = "sent" | "skipped" | "failed";
@@ -53,6 +55,12 @@ export async function acknowledgeEnquiry(enquiryId: string, ref: string, store: 
     begun = await store.begin(enquiryId);
   } catch (e) {
     console.error(`[enquiry] thank-you not begun for ${tag}: ${errName(e)}`);
+    const code = errName(e) === "TimeoutError" || errName(e) === "AbortError" ? "begin_timeout" : "not_begun";
+    try {
+      await store.fail(enquiryId, code);
+    } catch (e2) {
+      console.error(`[enquiry] thank-you failure not recorded for ${tag}: ${errName(e2)}`);
+    }
     return "failed";
   }
   if (!begun.send) {

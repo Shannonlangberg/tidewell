@@ -35,8 +35,8 @@ function useSendGrid(answer: (call: Call) => Promise<{ status: number; headers: 
   return calls;
 }
 
-function store(begun: Awaited<ReturnType<Store["begin"]>> | Error, finishError?: Error) {
-  const seen = { begin: [] as string[], finish: [] as unknown[][] };
+function store(begun: Awaited<ReturnType<Store["begin"]>> | Error, finishError?: Error, failError?: Error) {
+  const seen = { begin: [] as string[], finish: [] as unknown[][], fail: [] as unknown[][] };
   const s: Store = {
     begin: async (id) => {
       seen.begin.push(id);
@@ -46,6 +46,10 @@ function store(begun: Awaited<ReturnType<Store["begin"]>> | Error, finishError?:
     finish: async (...args) => {
       seen.finish.push(args);
       if (finishError) throw finishError;
+    },
+    fail: async (...args) => {
+      seen.fail.push(args);
+      if (failError) throw failError;
     },
   };
   return { s, seen };
@@ -164,6 +168,65 @@ test("fetch throwing (network) and the database failing are swallowed", async ()
     log2.restore();
   }
   assert.ok(!log2.lines.join("\n").includes(TO));
+  assert.deepEqual(begin.seen.fail, [["e46", "not_begun"]], "a begin that blew up is recorded on the enquiry");
+});
+
+test("begin errors: the attempt is recorded as not_begun, nothing is sent and nothing is finished", async () => {
+  const calls = useSendGrid(ok202);
+  const { s, seen } = store(Object.assign(new Error("begin_enquiry_auto_reply refused"), { name: "AckBeginError", code: "PGRST202" }));
+  const log = captureLogs();
+  let out;
+  try {
+    out = await acknowledgeEnquiry("e49", "ENQ-0049", s);
+  } finally {
+    log.restore();
+  }
+  assert.equal(out, "failed");
+  assert.equal(calls.length, 0);
+  assert.equal(seen.finish.length, 0);
+  assert.deepEqual(seen.fail, [["e49", "not_begun"]]);
+  assert.match(log.lines.join("\n"), /thank-you not begun for ENQ-0049: AckBeginError/);
+});
+
+test("begin times out: recorded as begin_timeout", async () => {
+  useSendGrid(ok202);
+  const { s, seen } = store(Object.assign(new Error("timed out"), { name: "TimeoutError" }));
+  const log = captureLogs();
+  try {
+    assert.equal(await acknowledgeEnquiry("e50", "ENQ-0050", s), "failed");
+  } finally {
+    log.restore();
+  }
+  assert.deepEqual(seen.fail, [["e50", "begin_timeout"]]);
+});
+
+test("begin and the failure record both erroring is swallowed and logged without the address", async () => {
+  useSendGrid(ok202);
+  const { s, seen } = store(new Error(`begin ${TO}`), undefined, new Error(`fail ${TO}`));
+  const log = captureLogs();
+  let out;
+  try {
+    out = await acknowledgeEnquiry("e51", "ENQ-0051", s);
+  } finally {
+    log.restore();
+  }
+  assert.equal(out, "failed");
+  assert.equal(seen.fail.length, 1);
+  const all = log.lines.join("\n");
+  assert.match(all, /thank-you failure not recorded for ENQ-0051: Error/);
+  assert.ok(!all.includes(TO), all);
+});
+
+test("a granted thank-you is never recorded as not begun", async () => {
+  useSendGrid(ok202);
+  const { s, seen } = store(BEGUN);
+  const log = captureLogs();
+  try {
+    assert.equal(await acknowledgeEnquiry("e52", "ENQ-0052", s), "sent");
+  } finally {
+    log.restore();
+  }
+  assert.equal(seen.fail.length, 0);
 });
 
 test("an address that is not plain is never sent to, even if the database returned it", async () => {

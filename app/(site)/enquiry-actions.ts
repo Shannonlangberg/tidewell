@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { processEnquiry, type DeliveryDeps, type EnquiryKind, type EnquiryState } from "@/lib/enquiries";
-import { beginEnquiryAck, finishEnquiryAck, submitToHq } from "@/lib/hq/enquiry-intake";
+import { beginEnquiryAck, failEnquiryAck, finishEnquiryAck, submitToHq } from "@/lib/hq/enquiry-intake";
 import { acknowledgeEnquiry } from "@/lib/hq/email/enquiry-ack";
 import { notifyStaffOfEnquiry } from "@/lib/hq/email/enquiry-notify";
 
@@ -42,7 +42,7 @@ async function deliveryDeps(): Promise<DeliveryDeps> {
         name: enquiry.data.name ?? "",
         suburb: enquiry.suburb,
       }),
-    acknowledge: (_enquiry, stored) => acknowledgeEnquiry(stored.enquiryId, stored.ref, { begin: beginEnquiryAck, finish: finishEnquiryAck }),
+    acknowledge: (_enquiry, stored) => acknowledgeEnquiry(stored.enquiryId, stored.ref, { begin: beginEnquiryAck, finish: finishEnquiryAck, fail: failEnquiryAck }),
   };
 }
 
