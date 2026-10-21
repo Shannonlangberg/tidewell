@@ -116,6 +116,36 @@ export function templateStart(template: EmailTemplate, recipientName: string | n
   return { subject: subject[template], body: greeting };
 }
 
+// ── someone new: a typed address (0146) ──────────────────────
+
+export const NEW_CONTACTS_PER_HOUR = 10;
+export const ADDRESS_MAX = 254;
+export const NAME_MAX = 200;
+
+/** The database's address shape: one @, a dot after it, no whitespace. */
+const ADDRESS_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** A typed address as the database keeps it: trimmed and lower-cased. */
+export function normaliseAddress(value: string | null | undefined): string {
+  return (value ?? "").replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "").toLowerCase();
+}
+
+/**
+ * Checks a typed address and name the way create_email_draft does (the database is the authority).
+ * Errors are keyed by form field name: `to_email` and `to_name`.
+ */
+export function validateNewRecipient(input: { email?: string | null; name?: string | null }): { values: { email: string; name: string }; errors: Record<string, string> } {
+  const errors: Record<string, string> = {};
+  const email = normaliseAddress(input.email);
+  const name = (input.name ?? "").replace(/^ +| +$/g, "");
+  if (!email) errors.to_email = "Enter their email address.";
+  else if (email.length > ADDRESS_MAX || /[\u0000-\u001f\u007f]/.test(email) || !ADDRESS_SHAPE.test(email)) errors.to_email = "That does not look like an email address. Check it and try again.";
+  if (!name) errors.to_name = "Enter their name.";
+  else if (name.length > NAME_MAX) errors.to_name = `The name must be ${NAME_MAX} characters or fewer.`;
+  else if (/[\u0000-\u001f\u007f]/.test(name) || !/[\p{L}\p{N}]/u.test(name)) errors.to_name = "Enter a plain name on one line.";
+  return { values: { email, name }, errors };
+}
+
 // ── settings ─────────────────────────────────────────────────
 
 /** A whole number from 1 to 200, or null. */
