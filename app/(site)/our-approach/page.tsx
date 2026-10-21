@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 const STEPS = [
   {
     n: "01",
-    title: "Let’s Talk",
+    title: "Talk to us",
     body: [
       "It starts with a conversation and a look at the property. We want to know what you own and how long you have owned it, what has gone well and what has not, and what you actually want from a manager: income, low involvement, a building kept in good order, or all three at once.",
       "There is no cost at this stage and nothing to sign. If we are not the right fit for your property, we would rather tell you than take it on.",
@@ -25,18 +25,18 @@ const STEPS = [
   },
   {
     n: "02",
-    title: "Your Property, Our Plan",
+    title: "The appraisal and the plan",
     body: [
-      "We appraise the property properly — condition, presentation, position, and what comparable homes nearby are being advertised and leased for. You get a written rental range with the reasoning behind it, including the small pieces of work that would lift the rent or shorten the time to lease.",
+      "We appraise the property properly: condition, presentation, position, and what comparable homes nearby are being advertised and leased for. You get a written rental range with the reasoning behind it, including the small pieces of work that would lift the rent or shorten the time to lease.",
       "With it comes a plan: what we would recommend before listing, how the property would be marketed, how inspections and maintenance would be handled, and what management costs. All of it in writing, before you commit to anything.",
     ],
   },
   {
     n: "03",
-    title: "Consider It Cared For",
+    title: "We take over",
     body: [
       "Once the management agreement is signed, the detail becomes ours. Keys, compliance records, utilities, the bond, the existing tenancy if there is one, and every document that needs to come across.",
-      "From there you move into the ongoing rhythm below, and the day-to-day of owning the property stops being something you have to drive.",
+      "From there you move into the ongoing rhythm below, and the day-to-day running of the property is no longer yours to drive.",
     ],
   },
 ];
@@ -70,7 +70,7 @@ const RHYTHM = [
   {
     n: "05",
     title: "Maintenance",
-    body: "Requests are triaged on arrival. Safety, security and essential services are acted on immediately; everything else is quoted where the cost warrants it and approved by you within the limit you set. Work is placed with local trades who understand what coastal conditions do to a building, and followed through to completion.",
+    body: "Requests are triaged on arrival. Safety, security and essential services are acted on immediately; everything else is quoted where the cost warrants it and approved by you within the limit you set. Work goes to local trades who know the area and the age of the building, and is followed through to completion.",
   },
   {
     n: "06",
@@ -101,8 +101,8 @@ export default function OurApproachPage() {
               Three steps to begin, then a rhythm that keeps going for as long as we manage it.
             </p>
             <p className="mt-6 text-ink-muted">
-              Most of property management happens quietly, in the background, in the weeks when
-              nothing goes wrong. Here is what each part of it actually involves.
+              Most of the work happens quietly, in the weeks when nothing goes wrong. Here is what each
+              part involves.
             </p>
           </div>
         </div>
@@ -154,10 +154,10 @@ export default function OurApproachPage() {
             <div className="relative z-10 px-[clamp(1.5rem,5vw,4rem)]">
               <div className="max-w-3xl">
                 <p className="display display-lg text-ivory">
-                  A house on the Copper Coast asks something of whoever looks after it.
+                  Every house asks something different of whoever looks after it.
                 </p>
                 <p className="label label-light mt-10">
-                  Salt air. Older stock. Weather that finds every gap.
+                  How a house ages depends on its materials, its age and how close it is to the sea.
                 </p>
               </div>
             </div>

@@ -15,7 +15,7 @@ import { AppraisalForm } from "@/components/planted/AppraisalForm";
 export const metadata: Metadata = {
   title: "Rental Appraisal",
   description:
-    "Request a rental appraisal for your Copper Coast investment property. Tell us about the property and we'll be in touch to discuss its rental potential.",
+    "Request a rental appraisal for your investment property on the Copper Coast. Tell us about the property and we'll be in touch to talk through what it could rent for.",
   alternates: { canonical: "/rental-appraisal" },
 };
 
@@ -28,7 +28,7 @@ const STEPS = [
   {
     icon: IconCommunication,
     title: "We'll be in touch",
-    body: "We'll talk through your property's rental potential and what managing it well would involve.",
+    body: "We'll talk through what the property could rent for and what looking after it would involve.",
   },
   {
     icon: IconLocal,
@@ -53,11 +53,11 @@ export default function RentalAppraisalPage() {
             </div>
             <div className="md:col-span-9">
               <h1 className="display display-xl reveal reveal-2 max-w-[18ch]">
-                Know your property&rsquo;s potential.
+                What could your property rent for?
               </h1>
               <p className="lede prose-measure reveal reveal-3 mt-8">
-                Tell us a little about your investment property, and we&rsquo;ll be in touch to
-                discuss its rental potential and how {BRAND.name} may be able to help.
+                Tell us a little about the property and we&rsquo;ll be in touch to talk through what it
+                could rent for, and how {BRAND.name} could help.
               </p>
             </div>
           </div>
@@ -101,14 +101,13 @@ export default function RentalAppraisalPage() {
           <div className="grid gap-x-16 gap-y-10 md:grid-cols-12">
             <div className="md:col-span-7">
               <h2 className="display display-lg text-ivory">
-                Thoughtful management starts with a conversation.
+                Not ready to ask for an appraisal?
               </h2>
             </div>
             <div className="flex items-end md:col-span-4 md:col-start-9">
               <div>
                 <p className="lede lede-light max-w-sm">
-                  If you&rsquo;d rather understand our approach before you ask for an appraisal,
-                  start there instead.
+                  If you&rsquo;d rather understand how we work first, start there instead.
                 </p>
                 <div className="mt-10">
                   <RuleLink href="/our-approach" tone="light">

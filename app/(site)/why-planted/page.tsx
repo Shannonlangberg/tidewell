@@ -6,7 +6,7 @@ import { Testimonials } from "@/components/planted/Testimonials";
 export const metadata: Metadata = {
   title: "Why PLANTED.",
   description:
-    "The things owners say they want from a property manager — to be kept informed, to have maintenance move, to understand the fees — and how PLANTED. approaches each of them.",
+    "Why PLANTED. exists, what we think good property management looks like, and what we are building to deal with the frustrations owners know well: chasing for updates, slow maintenance, unclear fees and feeling like a number.",
   alternates: { canonical: "/why-planted" },
 };
 
@@ -14,89 +14,86 @@ export const metadata: Metadata = {
  * The frustration, then the answer.
  *
  * Deliberately not a comparison table. We have no evidence about how any other
- * agency works, so nothing here describes anyone else: the left column is what
- * owners say they care about, the right is what we do about it. That is a claim
- * we can stand behind; "unlike other agents" is not.
+ * agency works, so nothing here describes anyone else: the left column is a
+ * familiar frustration of owning an investment property, the right is what we
+ * are setting PLANTED. up to do about it. That is a claim we can stand behind;
+ * "unlike other agents" is not. We have no clients yet, so nothing here says
+ * "owners tell us". Several answers are service commitments (reply times,
+ * a named person, handover before a manager changes): confirm them before launch.
  */
 const CONCERNS = [
   {
-    title: "Being kept in the loop",
-    concern:
-      "Not knowing what is happening with your own property, and learning about decisions after they have already been made.",
+    title: "Chasing for updates",
+    concern: "Ringing for news, then ringing again because nobody came back to you.",
     answer:
-      "You hear from us while things are happening, not once they are finished. There is a named person on your property, updates come when there is something to tell you, and a message gets a reply the same business day wherever that is possible.",
+      "You hear from us while things are happening, not once they are finished. A message gets a reply the same business day where we can, and if we can't give you an answer yet, we tell you when you will have one. We would far rather you rang us than sat wondering.",
   },
   {
-    title: "Maintenance that moves",
+    title: "Not knowing what is happening",
     concern:
-      "Repairs that sit unresolved while a tenant grows frustrated and a small problem quietly becomes an expensive one.",
+      "Learning about a repair, a vacancy or a decision after it has been made, and only finding out the condition of the property when something goes wrong.",
     answer:
-      "Requests are assessed the day they arrive and sorted by urgency, with safety, security and essential services handled immediately. You set a spending limit so routine work can proceed without waiting on an approval email, and anything above it comes to you with a quote.",
+      "Updates come when there is something to tell you. Inspections are photographed and written up plainly, including the things you would rather not read, and anything worth attending to, like a failing seal, a tired hot water service or early corrosion, is flagged while it is still small.",
   },
   {
-    title: "Fees you can actually see",
-    concern:
-      "Charges that appear on a statement without explanation, and a fee structure that takes a second reading to decode.",
+    title: "Feeling like a number",
+    concern: "Being one row on a spreadsheet, with a question that waits its turn behind two hundred others.",
     answer:
-      "Fees are set out in writing in plain language before you sign anything, with what is included and what is not. If something is charged, it was agreed first. We would rather have the awkward conversation up front than defend a line item later.",
+      "We build the team around the number of properties, not the other way round. A property manager takes on only as many properties as they can look after properly, and we add people before we add pressure.",
   },
   {
-    title: "Inspections before there is a problem",
+    title: "Wondering whether maintenance is moving",
     concern:
-      "Only hearing about the condition of a property once something has already gone wrong and the cost is fixed.",
+      "A repair that sits unresolved while the tenant grows frustrated and a small problem quietly becomes an expensive one.",
     answer:
-      "We treat an inspection as a maintenance tool rather than a formality. What we see is photographed and written up plainly, and the things worth attending to — a failing seal, a tired hot water service, early corrosion on coastal fixtures — are flagged while they are still small.",
+      "Requests are looked at the day they arrive and sorted by urgency, with safety, security and essential services handled immediately. You set a spending limit, so routine work goes ahead without waiting on your approval, and anything above it comes to you with a quote.",
   },
   {
-    title: "Being able to reach someone",
-    concern:
-      "Calls that land in a queue, emails that go unanswered, and never being certain who is looking after your property this month.",
+    title: "A new manager every few months",
+    concern: "Explaining your property again to someone new, and never being sure who is looking after it this month.",
     answer:
-      "You deal with the same person, and that person knows your property without having to open a file to remember it. We would far rather you rang us than sat wondering.",
+      "You deal with the same person, and they keep the file up to date so anyone covering for them knows the history: the tenant, the repairs and what has been agreed. If your manager does change, we tell you before it happens, not after.",
   },
   {
-    title: "Not being a number",
-    concern:
-      "A portfolio so large that your property is one row on a spreadsheet and your question waits its turn behind two hundred others.",
+    title: "Fees that need decoding",
+    concern: "A charge on a statement with no explanation, or a fee structure that takes a second reading to make sense of.",
     answer:
-      "We are building a book we can genuinely look after rather than the biggest one available. That is a deliberate choice about quality, and it is the reason your property gets attention rather than processing.",
+      "Fees are set out in writing, in plain language, before you sign anything, including what is included and what is not. If something is charged, it was agreed first. We would rather have the awkward conversation up front than defend a line item later.",
   },
   {
-    title: "Consistent tenant management",
-    concern:
-      "Rules applied one way this month and another way the next, so neither you nor your tenant is sure where they stand.",
+    title: "Feeling disconnected from your investment",
+    concern: "Owning a significant asset and having no easy way to see how it is going.",
     answer:
-      "The same process every time: thorough screening before a tenancy, expectations made clear at the start, arrears followed up on the first day they occur, and the lease applied the same way for everyone. Tenants who are dealt with fairly and consistently tend to look after a home, and that protects your asset.",
+      "Statements, inspection reports, maintenance history and lease dates are kept together and written to be read, not filed. You should be able to answer most questions yourself, any time, and still be welcome to ring and ask.",
   },
   {
-    title: "Seeing your investment clearly",
-    concern:
-      "Owning a significant asset and having no straightforward way to see how it is actually performing.",
+    title: "Tenants handled differently each time",
+    concern: "Rules applied one way this month and another way next month, so nobody is sure where they stand.",
     answer:
-      "Statements, inspection reports, maintenance history and lease dates kept together and written to be read rather than filed. The aim is that you can answer the question yourself at any moment — and still be welcome to ring and ask.",
+      "The same process every time: thorough screening before a tenancy, expectations made clear at the start, arrears followed up on the first day they occur, and the lease applied the same way for everyone. Tenants who are dealt with fairly tend to look after a home, and that protects your asset.",
   },
 ];
 
-const VALUES = [
+const BELIEFS = [
   {
-    title: "Stewardship",
-    body: "A property is held in trust for whoever owns it next, even when that is you in twenty years. We manage with that horizon in mind: protect the building, keep the records straight, and make decisions that still look right much later.",
+    title: "Relationships before transactions",
+    body: "A tenancy runs for years, and a good relationship is worth more than a quick result. We will take the slower, more honest answer over the fast one.",
   },
   {
-    title: "Transparency",
-    body: "Fees in writing, statements that show the whole picture and inspection reports that include the things you would rather not read. If something has gone wrong, you hear it from us first and plainly.",
+    title: "People before process",
+    body: "Process is there to give people time, not to stand between you and a person. When the two clash, the person comes first, and the job still gets done properly.",
   },
   {
-    title: "Excellence",
-    body: "Doing the ordinary things properly and consistently — the inspection on time, the ledger reconciled, the lease correct, the call returned. Almost all of property management is detail, and detail is where it is won or lost.",
+    title: "Plain communication",
+    body: "Short, clear and free of jargon. If we have to use a technical term, we explain it. If something has gone wrong, you hear it from us first.",
   },
   {
-    title: "Relationships",
-    body: "With owners, with tenants and with the trades who keep a building standing. This is a people business before it is anything else, and good relationships are what make the hard conversations workable when they come.",
+    title: "The same standard every time",
+    body: "The inspection on time, the ledger reconciled, the lease correct, the call returned. Almost all of property management is detail, and we want it done the same way for every property.",
   },
   {
-    title: "Growth",
-    body: "Earned rather than chased. For your property it means care that compounds: a well-kept building, a settled tenancy, decisions made early. For us it means taking on only what we can look after properly.",
+    title: "Strong systems, human service",
+    body: "Good systems make the work visible and stop it depending on one person's memory. They support the relationship and leave the conversation to people.",
   },
 ];
 
@@ -117,9 +114,10 @@ export default function WhyPlantedPage() {
               Most owners don&rsquo;t want more paperwork. They want to stop wondering.
             </p>
             <p className="mt-6 text-ink-muted">
-              What follows is what owners say matters to them about managing an investment property,
-              and how {BRAND.name} approaches each one. No claims about anybody else &mdash; only
-              what we hold ourselves to.
+              We started {BRAND.nameInText} because we think property management can be better: for owners
+              who want to be kept informed, for tenants who want to be treated fairly, and for the people
+              doing the job. This page sets out what we think that looks like, and what we are building to
+              get there.
             </p>
           </div>
           <div className="reveal reveal-4 mt-12">
@@ -132,20 +130,20 @@ export default function WhyPlantedPage() {
       <Section tone="white" className="rule">
         <div className="shell">
           <SectionHead
-            label="Owner by owner"
+            label="Common frustrations"
             heading={<>The same frustrations come up again and again.</>}
           >
             <p>
-              None of them are complicated to fix. They are fixed by caring about the unglamorous
-              parts of the job and by having few enough properties to do that properly.
+              None of them are hard to understand. Fixing them takes people who have the time to do the
+              unglamorous parts of the job, and systems that stop things slipping.
             </p>
           </SectionHead>
 
           {/* Column headings sit above the list on wide screens; on narrow ones
               each item carries its own, so the frame never goes missing. */}
           <div className="rule mt-20 hidden gap-x-16 pt-6 md:grid md:grid-cols-12">
-            <p className="label md:col-span-5">What owners tell us matters</p>
-            <p className="label md:col-span-6 md:col-start-7">How we approach it</p>
+            <p className="label md:col-span-5">The frustration</p>
+            <p className="label md:col-span-6 md:col-start-7">What we do about it</p>
           </div>
 
           <ul className="rule mt-10 md:mt-6">
@@ -153,14 +151,14 @@ export default function WhyPlantedPage() {
               <li key={c.title} className="border-b border-line">
                 <div className="grid gap-x-16 gap-y-8 py-12 md:grid-cols-12">
                   <div className="md:col-span-5">
-                    <p className="label md:hidden">What owners tell us matters</p>
+                    <p className="label md:hidden">The frustration</p>
                     <h3 className="display display-sm mt-4 md:mt-0">{c.title}</h3>
                     <p className="mt-4 text-[0.9375rem] leading-relaxed text-ink-muted">
                       {c.concern}
                     </p>
                   </div>
                   <div className="md:col-span-6 md:col-start-7">
-                    <p className="label md:hidden">How we approach it</p>
+                    <p className="label md:hidden">What we do about it</p>
                     <p className="mt-4 text-ink-muted md:mt-0">{c.answer}</p>
                   </div>
                 </div>
@@ -174,16 +172,16 @@ export default function WhyPlantedPage() {
       <Section tone="ivory">
         <div className="shell">
           <SectionHead
-            label="What we stand on"
-            heading={<>Five values, and what each one costs us.</>}
+            label="What we believe"
+            heading={<>The things we come back to.</>}
           >
             <p>
-              Values are only worth stating if they change a decision. These change ours.
+              When a decision is difficult, these are what we check it against.
             </p>
           </SectionHead>
 
           <div className="mt-20 grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-3">
-            {VALUES.map((v) => (
+            {BELIEFS.map((v) => (
               <div key={v.title} className="flex flex-col bg-ivory p-8 lg:p-10">
                 <h3 className="display display-md">{v.title}</h3>
                 <p className="mt-5 text-[0.9375rem] leading-relaxed text-ink-muted">{v.body}</p>
@@ -194,7 +192,7 @@ export default function WhyPlantedPage() {
             <div className="flex flex-col justify-between bg-ivory p-8 lg:p-10">
               <p className="display display-sm text-clay-deep">{BRAND.tagline}</p>
               <div className="mt-10">
-                <RuleLink href="/contact">Talk to us</RuleLink>
+                <RuleLink href="/contact">Let&rsquo;s talk</RuleLink>
               </div>
             </div>
           </div>
@@ -207,15 +205,17 @@ export default function WhyPlantedPage() {
           <div className="grid gap-x-16 gap-y-10 md:grid-cols-12">
             <div className="md:col-span-7">
               <p className="display display-xl text-ivory">
-                Built on strong
+                The ordinary things,
                 <br />
-                foundations.
+                done properly,
+                <br />
+                every time.
               </p>
             </div>
             <div className="flex items-end md:col-span-4 md:col-start-9">
               <p className="lede lede-light max-w-sm">
-                Get the ordinary things right, every time, and the extraordinary ones mostly take
-                care of themselves.
+                Most of what an owner remembers about a manager comes down to whether the ordinary
+                things got done.
               </p>
             </div>
           </div>

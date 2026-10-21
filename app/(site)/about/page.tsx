@@ -17,43 +17,44 @@ import {
  * no religious language. If a line could only be read one way, it is wrong.
  *
  * Nothing on this page is invented. There is no founder name, title, portrait
- * or biography, no staff, no awards, no numbers — only what is actually true
- * about the business today and what it intends.
+ * or biography, no staff, no awards, no numbers: only what is actually true
+ * about the business today and what it intends. The founder introduction below
+ * is the one thing this page still needs from a real person.
  */
 
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "PLANTED. was created around a simple belief: property management should be personal, professional and built for the long term. Our values, and where we are starting.",
+    "Why we started PLANTED., what the name means, and what we are building: a property management company where owners, tenants and our own people are properly looked after.",
   alternates: { canonical: "/about" },
 };
 
-/** Five values, written for this page: concrete, operational, understated. */
-const VALUES = [
+/** The people a property touches, and what PLANTED. owes each of them. */
+const AUDIENCES = [
   {
     icon: IconStewardship,
-    title: "Stewardship",
-    body: "A property belongs to someone. We treat it as something held in trust and handed back better, not as a file to be administered.",
-  },
-  {
-    icon: IconReporting,
-    title: "Transparency",
-    body: "No surprises. Owners see what we see, when we see it, including the things that are inconvenient to report.",
+    title: "Owners",
+    body: "You should know who is looking after your property, what is happening with it and what it is costing you, without having to ask.",
   },
   {
     icon: IconCare,
-    title: "Excellence",
-    body: "Doing the ordinary work properly and on time, which is harder and far rarer than doing the occasional impressive thing.",
+    title: "Tenants",
+    body: "A home is where someone lives, not only an asset on a ledger. Tenants should get a straight answer, a fair process and repairs that are seen to.",
   },
   {
     icon: IconCommunication,
-    title: "Relationships",
-    body: "Owners, tenants and tradespeople are all people we expect to be dealing with in ten years. We work on that assumption.",
+    title: "Our team",
+    body: "People do their best work when they have the time, the systems and the support to look after clients properly. We want PLANTED. to be somewhere people are glad to work.",
   },
   {
     icon: IconModern,
-    title: "Growth",
-    body: "Building carefully enough that getting bigger never costs the thing that made the service worth choosing in the first place.",
+    title: "Local trades",
+    body: "Plumbers, electricians and builders are part of the same relationship. We aim to brief them clearly, pay them promptly and work with them again.",
+  },
+  {
+    icon: IconReporting,
+    title: "The places we work",
+    body: "A rental is part of a street and a town. We want to be a good neighbour wherever we work.",
   },
 ];
 
@@ -69,11 +70,11 @@ export default function AboutPage() {
             <Label>About {BRAND.name}</Label>
           </div>
           <h1 className="display display-xl reveal reveal-2 mt-8 max-w-[14ch]">
-            Built on strong foundations.
+            Why we started {BRAND.nameInText}.
           </h1>
           <p className="lede reveal reveal-3 mt-8 max-w-2xl">
-            {BRAND.name} was created around a simple belief: property management should be personal,
-            professional and built for the long term.
+            We think property management can be better, for owners, for tenants and for the people who do
+            the job. {BRAND.name} is our attempt to build it that way.
           </p>
         </div>
       </section>
@@ -85,7 +86,7 @@ export default function AboutPage() {
             <div className="md:col-span-4">
               <Label>Why we exist</Label>
               <h2 className="display display-lg mt-6">
-                More than collecting rent.
+                What the job really is.
               </h2>
             </div>
             <div className="md:col-span-7 md:col-start-6">
@@ -95,13 +96,13 @@ export default function AboutPage() {
                   around it.
                 </p>
                 <p className="mt-6">
-                  Great property management means caring for homes, protecting the investment they
-                  represent, supporting the people who live in them, and giving owners enough
-                  confidence to plan past the next lease.
+                  Owners should know what is happening with their property. Tenants should be treated
+                  fairly and have repairs seen to. The people managing the property need the time, the
+                  systems and the support to make both happen.
                 </p>
                 <p className="mt-5">
-                  That is a slower and more considered way to work. It is also the only version of
-                  the job we think is worth doing, and the reason {BRAND.name} exists at all.
+                  We use technology where it saves people time. What owners and tenants remember is
+                  whether someone rang them back. {BRAND.name} exists to make sure someone does.
                 </p>
               </div>
               <div className="mt-10">
@@ -131,14 +132,14 @@ export default function AboutPage() {
                   years rather than weeks, and judged by what it becomes.
                 </p>
                 <p className="mt-6 text-stone">
-                  That is the whole idea behind the name. Strong foundations. Putting down roots in
-                  one region and learning it properly. Growth that is steady rather than hurried.
-                  Stewardship of something that belongs to somebody else. And belonging &mdash; for
-                  owners, for the people living in these homes, and for the business itself.
+                  That is the idea behind the name. Strong foundations. Learning a place properly
+                  before claiming to know it. Growth that is steady rather than hurried. Looking
+                  after something that belongs to somebody else. And belonging, for owners, for the
+                  people living in these homes and for the team.
                 </p>
                 <p className="mt-5 text-stone">
                   It is an unusual name for a property company. We chose it because it describes how
-                  we intend to work, not how we intend to sound.
+                  we want to work, not how we want to sound.
                 </p>
               </div>
             </div>
@@ -150,12 +151,12 @@ export default function AboutPage() {
       <Section tone="ivory">
         <div className="shell">
           <SectionHead
-            label="What we stand for"
-            heading={<>Five things that hold everything else up.</>}
+            label="Who we are here for"
+            heading={<>A property involves more people than the owner.</>}
           />
 
           <div className="mt-20 grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-3">
-            {VALUES.map(({ icon: Icon, title, body }) => (
+            {AUDIENCES.map(({ icon: Icon, title, body }) => (
               <div key={title} className="flex flex-col bg-ivory p-8 lg:p-10">
                 <Icon className="text-clay-deep" />
                 <h3 className="display display-sm mt-8">{title}</h3>
@@ -188,15 +189,16 @@ export default function AboutPage() {
             </div>
             <div className="md:col-span-6 md:col-start-7">
               <Label>Who you deal with</Label>
-              <h2 className="display display-lg mt-6">A person, not a queue.</h2>
+              <h2 className="display display-lg mt-6">Who you&rsquo;ll deal with.</h2>
               <div className="prose-measure mt-8 text-ink-muted">
                 <p className="lede">
-                  {BRAND.name} is deliberately small, and intends to stay personal as it grows.
+                  However many properties we look after, you should be dealing with a person who knows
+                  yours.
                 </p>
                 <p className="mt-6">
-                  The point of a small portfolio is that the person you speak to knows your
-                  property, knows your tenants and knows the history of both &mdash; so you are not
-                  re-explaining yourself to somebody new every time something comes up.
+                  A manager can only know a property if they have the time to. So we plan the team
+                  around the number of properties, and keep each file up to date, so you are not
+                  explaining yourself again to someone new every time something comes up.
                 </p>
                 <p className="mt-5 text-[0.9375rem]">
                   A proper introduction, with a photograph, will appear here shortly.
@@ -214,22 +216,21 @@ export default function AboutPage() {
             <div className="md:col-span-5">
               <Label tone="light">Where this goes</Label>
               <h2 className="display display-lg mt-6 text-ivory">
-                Starting here.
+                Where we are
                 <br />
-                Built to grow.
+                headed.
               </h2>
             </div>
             <div className="md:col-span-6 md:col-start-7">
               <div className="prose-measure">
                 <p className="lede lede-light">
-                  The ambition is a property company known for exceptional service, thoughtful
-                  innovation and genuine relationships.
+                  We want to build Australia&rsquo;s most loved property management company. We are at the
+                  very beginning, and we know it gets earned one property at a time.
                 </p>
                 <p className="mt-6 text-stone">
-                  We are starting on the Copper Coast because it is home, and because knowing one
-                  region properly is worth more than covering several of them thinly. What gets
-                  built here is designed to grow &mdash; on the condition that growing never costs
-                  the personal approach that makes good service possible.
+                  We are starting on the Copper Coast, because it is better to look after one place
+                  properly than several thinly. As we grow, new places will be added once we can
+                  properly look after properties there, and the way we work will come with us.
                 </p>
               </div>
               <div className="mt-10">
@@ -248,8 +249,8 @@ export default function AboutPage() {
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="display display-lg">Let&rsquo;s talk about your property.</h2>
             <p className="lede mx-auto mt-8 max-w-xl">
-              If this is the way you would want your investment looked after, we would like to hear
-              about it.
+              If this is how you would want your investment looked after, we would like to hear from
+              you.
             </p>
             <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
               <Button href="/rental-appraisal" variant="light">

@@ -101,7 +101,7 @@ export function Header() {
           <div className="flex items-center gap-2">
             <span className="pl-nav-cta">
               <Button href={ctaHref} size="sm">
-                Book an appraisal
+                Let&rsquo;s talk
               </Button>
             </span>
             <button
@@ -157,7 +157,7 @@ export function Header() {
         <div className="grid gap-5">
           <div onClick={() => setOpen(false)}>
             <Button href={ctaHref} variant="lime" block>
-              Book a rental appraisal
+              Let&rsquo;s talk about your property
             </Button>
           </div>
           <div className="flex flex-wrap justify-between gap-2 text-[0.875rem] text-muted-dark">

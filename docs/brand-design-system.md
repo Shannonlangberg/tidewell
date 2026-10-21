@@ -55,9 +55,9 @@ Implementation notes added by the build team are in the section at the end ("Imp
 **Name:** PLANTED. Always include the full stop.
 **Descriptor:** PROPERTY MANAGEMENT
 **Primary tagline:** A better place for your property.
-**Secondary brand statement:** People. Property. Potential.
+**Homepage line:** Good property management starts with people.
 
-**Personality:** Modern, premium, architectural, confident, approachable, minimalist, professional, innovative, understated.
+**Personality:** Modern, premium, architectural, confident, approachable, minimalist, professional, understated.
 
 **Philosophy:** Strong foundations create lasting growth. PLANTED. has a subtle biblical connection to being planted, established and flourishing. This meaning should remain understated.
 
@@ -146,7 +146,7 @@ Use semantic colours for important statuses such as errors, warnings and success
 
 ## 8. Vehicle branding
 
-Minimal and sophisticated. PLANTED. with PROPERTY MANAGEMENT beneath, cream or ivory lettering on dark vehicles. Optional: People. Property. Potential. Use the confirmed business website only. Large wordmark across front doors, small descriptor beneath, optional minimal rear tailgate branding, generous negative space. No large stripes, diagonal graphics, full wraps, oversized shapes, gardening imagery or bright colours. The vehicle stays largely its original colour.
+Minimal and sophisticated. PLANTED. with PROPERTY MANAGEMENT beneath, cream or ivory lettering on dark vehicles. Use the confirmed business website only. Large wordmark across front doors, small descriptor beneath, optional minimal rear tailgate branding, generous negative space. No large stripes, diagonal graphics, full wraps, oversized shapes, gardening imagery or bright colours. The vehicle stays largely its original colour.
 
 ## 9. Property signage
 
@@ -158,9 +158,28 @@ Architectural, warm, contemporary, authentic, premium. Australian homes, coastal
 
 ## 11. Brand voice
 
-Warm, confident, clear, professional, understated, human. Australian English. Avoid exaggerated sales claims.
+Warm, confident, personal, uncomplicated. Australian English, sentence case. Avoid exaggerated sales claims.
 
-Approved phrases: A better place for your property. / Property management, thoughtfully reimagined. / People. Property. Potential. / Built on strong foundations. / More than management. Peace of mind. / Good property management is an investment in the future.
+**The test:** would a thoughtful, capable property manager say this out loud to an owner over a coffee? If not, rewrite it.
+
+**Do**
+
+- Say something specific. "You hear from us while it is happening" beats "proactive communication".
+- Write short, natural sentences. A plain sentence is often the strongest one.
+- Use "we" and "you". Write for one person, not a market.
+- Keep service-area facts (towns, "starting on the Copper Coast") in location sections, contact details and area pages. The brand itself is Australian and built to grow. Never imply we operate somewhere we do not yet.
+- Name the next step gently: "Let's talk about your property."
+
+**Don't**
+
+- No hollow lines ("thoughtfully reimagined", "more than management", "peace of mind", "protecting today, preparing for tomorrow").
+- No forced contrasts ("not just X, but Y"), no rhythmic three-part slogans, no unnecessary em dashes.
+- Leave out "seamless", "tailored", "elevated", "innovative", "solutions", "empowering", "exceptional" and "unparalleled" unless the word is doing real work.
+- Never invent testimonials, numbers, awards, team members, years of experience, locations or licences. Flag anything unconfirmed instead.
+
+**Liked lines** (use sparingly, not repeatedly): "Most owners don't want more paperwork. They want to stop wondering." / "We would far rather you rang us than sat wondering." / "Collecting the rent is the straightforward part. Everything that matters sits around it."
+
+Approved: A better place for your property. (the signature, used in the footer, on the hero photograph and on signage.) / Good property management starts with people. / Let's talk about your property.
 
 ## 12. Future brand architecture
 

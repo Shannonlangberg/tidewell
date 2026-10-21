@@ -41,9 +41,37 @@ export const CONTACT = {
 /** Social accounts. Only rendered once an account actually exists. */
 export const SOCIAL: { label: string; href: string }[] = [];
 
+/**
+ * A region is where a group of areas sits. PLANTED. starts in one, and the
+ * overview page groups areas by region, so growing into another region means
+ * adding an entry here and areas that point at it. Add one only when we
+ * genuinely serve it.
+ */
+export type Region = {
+  slug: string;
+  name: string;
+  state: string;
+  /** One or two sentences on where it is. Plain geography, no market claims. */
+  intro: string;
+};
+
+export const REGIONS: Region[] = [
+  {
+    slug: "copper-coast",
+    name: "Copper Coast",
+    state: "South Australia",
+    intro:
+      "The Copper Coast sits at the top of South Australia's Yorke Peninsula, around a two-hour drive west of Adelaide. Kadina, Wallaroo and Moonta, the Copper Triangle, are the three old mining towns. The coastal communities around them are the rest of the region.",
+  },
+];
+
+export const regionBySlug = (slug: string) => REGIONS.find((r) => r.slug === slug);
+
 export type Area = {
   slug: string;
   name: string;
+  /** Slug of the region this area belongs to (see REGIONS). */
+  region: string;
   /** One sentence of genuine local context. No market statistics. */
   intro: string;
   /** What makes managing here specific. Qualitative only. */
@@ -58,6 +86,7 @@ export const AREAS: Area[] = [
   {
     slug: "kadina",
     name: "Kadina",
+    region: "copper-coast",
     intro:
       "The largest of the Copper Triangle towns and the commercial centre of the region, Kadina draws long-term tenants who work locally and want to stay put.",
     character:
@@ -66,6 +95,7 @@ export const AREAS: Area[] = [
   {
     slug: "wallaroo",
     name: "Wallaroo",
+    region: "copper-coast",
     intro:
       "A working port town with a deep-water harbour, a ferry link across Spencer Gulf and a steady residential community alongside the holiday trade.",
     character:
@@ -74,14 +104,16 @@ export const AREAS: Area[] = [
   {
     slug: "moonta",
     name: "Moonta",
+    region: "copper-coast",
     intro:
       "Known for its Cornish mining heritage and its conservation-listed town centre, Moonta has a settled residential core a few minutes inland from the coast.",
     character:
-      "Stone and brick homes on generous blocks, with newer development toward the bay. Maintenance planning matters on older housing stock, and tenants value homes that are genuinely looked after.",
+      "Stone and brick homes on generous blocks, with newer development toward the bay. Maintenance planning matters on older housing stock, and tenants value homes that are properly looked after.",
   },
   {
     slug: "moonta-bay",
     name: "Moonta Bay",
+    region: "copper-coast",
     intro:
       "The coastal side of Moonta, with a long jetty, a swimming beach and a residential strip that has grown steadily over the past two decades.",
     character:
@@ -90,6 +122,7 @@ export const AREAS: Area[] = [
   {
     slug: "north-beach",
     name: "North Beach",
+    region: "copper-coast",
     intro:
       "A quiet residential pocket north of Wallaroo, close to the sand and well regarded by tenants looking for space and calm.",
     character:
@@ -98,6 +131,7 @@ export const AREAS: Area[] = [
   {
     slug: "port-hughes",
     name: "Port Hughes",
+    region: "copper-coast",
     intro:
       "A small coastal community south of Moonta Bay, known for its jetty, its boat ramp and the golf links on its doorstep.",
     character:
