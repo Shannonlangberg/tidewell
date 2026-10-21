@@ -23,7 +23,7 @@ export async function EmailSettingsSection() {
         Email
       </SectionLabel>
       <p className="mb-4 max-w-xl">
-        Branded emails are sent from <strong>{from.name}</strong> &lt;{from.email}&gt;, one recipient each, to addresses already on HQ records. Replies go to the person who drafted
+        Branded emails are sent from <strong>{from.name}</strong> &lt;{from.email}&gt;, one recipient each, to an address on an HQ record (or one typed in, which HQ first adds to Contacts as needing a check). Replies go to the person who drafted
         the email.
         {provider === "fake" ? " On this server emails are not really sent: a test outbox records them." : provider === "none" ? " Sending is not set up on this server." : ""}
       </p>
