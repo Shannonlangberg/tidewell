@@ -8,11 +8,13 @@
  *   photos       assets/photos/*
  *   colours_type tokens/colors.css, tokens/typography.css, tokens/fonts.css, styles/base.css
  *   tokens       the remaining CSS: styles.css, tokens/layout.css, styles/components.css, brand/guidelines.css
- *   ui_kit       components/** and ui_kits/**
- *   other        _ds_bundle.js, _ds_manifest.json, _adherence.oxlintrc.json, github.md, thumbnail.html
+ *   ui_kit       ONE zip, "Website UI kit (code)": components/** and ui_kits/** with the stylesheets and tokens they need
  *
- * Skipped: .DS_Store and .thumbnail (and any other dot file). Anything the map does not know goes to "other"
- * under its path, so nothing is dropped silently.
+ * Skipped: .DS_Store and .thumbnail (and any other dot file), and the developer files that help nobody in HQ
+ * (_ds_bundle.js, _ds_manifest.json, _adherence.oxlintrc.json, github.md, thumbnail.html). Anything else the map does
+ * not know goes to "other" under its path, so nothing is dropped silently.
+ *
+ * The guideline cards (guidelines/*.html) carry the tag "foundation": the library shows them under "More guidelines".
  *
  * THE VOICE RULE: the folder's readme "Approved phrases" line, guidelines/voice.html and the voice section of
  * the brand book still list phrases the business has dropped. They are imported UNTOUCHED, with a note saying so,
@@ -37,6 +39,8 @@ export type ImportEntry = {
   note: string | null;
   sortOrder: number;
   mime: ResourceMime;
+  /** A bundle: the paths (inside the folder) that are zipped into this one file. Its own path is a label, not a file. */
+  bundle?: string[];
 };
 
 export type ImportPlan = {
@@ -59,21 +63,6 @@ export function dsCard(html: string | null): { group: string; name: string; subt
 }
 
 const decode = (s: string) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
-
-/** The first non-empty line of a markdown file, trimmed and cut to a sentence-sized description. */
-function firstLine(text: string | null, max = 400): string | null {
-  const line = (text ?? "").split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("#") && !l.startsWith("```"));
-  return line ? line.slice(0, max) : null;
-}
-
-const UI_KIT_TITLES: Record<string, { title: string; description: string }> = {
-  "ui_kits/website/index.html": { title: "Website UI kit: page", description: "The redesigned PLANTED. website as one HTML page, composed from the design-system components." },
-  "ui_kits/website/kit.css": { title: "Website UI kit: page layout (kit.css)", description: "Page-level layout for the website kit. Everything visual comes from styles.css." },
-  "ui_kits/website/Motion.jsx": { title: "Website UI kit: motion (Motion.jsx)", description: "Shared motion and small helpers for the website kit." },
-  "ui_kits/website/People.jsx": { title: "Website UI kit: people, community and contact (People.jsx)", description: "The People, Community and Contact sections of the website kit." },
-  "ui_kits/website/Sections.jsx": { title: "Website UI kit: sections (Sections.jsx)", description: "The Hero, Approach, Owners and Tenants sections of the website kit." },
-  "ui_kits/website/image-slot.js": { title: "Website UI kit: image slot (image-slot.js)", description: "An image placeholder element the kit uses where a photograph is to be dropped in." },
-};
 
 const FIXED: Record<string, Omit<ImportEntry, "path" | "fileName" | "mime">> = {
   "readme.md": {
@@ -164,47 +153,22 @@ const FIXED: Record<string, Omit<ImportEntry, "path" | "fileName" | "mime">> = {
     note: null,
     sortOrder: 3,
   },
-  "_ds_bundle.js": {
-    category: "other",
-    title: "Design system bundle (_ds_bundle.js)",
-    description: "The compiled bundle of every design-system component (namespace PLANTEDDesignSystem_b326d9) that the HTML previews and the UI kit load.",
-    tags: ["design system", "bundle"],
-    note: null,
-    sortOrder: 0,
-  },
-  "_ds_manifest.json": {
-    category: "other",
-    title: "Design system manifest (_ds_manifest.json)",
-    description: "The manifest of the design system: its namespace and each component with its source path.",
-    tags: ["design system", "manifest"],
-    note: null,
-    sortOrder: 1,
-  },
-  "_adherence.oxlintrc.json": {
-    category: "other",
-    title: "Adherence lint rules (_adherence.oxlintrc.json)",
-    description: "The lint configuration that checks code against the design system (for example, import components from the index, not their internals).",
-    tags: ["design system", "lint"],
-    note: null,
-    sortOrder: 2,
-  },
-  "github.md": {
-    category: "other",
-    title: "GitHub source notes (github.md)",
-    description: "Where the design system was synced from (repository, branch and path), what the last sync changed, and which project screens map to which repository files.",
-    tags: ["design system", "source"],
-    note: null,
-    sortOrder: 3,
-  },
-  "thumbnail.html": {
-    category: "other",
-    title: "Design system thumbnail (thumbnail.html)",
-    description: "The HTML page the design system's thumbnail image is made from.",
-    tags: ["design system", "thumbnail"],
-    note: null,
-    sortOrder: 4,
-  },
 };
+
+/** Developer files that are not kept in the library, with the reason shown in the importer's output. */
+const NOT_KEPT: Record<string, string> = {
+  "_ds_bundle.js": "a compiled developer bundle, not kept in HQ",
+  "_ds_manifest.json": "a developer manifest, not kept in HQ",
+  "_adherence.oxlintrc.json": "a developer lint config, not kept in HQ",
+  "github.md": "developer sync notes, not kept in HQ",
+  "thumbnail.html": "a thumbnail page, not kept in HQ",
+};
+
+/** Files the UI kit zip carries besides components/** and ui_kits/**, so it runs on its own. */
+const KIT_EXTRAS = (p: string) => p === "styles.css" || p === "readme.md" || p.startsWith("tokens/") || p.startsWith("styles/");
+
+export const UI_KIT_TITLE = "Website UI kit (code)";
+export const UI_KIT_FILE = "planted-website-ui-kit.zip";
 
 export function planImport(paths: readonly string[], readText: (path: string) => string | null): ImportPlan {
   const entries: ImportEntry[] = [];
@@ -212,15 +176,8 @@ export function planImport(paths: readonly string[], readText: (path: string) =>
   const unmapped: string[] = [];
   const sorted = [...paths].map((p) => p.replace(/\\/g, "/")).sort((a, b) => a.localeCompare(b));
 
-  // The first line of each component's usage notes describes the component's other files too.
-  const promptLine = new Map<string, string | null>();
-  for (const p of sorted) {
-    const m = /^components\/[^/]+\/([^/]+)\.prompt\.md$/.exec(p);
-    if (m) promptLine.set(m[1], firstLine(readText(p)));
-  }
-
   let cardIndex = 0;
-  let componentIndex = 0;
+  const kit: string[] = [];
   let photoIndex = 0;
   for (const path of sorted) {
     const fileName = baseName(path);
@@ -235,6 +192,15 @@ export function planImport(paths: readonly string[], readText: (path: string) =>
     }
     const add = (e: Omit<ImportEntry, "path" | "fileName" | "mime">) => entries.push({ path, fileName, mime, ...e });
 
+    if (NOT_KEPT[path]) {
+      skipped.push({ path, reason: NOT_KEPT[path] });
+      continue;
+    }
+    if (/^(components|ui_kits)\//.test(path)) {
+      kit.push(path);
+      continue;
+    }
+
     if (FIXED[path]) {
       add(FIXED[path]);
     } else if (/^guidelines\/[^/]+\.html$/.test(path)) {
@@ -245,7 +211,7 @@ export function planImport(paths: readonly string[], readText: (path: string) =>
         category: "guidelines",
         title: card ? `${card.group}: ${decode(card.name)}` : `Guideline card: ${stem}`,
         description: card?.subtitle ? decode(card.subtitle) : null,
-        tags: ["guideline card", ...(card ? [card.group.toLowerCase()] : [])],
+        tags: ["guideline card", "foundation", ...(card ? [card.group.toLowerCase()] : [])],
         note: isVoice ? VOICE_OUT_OF_DATE_NOTE : null,
         sortOrder: 10 + cardIndex,
       });
@@ -275,38 +241,26 @@ export function planImport(paths: readonly string[], readText: (path: string) =>
         sortOrder: photoIndex,
       });
       photoIndex += 1;
-    } else if (/^components\/[^/]+\/[^/]+\.(jsx|d\.ts|prompt\.md)$/.test(path)) {
-      const m = /^components\/([^/]+)\/([^/]+?)\.(jsx|d\.ts|prompt\.md)$/.exec(path)!;
-      const [, group, name, kind] = m;
-      const what = kind === "jsx" ? "component (JSX)" : kind === "d.ts" ? "types (TypeScript)" : "usage notes";
-      const lead = promptLine.get(name) ?? null;
-      add({
-        category: "ui_kit",
-        title: name === "FieldParts" ? "Form field parts (FieldParts.jsx)" : `${name} ${what}`,
-        description: name === "FieldParts" ? "Shared label and note pieces the form fields are built from." : lead,
-        tags: ["component", group, ...(kind === "prompt.md" ? ["usage"] : [])],
-        note: null,
-        sortOrder: componentIndex,
-      });
-      componentIndex += 1;
-    } else if (/^components\/[^/]+\/[^/]+\.card\.html$/.test(path)) {
-      const card = dsCard(readText(path));
-      add({
-        category: "ui_kit",
-        title: card ? `Preview: ${decode(card.name).replace(/ — /g, ": ")}` : `Component preview: ${fileName}`,
-        description: card?.subtitle ? decode(card.subtitle) : null,
-        tags: ["component", "preview", path.split("/")[1]],
-        note: null,
-        sortOrder: componentIndex,
-      });
-      componentIndex += 1;
-    } else if (UI_KIT_TITLES[path]) {
-      add({ category: "ui_kit", title: UI_KIT_TITLES[path].title, description: UI_KIT_TITLES[path].description, tags: ["ui kit", "website"], note: null, sortOrder: 500 + componentIndex });
-      componentIndex += 1;
     } else {
       unmapped.push(path);
       add({ category: "other", title: `Other file: ${path}`.slice(0, 200), description: null, tags: [], note: null, sortOrder: 900 });
     }
+  }
+  if (kit.length > 0) {
+    const bundle = [...kit, ...sorted.filter(KIT_EXTRAS)];
+    entries.push({
+      path: UI_KIT_FILE,
+      fileName: UI_KIT_FILE,
+      mime: "application/zip",
+      category: "ui_kit",
+      title: UI_KIT_TITLE,
+      description:
+        "The redesigned PLANTED. website as code: the design-system React components (with usage notes and types), the website page and sections, and the stylesheets and tokens they need, as one zip. Logos and photos are separate resources.",
+      tags: ["ui kit", "code", "zip"],
+      note: null,
+      sortOrder: 0,
+      bundle,
+    });
   }
   return { entries, skipped, unmapped };
 }

@@ -35,7 +35,7 @@ export const RESOURCE_CATEGORY_BLURB: Record<ResourceCategory, string> = {
   photos: "Photographs for the brand.",
   colours_type: "The colour and type tokens, how the fonts load, and the base styles.",
   tokens: "The rest of the design-system CSS: layout, components and the brand-book stylesheet.",
-  ui_kit: "Component code (JSX and types), their usage notes, and the website UI kit.",
+  ui_kit: "The website's component code, usage notes and page, as one zip.",
   other: "Everything else: the bundle, the manifest, source notes.",
 };
 

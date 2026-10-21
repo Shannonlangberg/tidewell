@@ -11,8 +11,13 @@ import { StatusChip } from "../../StatusChip";
  * The library, grouped by category: a thumbnail for pictures (a short-lived signed link in an <img>; an
  * uploaded SVG is never put into the page), the title, its file type, size and version, the note when it has
  * one, and a Download button. Server-rendered; the groups are native <details>, so they work without script
- * and by keyboard. Every file has its own Download link, and each group has a zip of its category.
+ * and by keyboard. Every file has its own Download link, and each group has a zip of its category. On the plain
+ * library page the small foundation guideline cards (tag "foundation") sit under "More guidelines", so the brand
+ * book and the current voice document lead; a search or filter shows every match flat.
  */
+
+/** The tag the importer gives the guideline cards (one page each on spacing, radius, motion and so on). */
+export const FOUNDATION_TAG = "foundation";
 
 export const resourceHref = (id: string) => `/hq/resources/${id}`;
 export const downloadHref = (id: string, version?: number) => `/hq/resources/${id}/download${version ? `?v=${version}` : ""}`;
@@ -78,6 +83,9 @@ export function ResourceGroups({ rows, thumbs, filtered }: { rows: readonly Reso
         const id = `res-group-${c}`;
         // A long group starts closed on the plain library page; a search or filter opens everything it found.
         const open = filtered || list.length <= 30;
+        const tuck = !filtered && c === "guidelines";
+        const main = tuck ? list.filter((r) => !r.tags.includes(FOUNDATION_TAG)) : list;
+        const more = tuck ? list.filter((r) => r.tags.includes(FOUNDATION_TAG)) : [];
         return (
           <details key={c} className="hq-res-group" open={open}>
             <summary className="hq-res-group__summary">
@@ -93,10 +101,26 @@ export function ResourceGroups({ rows, thumbs, filtered }: { rows: readonly Reso
               </LinkButton>
             </div>
             <ul className="hq-res-list">
-              {list.map((r) => (
+              {main.map((r) => (
                 <Row key={r.id} r={r} thumbs={thumbs} />
               ))}
             </ul>
+            {more.length > 0 ? (
+              <details className="hq-res-group mt-4">
+                <summary className="hq-res-group__summary">
+                  <SectionLabel as="h3" className="hq-res-group__label">
+                    More guidelines <span className="hq-res-group__count">({more.length})</span>
+                  </SectionLabel>
+                  <span className="hq-res-group__blurb">One page each on colour, type, spacing, radius, motion, photography and the logo rules.</span>
+                  <Icon name="chevron-down" size={16} className="hq-res-group__chev" />
+                </summary>
+                <ul className="hq-res-list">
+                  {more.map((r) => (
+                    <Row key={r.id} r={r} thumbs={thumbs} />
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </details>
         );
       })}

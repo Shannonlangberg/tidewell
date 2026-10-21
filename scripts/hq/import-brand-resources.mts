@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
 await import("./ts-hooks.mts");
+const { createZip } = (await import("../../lib/hq/resources/zip.ts")) as typeof import("../../lib/hq/resources/zip");
 const { planImport, buildVoiceDocument, VOICE_ENTRY } = (await import("../../lib/hq/resources/import-map.ts")) as typeof import("../../lib/hq/resources/import-map");
 const { RESOURCE_BUCKET, RESOURCE_CATEGORIES, RESOURCE_CATEGORY_LABEL, MAX_RESOURCE_BYTES, buildStoragePath } = (await import("../../lib/hq/resources/rules.ts")) as typeof import("../../lib/hq/resources/rules");
 
@@ -107,8 +108,11 @@ if (!voiceText) stop("docs/brand-design-system.md has no section 11 (Brand voice
 type Item = { entry: Entry; bytes: Buffer; sha: string; source: string };
 const items: Item[] = [];
 for (const e of plan.entries) {
-  const bytes = readFileSync(path.join(root, e.path));
-  items.push({ entry: e, bytes, sha: createHash("sha256").update(bytes).digest("hex"), source: e.path });
+  // A bundle is zipped here, the same way every run (sorted names, one fixed date), so an unchanged kit has an unchanged hash.
+  const bytes = e.bundle
+    ? Buffer.from(createZip(e.bundle.map((rel) => ({ name: rel, data: readFileSync(path.join(root, rel)), modified: new Date(2026, 0, 1, 0, 0, 0) }))))
+    : readFileSync(path.join(root, e.path));
+  items.push({ entry: e, bytes, sha: createHash("sha256").update(bytes).digest("hex"), source: e.bundle ? `${e.bundle.length} files zipped` : e.path });
 }
 {
   const bytes = Buffer.from(voiceText, "utf8");
