@@ -1,5 +1,5 @@
--- 0148_hq_function_acl_leadership.sql
--- Function privileges for the command center (0146, 0147), stated exactly as in 0145:
+-- 0150_hq_function_acl_leadership.sql
+-- Function privileges for the command center (0148, 0149), stated exactly as in 0145:
 --   * each NEW function is revoked from every API role (CREATE FUNCTION gives the schema default), and
 --     the four RPCs are granted to authenticated only;
 --   * CREATE OR REPLACE keeps existing privileges, so hq_private.settings_guard, task_entry_errors and
