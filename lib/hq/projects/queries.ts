@@ -7,7 +7,6 @@ import type {
   ActivityEntry,
   ChecklistItem,
   Dependency,
-  FocusItem,
   Milestone,
   MilestoneStatus,
   ProjectDocument,
@@ -358,26 +357,7 @@ export async function dependencyCandidates(db: Db, exceptId: string, projectId: 
 
 // ── focus ───────────────────────────────────────────────────
 
-export async function myFocus(db: Db, limit = 3): Promise<Result<FocusItem[]>> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (db as any).rpc("my_focus", { p_limit: limit });
-  if (error) {
-    logErr("my_focus", error);
-    return { ok: false };
-  }
-  return {
-    ok: true,
-    data: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
-      taskId: r.task_id as string,
-      title: r.title as string,
-      projectId: s(r.project_id),
-      projectName: s(r.project_name),
-      dueDate: s(r.due_date),
-      priority: (s(r.priority) ?? "normal") as TaskPriority,
-      why: s(r.why) ?? "Next up",
-    })),
-  };
-}
+
 
 // ── names ───────────────────────────────────────────────────
 

@@ -66,6 +66,9 @@ export const CAPABILITIES = [
   // Projects (0142): read projects (every role but junior PM) and create/manage them.
   "projects.read",
   "projects.write",
+  // Command center planning items (0146): anticipated funding and founder context (director; administrator reads).
+  "planning.read",
+  "planning.write",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

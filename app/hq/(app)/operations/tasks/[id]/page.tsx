@@ -48,6 +48,7 @@ import {
   taskActivity,
   taskOverview,
 } from "@/lib/hq/projects/queries";
+import { TaskWaitingPanel } from "@/components/hq/features/leadership/TaskWaitingPanel";
 import { ChecklistSection, CommentsSection, DependenciesSection, HistorySection, SubtasksSection, TaskPlacement } from "@/components/hq/features/projects/TaskPageSections";
 
 export const metadata: Metadata = { title: "Task" };
@@ -267,6 +268,8 @@ export default async function TaskPage({ params }: { params: Params }) {
             <PanelHeader id="task-details" title="Details" level={2} />
             <KeyValueList items={details} />
           </Panel>
+
+          <TaskWaitingPanel taskId={t.id} today={today} />
 
           {pt && (pt.projectId || (canWrite && canWriteProjects)) ? (
             <Panel aria-labelledby="task-placement">

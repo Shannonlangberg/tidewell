@@ -25,7 +25,7 @@ export const OPPORTUNITY_STAGE_VALUES = [
 ] as const;
 export const TASK_STATUS_VALUES = ["to_do", "in_progress", "waiting", "completed", "cancelled"] as const;
 export const TASK_PRIORITY_VALUES = ["low", "normal", "high", "urgent"] as const;
-export const TASK_VIEW_VALUES = ["mine", "today", "overdue", "upcoming", "waiting", "team", "delegated", "completed", "all"] as const;
+export const TASK_VIEW_VALUES = ["mine", "today", "week", "overdue", "upcoming", "waiting", "team", "delegated", "completed", "all"] as const;
 /** Steps 1 to 8. Step 9 (review_and_approve) is completed only by approving, on the HQ screen. */
 export const SETTABLE_VETTING_STEPS = ["identity", "abn", "licence", "insurance", "service_areas", "pricing", "emergency_availability", "communication"] as const;
 export const VETTING_STEP_STATUS_VALUES = ["not_started", "in_progress", "done", "not_applicable"] as const;
@@ -124,7 +124,7 @@ export const listTasksShape = {
     .enum(TASK_VIEW_VALUES)
     .optional()
     .describe(
-      "Optional. Which list, as on the HQ tasks screen: mine (default: my open tasks), today, overdue, upcoming (next 14 days), waiting, completed (last 30 days), team (others' open tasks; needs tasks.read_all), delegated (tasks I gave to others), all (needs tasks.read_all).",
+      "Optional. Which list, as on the HQ tasks screen: mine (default: my open tasks), today, week (due today to six days ahead), overdue, upcoming (next 14 days), waiting, completed (last 30 days), team (others' open tasks; needs tasks.read_all), delegated (tasks I gave to others), all (needs tasks.read_all).",
     ),
   query: z.string().trim().max(100).optional().describe("Optional. Words to match in the task title."),
   priority: z.enum(TASK_PRIORITY_VALUES).optional().describe("Optional. Only tasks with this priority."),

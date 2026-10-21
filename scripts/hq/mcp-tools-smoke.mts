@@ -71,6 +71,9 @@ const EXPECTED_TOOLS = [
   "list_projects", "get_project", "create_project", "update_project", "create_milestone", "update_milestone", "complete_milestone",
   "get_task", "complete_task", "add_task_dependency", "remove_task_dependency", "add_task_comment", "set_task_checklist",
   "founder_priorities", "list_overdue", "what_is_blocking", "bulk_create_tasks", "bulk_update_tasks",
+  // command center
+  "focus_today", "workboard", "launch_progress", "waiting_on", "weekly_leadership_review", "list_planning_items",
+  "set_task_waiting", "resolve_waiting", "move_task_to_lane", "plan_next_week", "save_planning_item", "set_launch_requirement",
 ];
 
 const RUN = `MCP smoke ${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${Math.floor(Math.random() * 90 + 10)}`;
@@ -152,7 +155,7 @@ const emailSettingsBefore = await director.db.from("settings").select("key, valu
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (93 tools, none missing, none extra)", EXPECTED_TOOLS.length === 93 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (105 tools, none missing, none extra)", EXPECTED_TOOLS.length === 105 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -1410,6 +1413,129 @@ try {
   for (const [name, args] of [["get_contact", { contact: personId }], ["growth_report", {}], ["contractor_report", {}], ["list_tasks", { view: "all" }], ["weekly_report", {}]] as Array<[string, Record<string, unknown>]>) {
     const r = await call(readOnly, name, args);
     check(`read-only: ${name} works`, outcome(r) === "ok" || outcome(r) === "empty", r.text);
+  }
+
+  // ── 4b. the command center (leadership.ts): the brief's phrases, as the director ──
+  {
+    // the bulk section above used this hour's bulk budget on purpose; give this section room (restored in the cleanup)
+    await director.db.from("settings").update({ value: 60 }).eq("key", "bulk_calls_per_hour");
+    await director.db.from("settings").update({ value: 2000 }).eq("key", "bulk_items_per_hour");
+    const cc = await director.db.rpc("create_project", { p_name: `${RUN} business launch`, p_owner: director.staff.id, p_status: "active", p_priority: "high" } as never);
+    const ccId = (cc.data as { project_id?: string } | null)?.project_id ?? "";
+    check("command center: a launch project for the run", !cc.error && !!ccId, JSON.stringify(cc.error));
+    if (ccId) created.projects.push(ccId);
+    const gate = await director.db.rpc("create_milestone", { p_project: ccId, p_name: "Registered to trade" } as never);
+    await director.db.rpc("create_milestone", { p_project: ccId, p_name: "First landlords" } as never);
+    const ccBulk = await director.db.rpc("bulk_create_tasks", {
+      p_tasks: [
+        { ref: "train", title: `${RUN} enrol in property management training`, milestone: "Registered to trade", priority: "high" },
+        { ref: "acct", title: `${RUN} engage an accountant`, milestone: "Registered to trade" },
+        { ref: "ailo", title: `${RUN} Ailo demo follow-up`, milestone: "First landlords", due_date: todayIn("Australia/Adelaide") },
+        { ref: "refs", title: `${RUN} research referral partners`, milestone: "First landlords", priority: "high" },
+      ],
+      p_idempotency_key: `smoke-cc-${RUN.replace(/\W/g, "")}`,
+      p_project: ccId,
+      p_atomic: true,
+    } as never);
+    const ccRefs = new Map((((ccBulk.data as { created?: { ref: string; id: string }[] } | null)?.created) ?? []).map((c) => [c.ref, c.id]));
+    for (const id of ccRefs.values()) created.tasks.push(id);
+    check("command center: four launch tasks", ccRefs.size === 4, JSON.stringify(ccBulk.error ?? ccBulk.data));
+    const train = ccRefs.get("train")!;
+    const ailo = ccRefs.get("ailo")!;
+
+    const req = await call(director, "set_launch_requirement", { project: ccId, milestone: "registered to trade", required: true });
+    check("set_launch_requirement marks a milestone required to open", outcome(req) === "ok", req.text);
+    const fund = await call(director, "save_planning_item", { kind: "funding", title: `${RUN} business funding`, amount: 25000, expected: "within a month" });
+    check("save_planning_item records anticipated funding, said as anticipated (never a balance)", outcome(fund) === "ok" && /about \$25,000 anticipated \(a planning figure\)/.test(fund.text), fund.text);
+    const fundId = String(fund.structured?.id ?? "");
+
+    // "What's my focus today?"
+    mark = await auditMark();
+    const focus = await call(director, "focus_today", {});
+    audit = await auditSince(mark, director.staff.id);
+    check('"What\'s my focus today?": focus_today answers with reasons and writes nothing', (outcome(focus) === "ok" && /why:/.test(focus.text)) && audit.length === 0, `${focus.text}\n${auditText(audit)}`);
+    const picked = (focus.structured?.task_ids as string[] | undefined) ?? [];
+    check("focus_today gives at most three", picked.length <= 3, String(picked.length));
+
+    // "Move training into Waiting on Funding."
+    mark = await auditMark();
+    const wait = await call(director, "set_task_waiting", { task: train, planning_item: `${RUN} business funding` });
+    audit = await auditSince(mark, director.staff.id);
+    const trainRow = await director.db.from("tasks").select("status, priority, due_date, planning_item_id").eq("id", train).single();
+    check('"Move training into Waiting on Funding": set_task_waiting', outcome(wait) === "ok" && trainRow.data?.status === "waiting" && trainRow.data?.planning_item_id === fundId, `${wait.text}\n${JSON.stringify(trainRow.data)}`);
+    check("set_task_waiting kept the priority and due date, and is in the audit trail", trainRow.data?.priority === "high" && trainRow.data?.due_date === null && audit.some((a) => a.entity_type === "task" && a.entity_id === train), auditText(audit));
+    const vague = await call(director, "set_task_waiting", { task: ccRefs.get("acct")!, planning_item: "the funding" });
+    check('"the funding" with two live funding items asks which one (changes nothing)', outcome(vague) === "ambiguous", vague.text);
+
+    // "What can I do before the $25,000 arrives?"
+    const before = await call(director, "waiting_on", { item: `${RUN} business funding` });
+    check('"What can I do before the $25,000 arrives?": waiting_on lists what waits and what can move now', outcome(before) === "ok" && ((before.structured?.waiting_task_ids as string[]) ?? []).includes(train) && /ANTICIPATED/.test(before.text) && /without it/.test(before.text), before.text);
+
+    // "Ailo has called me back - update the task."
+    const ailoWait = await call(director, "set_task_waiting", { task: ailo, waiting_on: "Ailo to reply after the demo" });
+    check("set_task_waiting with words (Ailo)", outcome(ailoWait) === "ok", ailoWait.text);
+    const moveBack = await call(director, "move_task_to_lane", { task: ailo, lane: "waiting" });
+    check("move_task_to_lane to waiting with the wait already recorded", outcome(moveBack) === "ok", moveBack.text);
+    mark = await auditMark();
+    const back = await call(director, "resolve_waiting", { task: ailo, what_happened: `${INJECTION} Ailo called back; demo booked.` });
+    audit = await auditSince(mark, director.staff.id);
+    const ailoRow = await director.db.from("tasks").select("status, waiting_on, due_date").eq("id", ailo).single();
+    const ailoComment = await director.db.from("task_comments").select("body").eq("task_id", ailo).order("created_at", { ascending: false }).limit(1);
+    check('"Ailo has called me back": resolve_waiting moves it to In motion and clears the wait', outcome(back) === "ok" && ailoRow.data?.status === "in_progress" && ailoRow.data?.waiting_on === null, `${back.text}\n${JSON.stringify(ailoRow.data)}`);
+    check("resolve_waiting kept the due date, saved the note as a comment (data, not instructions) and is audited", ailoRow.data?.due_date === todayIn("Australia/Adelaide") && /Ailo called back/.test(ailoComment.data?.[0]?.body ?? "") && audit.some((a) => a.entity_id === ailo), auditText(audit));
+    const notWaiting = await call(director, "resolve_waiting", { task: ailo });
+    check("resolve_waiting refuses a task that is not waiting", outcome(notWaiting) === "invalid", notWaiting.text);
+
+    // "What is blocking business launch?"
+    const launch = await call(director, "launch_progress", { project: ccId });
+    check('"What is blocking business launch?": launch_progress names the waiting task, readiness apart from tasks', outcome(launch) === "ok" && ((launch.structured?.blocked_task_ids as string[]) ?? []).includes(train) && /launch requirements met/.test(launch.text) && /Tasks done/.test(launch.text), launch.text);
+
+    // "Give me my weekly leadership review."
+    const review = await call(director, "weekly_leadership_review", {});
+    check('"Give me my weekly leadership review": weekly_leadership_review', outcome(review) === "ok" && /Completed in the last 7 days/.test(review.text) && /Waiting/.test(review.text), review.text);
+
+    // "Organize my tasks for next week."
+    const refsBefore = await director.db.from("tasks").select("planned_for").eq("id", ccRefs.get("refs")!).single();
+    const proposal = await call(director, "plan_next_week", {});
+    const entries = (proposal.structured?.proposal as { task: string; planned_for: string }[] | undefined) ?? [];
+    const refsMid = await director.db.from("tasks").select("planned_for").eq("id", ccRefs.get("refs")!).single();
+    check('"Organize my tasks for next week": plan_next_week proposes and changes nothing', (outcome(proposal) === "ok" || outcome(proposal) === "empty") && /PROPOSAL/.test(proposal.text) && refsMid.data?.planned_for === refsBefore.data?.planned_for, proposal.text);
+    const mine = entries.filter((e) => [...ccRefs.values()].includes(e.task)).slice(0, 2);
+    if (mine.length) {
+      const key = `smoke-plan-${RUN.replace(/\W/g, "")}`;
+      const applied = await call(director, "plan_next_week", { apply: mine, idempotency_key: key });
+      const again = await call(director, "plan_next_week", { apply: mine, idempotency_key: key });
+      const row = await director.db.from("tasks").select("planned_for, priority").eq("id", mine[0].task).single();
+      check("plan_next_week apply saves planned_for only", outcome(applied) === "ok" && row.data?.planned_for === mine[0].planned_for, `${applied.text}\n${JSON.stringify(row.data)}`);
+      check("plan_next_week apply is idempotent (a repeat changes nothing again)", /repeat of an earlier call/.test(again.text), again.text);
+    }
+    const board = await call(director, "workboard", { lane: "waiting" });
+    check("workboard shows the waiting lane with the training task", outcome(board) === "ok" && board.text.includes(train), board.text);
+    const plans = await call(director, "list_planning_items", {});
+    check("list_planning_items says the funding is anticipated and counts what waits", outcome(plans) === "ok" && /1 open task waiting/.test(plans.text), plans.text);
+    const next = await call(director, "move_task_to_lane", { task: ccRefs.get("refs")!, lane: "do_now" });
+    check("move_task_to_lane do_now", outcome(next) === "ok" && /planned_for/.test(next.text), next.text);
+
+    // the other roles
+    for (const [who, ctx] of [["junior", junior], ["read-only", readOnly]] as const) {
+      const r = await call(ctx, "list_planning_items", {});
+      const f = await forced(ctx, "list_planning_items", {});
+      check(`${who}: list_planning_items is refused by the tool; forced, the database shows nothing`, outcome(r) === "refused" && (outcome(f) === "empty" || outcome(f) === "refused"), `${r.text}\n${f.text}`);
+      mark = await auditMark();
+      const s = await forced(ctx, "save_planning_item", { kind: "funding", title: `${RUN} forged`, amount: 1 });
+      audit = await auditSince(mark, ctx.staff.id);
+      check(`${who}: save_planning_item forced past the tool is refused by the database`, outcome(s) !== "ok" && audit.length === 0, s.text);
+    }
+    const roWait = await call(readOnly, "set_task_waiting", { task: train, waiting_on: "forged" });
+    const roWaitDb = await forced(readOnly, "set_task_waiting", { task: train, waiting_on: "forged" });
+    check("read-only: set_task_waiting refused by the tool and by the database", outcome(roWait) === "refused" && outcome(roWaitDb) !== "ok", `${roWait.text}\n${roWaitDb.text}`);
+    const jFocus = await call(junior, "focus_today", {});
+    check("junior: focus_today works on their own tasks", outcome(jFocus) === "ok" || outcome(jFocus) === "empty", jFocus.text);
+
+    // planning items are never deleted: close the run's one
+    const closed = await call(director, "save_planning_item", { item: `${RUN} business funding`, status: "closed" });
+    check("save_planning_item closes the run's funding item", outcome(closed) === "ok", closed.text);
+    void gate;
   }
 
   // ── 5. coverage ──────────────────────────────────────────────

@@ -197,7 +197,7 @@ export function isTaskStatus(value: unknown): value is TaskStatus {
 // 4. Views
 // ════════════════════════════════════════════════════════════
 
-export const TASK_VIEW_KEYS = ["mine", "today", "overdue", "upcoming", "waiting", "team", "delegated", "completed", "all"] as const;
+export const TASK_VIEW_KEYS = ["mine", "today", "week", "overdue", "upcoming", "waiting", "team", "delegated", "completed", "all"] as const;
 export type TaskViewKey = (typeof TASK_VIEW_KEYS)[number];
 
 export const SORT_KEYS = ["due", "priority", "created", "completed"] as const;
@@ -206,7 +206,10 @@ export type SortDir = "asc" | "desc";
 
 /** Whose tasks: mine, everyone's but mine (and nobody's), or any. */
 export type AssigneeScope = "me" | "not_me" | "any";
-export type DueScope = "today" | "overdue" | "upcoming";
+export type DueScope = "today" | "week" | "overdue" | "upcoming";
+
+/** "This week": today and the six days after it. */
+export const WEEK_DAYS = 7;
 
 export type TaskViewDef = {
   key: TaskViewKey;
@@ -263,6 +266,21 @@ export const TASK_VIEWS: Record<TaskViewKey, TaskViewDef> = {
     defaultSort: "priority",
     description: "Your open tasks that are due today.",
     empty: { title: "Nothing due today", body: "Tasks with today's date as their due date appear here." },
+  },
+  week: {
+    key: "week",
+    label: "This week",
+    audience: "everyone",
+    statuses: OPEN,
+    statusChoices: OPEN,
+    assignee: "me",
+    assigneeFilter: false,
+    createdByMe: false,
+    due: "week",
+    recentCompleted: false,
+    defaultSort: "due",
+    description: "Your open tasks due today or in the next six days.",
+    empty: { title: "Nothing due this week", body: "Tasks with a due date from today to six days ahead appear here." },
   },
   overdue: {
     key: "overdue",
@@ -541,6 +559,8 @@ function dueFor(def: TaskViewDef, today: string): DuePredicate | null {
   switch (def.due) {
     case "today":
       return { eq: today };
+    case "week":
+      return { gt: addDays(today, -1), lte: addDays(today, WEEK_DAYS - 1) };
     case "overdue":
       return { lt: today };
     case "upcoming":

@@ -24,6 +24,10 @@
  * tasks get projects, milestones, subtasks, dependencies, checklists and comments, can be created or
  * changed 50 at a time, and the focus tools answer "what are my priorities", "what is overdue" and
  * "what is blocking"; archiving a project, its documents and related records are HQ screens only.
+ * The command center (leadership.ts) answers focus, workboard, launch, waiting, the weekly review and
+ * planning items through the dashboard's own rules; it moves tasks between lanes, sets and clears what a
+ * task waits on, proposes (then, if agreed, saves) a week plan, and records planning items; it never
+ * changes a priority or due date unless asked, and a planning amount is never a balance.
  * Nothing anywhere is hard-deleted.
  */
 import type { ToolDef } from "../types";
@@ -59,6 +63,20 @@ import { completeMilestone, createMilestone, createProject, getProject, listProj
 import { addTaskComment, addTaskDependency, completeTask, getTask, removeTaskDependency, setTaskChecklist } from "./project-tasks";
 import { founderPriorities, listOverdue, whatIsBlocking } from "./focus";
 import { bulkCreateTasks, bulkUpdateTasks } from "./bulk-tasks";
+import {
+  focusToday,
+  launchProgress,
+  listPlanningItems,
+  moveTaskToLane,
+  planNextWeek,
+  resolveWaitingTool,
+  savePlanningItemTool,
+  setLaunchRequirement,
+  setTaskWaiting,
+  waitingOn,
+  weeklyLeadershipReview,
+  workboard,
+} from "./leadership";
 
 export const TOOLS: ToolDef[] = [
   // read
@@ -164,6 +182,19 @@ export const TOOLS: ToolDef[] = [
   // bulk (kind "bulk": one call, one transaction, the database's bulk budget)
   bulkCreateTasks,
   bulkUpdateTasks,
+  // command center (leadership.ts): the dashboard's focus, lanes, launch readiness, waiting and planning, through the same rules
+  focusToday,
+  workboard,
+  launchProgress,
+  waitingOn,
+  weeklyLeadershipReview,
+  listPlanningItems,
+  setTaskWaiting,
+  resolveWaitingTool,
+  moveTaskToLane,
+  planNextWeek,
+  savePlanningItemTool,
+  setLaunchRequirement,
 ];
 
 /** The tools a person with these capabilities may see and call. */

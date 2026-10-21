@@ -7,14 +7,20 @@ const ME = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
 const ctx: PredicateContext = { meId: ME, today: "2026-10-15", now: new Date("2026-10-15T01:00:00Z") };
 
+test("This week: today and the six days after it, mine, open", () => {
+  const p = buildPredicate(plainQuery("week"), ctx);
+  assert.deepEqual(p.due, { gt: "2026-10-14", lte: "2026-10-21" });
+  assert.deepEqual(p.statuses, ["to_do", "in_progress", "waiting"]);
+});
+
 test("the tabs offered depend on tasks.read_all, in a fixed order", () => {
   assert.deepEqual(
     viewsFor(true).map((v) => v.key),
-    ["mine", "today", "overdue", "upcoming", "waiting", "team", "completed", "all"],
+    ["mine", "today", "week", "overdue", "upcoming", "waiting", "team", "completed", "all"],
   );
   assert.deepEqual(
     viewsFor(false).map((v) => v.key),
-    ["mine", "today", "overdue", "upcoming", "waiting", "delegated", "completed"],
+    ["mine", "today", "week", "overdue", "upcoming", "waiting", "delegated", "completed"],
   );
 });
 

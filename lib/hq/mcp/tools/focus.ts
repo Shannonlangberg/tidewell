@@ -1,6 +1,7 @@
 /*
  * What to do next and what is late or stuck (docs/hq-projects.md section 3): founder_priorities (the
- * person's next actionable tasks from hq.my_focus, with its "why", and for a named project what is
+ * person's next actionable tasks, ranked by the SAME score as the dashboard's focus and focus_today
+ * (lib/hq/leadership/rules.ts pickFocus), with its "why", and for a named project what is
  * holding it up), list_overdue (hq.overdue_tasks plus projects at risk) and what_is_blocking (a
  * project's blocked tasks and the first open task blocking each). Read-only, as the person (RLS): only
  * tasks they can see are listed or counted.
@@ -10,8 +11,10 @@ import { can, day, dbFailure, defineTool, link, respond, today, type ToolContext
 import { taskPriorityLabel } from "./records";
 import { NO_PROJECTS_READ, READ, TASK_COLS, blockageLines, blockages, healthWord, projectHeadLine, projectPath, resolveProject, toProjectRows, toTaskRows, visibilityNote, OVERVIEW_COLS, type Blockage, type ProjectRow } from "./project-kit";
 import { founderPrioritiesShape, listOverdueShape, whatIsBlockingShape } from "./project-schemas";
+import { loadOpenTasks } from "../../leadership/queries";
+import { pickFocus } from "../../leadership/rules";
 
-type FocusRow = { task_id: string; title: string; status: string; priority: string; due_date: string | null; project_ref: string | null; project_name: string | null; milestone_name: string | null; overdue_days: number; unblocks: number; why: string; rank: number };
+type FocusRow = { task_id: string; title: string; priority: string; due_date: string | null; project_ref: string | null; project_name: string | null; milestone_name: string | null; why: string; rank: number };
 
 /** The open tasks that unblock the most, across a set of blockages ("do these first"). */
 function rootsRanked(list: readonly Blockage[]): Array<{ id: string; title: string; count: number }> {
@@ -41,15 +44,19 @@ export const founderPriorities = defineTool({
   handler: async (args, ctx) => {
     if (args.project && !can(ctx, "projects.read")) return respond("refused", NO_PROJECTS_READ);
     const n = args.limit ?? 3;
-    const [focus, proj] = await Promise.all([ctx.db.rpc("my_focus", { p_limit: n }), args.project ? resolveProject(ctx, args.project, "read") : Promise.resolve(null)]);
-    if (focus.error) return dbFailure("my_focus", focus.error);
+    const [open, todayRes, proj] = await Promise.all([loadOpenTasks(ctx.db, ctx.staff.id, "mine"), ctx.db.rpc("today"), args.project ? resolveProject(ctx, args.project, "read") : Promise.resolve(null)]);
+    if (!open.ok) return dbFailure("founder_priorities", { code: "load" });
     if (proj && !proj.ok) return proj.result;
-    const rows = (focus.data ?? []) as FocusRow[];
+    const todayIs = typeof todayRes.data === "string" ? todayRes.data : today(ctx);
+    const rows: FocusRow[] = pickFocus(open.data, todayIs, ctx.staff.id, n).map((p, i) => ({
+      task_id: p.task.id, title: p.task.title, priority: p.task.priority, due_date: p.task.dueDate,
+      project_ref: p.task.projectRef, project_name: p.task.projectName, milestone_name: p.task.milestoneName, why: p.why, rank: i + 1,
+    }));
     const head: string[] = [];
     const data: string[] = [];
     if (rows.length === 0) head.push("Nothing is waiting on you: you have no open tasks that can be started now (none assigned to you, or every one is waiting on another task).");
     else {
-      head.push(`Your ${rows.length === 1 ? "top priority" : `top ${rows.length} priorities`}, in order (from HQ's focus list):`);
+      head.push(`Your ${rows.length === 1 ? "top priority" : `top ${rows.length} priorities`}, in order (the same ranking as the dashboard's focus):`);
       for (const r of rows) {
         const where = r.project_ref ? `${r.project_ref} ${clean(r.project_name ?? "", 60)}${r.milestone_name ? ` / ${clean(r.milestone_name, 60)}` : ""}` : null;
         data.push(`${r.rank}. ${clean(r.title)} [id: ${r.task_id}] - why: ${clean(r.why, 120)}${r.due_date ? ` - due ${day(ctx, r.due_date)}` : ""} - ${taskPriorityLabel(r.priority).toLowerCase()} priority${where ? ` - ${where}` : ""} ${link(ctx, HQ_PATHS.task(r.task_id))}`);
