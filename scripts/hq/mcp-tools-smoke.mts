@@ -775,7 +775,7 @@ try {
   const d3send = await call(directorApp, "send_email_draft", { draft: String(d3.structured?.ref ?? ""), confirm_recipient_email: mailbox });
   check("chat-send on: a draft NOT made through this app still needs approval", outcome(d3send) === "refused", d3send.text);
 
-  // a typed address (draft_email to_email + to_name): a new contact marked as needing a check; chat sending is refused for it until a person verifies it
+  // a typed address (draft_email to_email + to_name): a new contact marked as needing a check; with chat sending on it can be sent after the person says yes
   const newAddr = `mcp-smoke-new-${RUN.slice(-8)}@example.test`;
   const newName = `${RUN} Nina Newcomer`;
   mark = await auditMark();
@@ -787,8 +787,8 @@ try {
   if (ndId) created.emails.push(ndId);
   if (ndContact) created.contacts.push(ndContact);
   check(
-    "typed address: draft_email adds the person to Contacts as needing a check, says so plainly, and says approval in HQ is still required",
-    outcome(nd) === "ok" && nd.structured?.new_contact === true && nd.text.includes(`Added ${newName} <${newAddr}> to HQ contacts, marked as needing a check.`) && /Approval in HQ is still required/.test(nd.text) && !/confirm_recipient_email/.test(nd.text),
+    "typed address: draft_email adds the person to Contacts as needing a check, says so plainly, and (chat sending on) asks the person to confirm before sending",
+    outcome(nd) === "ok" && nd.structured?.new_contact === true && nd.text.includes(`Added ${newName} <${newAddr}> to HQ contacts, marked as needing a check.`) && /Not sent yet/.test(nd.text) && /confirm_recipient_email/.test(nd.text),
     nd.text,
   );
   check("  ...audited: the contact's creation and the draft", audit.some((a) => a.entity_type === "contact" && a.action === "create" && a.entity_id === ndContact) && audit.some((a) => a.entity_type === "email_draft" && a.action === "create" && a.entity_id === ndId), auditText(audit));
@@ -796,13 +796,15 @@ try {
   check("  ...the contact: lower-cased address, needs_verification, source email draft, nobody has verified it", ndC.data?.email === newAddr && ndC.data?.full_name === newName && ndC.data?.needs_verification === true && ndC.data?.verified_at === null && ndC.data?.source === "email draft" && ndC.data?.contact_kind === "other", JSON.stringify(ndC.data));
   const ndRow = await director.db.from("email_drafts").select("recipient_contact_id, to_email, created_via, status").eq("id", ndId).single();
   check("  ...the draft points at that contact, made through the app, still a draft", ndRow.data?.recipient_contact_id === ndContact && ndRow.data?.to_email === newAddr && ndRow.data?.created_via === "mcp" && ndRow.data?.status === "draft", JSON.stringify(ndRow.data));
-  const ndSend = await call(directorApp, "send_email_draft", { draft: ndRef, confirm_recipient_email: newAddr });
-  const ndSt = await director.db.from("email_drafts").select("status").eq("id", ndId).single();
-  check("chat-send on: send_email_draft REFUSES a draft to an unverified contact, even with the address confirmed", outcome(ndSend) === "refused" && /new to HQ/.test(ndSend.text) && ndSt.data?.status === "draft", ndSend.text);
-  const ndForced = await directorApp.db.rpc("begin_email_send", { p_id: ndId, p_via: "chat" });
-  check("  ...and the database refuses it too (forced past the tool)", ndForced.error?.code === "42501" && /new to HQ/.test(ndForced.error?.message ?? ""), JSON.stringify(ndForced.error));
   const ndApprove = await directorApp.db.rpc("approve_email_draft", { p_id: ndId });
   check("  ...and a connected app still cannot approve it", ndApprove.error?.code === "42501", JSON.stringify(ndApprove.error));
+  const ndSend = await call(directorApp, "send_email_draft", { draft: ndRef, confirm_recipient_email: newAddr });
+  check("chat-send on: the person says yes in chat, so send_email_draft sends the draft to the new address", outcome(ndSend) === "ok" && /^Sent email/.test(ndSend.text) && ndSend.text.includes(`<${newAddr}>`), ndSend.text);
+  const ndSentRow = await director.db.from("email_drafts").select("status, interaction_id").eq("id", ndId).single();
+  if (ndSentRow.data?.interaction_id) created.interactions.push(ndSentRow.data.interaction_id);
+  check("  ...it is on the new contact's timeline", ndSentRow.data?.status === "sent" && !!ndSentRow.data.interaction_id, JSON.stringify(ndSentRow.data));
+  const ndStill = await director.db.from("contacts").select("needs_verification").eq("id", ndContact).single();
+  check("  ...and sending does not mark the contact verified", ndStill.data?.needs_verification === true, JSON.stringify(ndStill.data));
   const again = await call(director, "draft_email", { to_email: newAddr, to_name: "Somebody Else", template: "general", subject: "Again", body: "Hi again." });
   const againId = String(again.structured?.id ?? "");
   if (againId) created.emails.push(againId);
@@ -817,14 +819,9 @@ try {
   if (vaNew.structured?.contact_id) created.contacts.push(String(vaNew.structured.contact_id));
   check("virtual assistant (growth.write): can type an address too, and is told to ask for approval", outcome(vaNew) === "ok" && /Added .* to HQ contacts, marked as needing a check/.test(vaNew.text) && /ask a director, an administrator or a business development manager/.test(vaNew.text), vaNew.text);
 
-  // a person verifies the contact in HQ (the existing flow: clear needs_verification); then the same draft can be sent from chat
+  // a person can still verify the contact in HQ (the existing flow: clear needs_verification)
   const verified = await director.db.from("contacts").update({ needs_verification: false }).eq("id", ndContact).select("verified_at, verified_by");
   check("a person marks the new contact verified in HQ (stamped with who and when)", !!verified.data?.[0]?.verified_at && verified.data[0].verified_by === director.staff.id, JSON.stringify(verified.error ?? verified.data));
-  const ndSent = await call(directorApp, "send_email_draft", { draft: ndRef, confirm_recipient_email: newAddr });
-  check("chat-send on: once the contact is verified, the draft is sent from chat after confirming the address", outcome(ndSent) === "ok" && /^Sent email/.test(ndSent.text) && ndSent.text.includes(`<${newAddr}>`), ndSent.text);
-  const ndSentRow = await director.db.from("email_drafts").select("status, interaction_id").eq("id", ndId).single();
-  if (ndSentRow.data?.interaction_id) created.interactions.push(ndSentRow.data.interaction_id);
-  check("  ...and it is on the new contact's timeline", ndSentRow.data?.status === "sent" && !!ndSentRow.data.interaction_id, JSON.stringify(ndSentRow.data));
   await director.db.from("settings").update({ value: false }).eq("key", "email_chat_send_enabled");
 
   // the daily limit

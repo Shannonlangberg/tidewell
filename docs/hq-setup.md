@@ -269,7 +269,7 @@ The local stack's `[auth.oauth_server]` is on (restart with `supabase stop && su
 
 **Not verified:** a real send through SendGrid. Everything was tested locally with the fake provider; the live send is unverified until deployed and tried with a real address the owner controls.
 
-Tables, RPCs and tests: `hq.email_drafts`, `create_email_draft`, `update_email_draft`, `discard_email_draft`, `approve_email_draft`, `begin_email_send`, `finish_email_send` (0132, privileges 0133; typed addresses and the unverified-contact chat rule 0146, privileges 0147); `supabase/tests/hq_12_email.sql`, `supabase/tests/hq_12b_email_new_recipient.sql`; unit tests in `lib/hq/email/*.test.mts`.
+Tables, RPCs and tests: `hq.email_drafts`, `create_email_draft`, `update_email_draft`, `discard_email_draft`, `approve_email_draft`, `begin_email_send`, `finish_email_send` (0132, privileges 0133; typed addresses 0146, privileges 0147); `supabase/tests/hq_12_email.sql`, `supabase/tests/hq_12b_email_new_recipient.sql`; unit tests in `lib/hq/email/*.test.mts`.
 
 ## Communications (enquiries and emails in one place)
 

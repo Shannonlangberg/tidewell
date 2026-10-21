@@ -86,7 +86,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
             Choose someone HQ already holds
           </Link>
         </p>
-        <InlineNote className="mb-6">Saving adds them to Contacts, marked as needing a check. Nothing is sent until someone approves the email in HQ.</InlineNote>
+        <InlineNote className="mb-6">Saving adds them to Contacts, marked as needing a check. Nothing is sent until the email is approved.</InlineNote>
         <ComposeForm action={createEmailDraftAction} recipient={null} initial={{ template, subject: templateStart(template, "").subject, body: templateStart(template, "").body }} cancelHref="/hq/communications/emails" />
       </>
     );
@@ -138,7 +138,7 @@ export default async function NewEmailPage({ searchParams }: { searchParams: Sea
             Email someone new
           </SectionLabel>
           <p className="text-[14px]">
-            Not in HQ yet? Type their name and email address on the next step. They are added to Contacts, marked as needing a check, and nothing is sent until someone approves the email.
+            Not in HQ yet? Type their name and email address on the next step. They are added to Contacts, marked as needing a check, and nothing is sent until the email is approved.
           </p>
           <div>
             <LinkButton href={`${PATH}?new=1`}>Email someone new</LinkButton>

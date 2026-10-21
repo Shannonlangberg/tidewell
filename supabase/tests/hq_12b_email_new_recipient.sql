@@ -10,7 +10,7 @@
 begin;
 \ir hq_fixture.inc
 select pg_temp.seed_hq();
-select plan(105);
+select plan(104);
 
 create function pg_temp.become_app(p_key text, p_client text, p_aal text default 'aal2') returns void
 language plpgsql as $$
@@ -187,34 +187,30 @@ select pg_temp.become('bdm');
 select lives_ok($$insert into zz_r select 'cap_again', hq.create_email_draft('general', 'Hi', 'Body', null, null, null, 'cap11@cap.test', 'Cap Person 11')$$, 'a contact made more than an hour ago no longer counts');
 select pg_temp.unbecome();
 
--- ------------------------------------------------------------ approval stays a person's tap; chat sending needs a verified contact
+-- ------------------------------------------------------------ approval stays a person's tap; chat sending works once the person has said yes in chat
 update hq.settings set value = 'true'::jsonb where key = 'email_chat_send_enabled';
 select pg_temp.become_app('dir', 'client-a');
 insert into zz_r select 'c1', hq.create_email_draft('thank_you', 'Thanks from chat', 'Hi Chad, thank you.', null, null, null, 'chad@chat.test', 'Chad Chatter');
 select ok((select (v ->> 'new_contact')::boolean from zz_r where k = 'c1'), 'a connected app can type an address too: a new contact is made');
 select ok((select created_via = 'mcp' and mcp_client_id = 'client-a' from hq.email_drafts where id = pg_temp.eid('c1')), '...and the draft is recorded as made through the app');
-select throws_ok($$select hq.begin_email_send(pg_temp.eid('c1'), 'chat')$$, '42501',
-  'this address is new to HQ and has not been checked yet: open the email in HQ and tap Approve and send', 'chat sending is on, but an unverified contact''s draft is refused');
-select is(pg_temp.st(pg_temp.eid('c1')), 'draft', '...and it stays a draft');
 select throws_ok($$select hq.approve_email_draft(pg_temp.eid('c1'))$$, '42501', 'an email is approved in HQ, not through a connected app', 'a connected app still cannot approve');
 select is(pg_temp.st(pg_temp.eid('c1')), 'draft', '...still a draft');
 select pg_temp.become('dir');
 select throws_ok($$select hq.begin_email_send(pg_temp.eid('c1'), 'hq')$$, '42501', 'this email has not been approved: open it in HQ and tap Approve and send', 'in HQ an unapproved draft still needs the approval tap');
 select pg_temp.become_app('dir', 'client-a');
+select is((select hq.begin_email_send(pg_temp.eid('c1'), 'chat') ->> 'status'), 'sending', 'chat sending is on and the person said yes in chat: a new contact''s draft is sent');
+select ok((select needs_verification and verified_at is null from hq.contacts where id = pg_temp.cid('c1')), '...and sending does not mark the contact verified');
 insert into zz_r select 'c2', hq.create_email_draft('general', 'Imported', 'Hi Ivy.', pg_temp.fx('ivy'));
-select throws_ok($$select hq.begin_email_send(pg_temp.eid('c2'), 'chat')$$, '42501',
-  'this address is new to HQ and has not been checked yet: open the email in HQ and tap Approve and send', 'an imported contact flagged needs_verification is held to the same rule');
+select is((select hq.begin_email_send(pg_temp.eid('c2'), 'chat') ->> 'status'), 'sending', 'an imported contact flagged needs_verification can be sent from chat too');
 insert into zz_r select 'c3', hq.create_email_draft('general', 'Verified', 'Hi Vera.', pg_temp.fx('vera'));
 select is((select hq.begin_email_send(pg_temp.eid('c3'), 'chat') ->> 'status'), 'sending', 'a verified contact''s draft can be sent from chat as before');
 insert into zz_r select 'c4', hq.create_email_draft('general', 'Staff', 'Hi Pat.', null, pg_temp.fx('pm'));
-select is((select hq.begin_email_send(pg_temp.eid('c4'), 'chat') ->> 'status'), 'sending', 'a draft to a member of staff is not held back');
+select is((select hq.begin_email_send(pg_temp.eid('c4'), 'chat') ->> 'status'), 'sending', 'a draft to a member of staff is sent as before');
 
--- a person verifies the contact (the existing flow: clear needs_verification on the contact), then chat may send
+-- a person can still verify a contact (the existing flow: clear needs_verification on the contact)
 select pg_temp.become('dir');
 select lives_ok($$update hq.contacts set needs_verification = false where id = pg_temp.cid('c1')$$, 'a person marks the new contact verified (the existing verify action)');
 select ok((select not needs_verification and verified_at is not null and verified_by = pg_temp.fx('dir') from hq.contacts where id = pg_temp.cid('c1')), '...which stamps who and when');
-select pg_temp.become_app('dir', 'client-a');
-select is((select hq.begin_email_send(pg_temp.eid('c1'), 'chat') ->> 'status'), 'sending', 'once verified, the same draft can be sent from chat');
 select pg_temp.unbecome();
 
 -- a person's approval in HQ makes a draft to an unverified contact sendable, and does not verify the contact

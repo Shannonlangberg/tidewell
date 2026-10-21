@@ -15,18 +15,15 @@
 --     audited as well as the draft;
 --   * at most 10 NEW contacts per person per hour this way, in addition to the 30 drafts per hour;
 --   * approval is still only a person's tap in HQ (approve_email_draft refuses a connected-app token);
---   * CHAT SENDING (the director setting email_chat_send_enabled) now also refuses an unapproved draft
---     whose contact still has needs_verification = true: the address is new, so a person must approve it
---     in HQ. The same rule covers every contact flagged needs_verification (imported research contacts,
---     website enquiries), not only ones created here. A person clears the flag with Mark as verified on
---     the contact page (hq_private.verification_guard stamps verified_at / verified_by); once cleared,
---     chat sending works as before. An email a person has APPROVED in HQ is unaffected.
+--   * CHAT SENDING (the director setting email_chat_send_enabled) is unchanged and works for a typed
+--     address like any other: the model shows the recipient, subject and full text, the person says yes in
+--     chat, and send_email_draft goes out with confirm_recipient_email set to that exact address. The new
+--     contact stays flagged needs_verification until a person marks it verified; sending does not clear it.
 --
 -- One signature surface for HQ and the chat tools: create_email_draft gains p_to_email and p_to_name
 -- (appended, so every existing call keeps working). Postgres cannot add parameters to a function in
 -- place, so the old signature is dropped and re-created; 0147 states the privileges again.
--- begin_email_send is replaced with the same signature (privileges kept) to add the unverified-contact
--- refusal. No table changes, no new helper functions.
+-- No table changes, no new helper functions.
 
 drop function hq.create_email_draft(hq.email_template, text, text, uuid, uuid, uuid);
 
@@ -171,94 +168,6 @@ begin
     jsonb_build_object('status', jsonb_build_object('to', 'draft'), 'created_via', jsonb_build_object('to', v_d.created_via))
       || case when v_create then jsonb_build_object('new_contact', jsonb_build_object('to', true)) else '{}'::jsonb end);
   return hq_private.email_json(v_d) || jsonb_build_object('changed', true, 'new_contact', v_create, 'contact_id', v_d.recipient_contact_id);
-end $$;
-
--- ------------------------------------------------------------------ begin_email_send
--- 0132's function, whole, with ONE addition: an UNAPPROVED draft may not be sent from chat while its
--- contact is still flagged needs_verification (email_contact_unverified). Everything else is unchanged.
-create or replace function hq.begin_email_send(p_id uuid, p_via text) returns jsonb
-language plpgsql security definer set search_path = pg_catalog, public, extensions as $$
-declare
-  v_caller uuid := hq_private.require_staff();
-  v_client text := hq_private.email_app_client();
-  v_d hq.email_drafts;
-  v_problem text;
-  v_limit integer;
-  v_used integer;
-  v_tz text;
-  v_day_start timestamptz;
-  v_chat_mode boolean;
-  v_sender record;
-begin
-  perform hq_private.require_capability('email.send');
-  if p_via is null or p_via not in ('hq', 'chat') then
-    raise exception 'send through hq or chat' using errcode = 'invalid_parameter_value';
-  end if;
-  if (p_via = 'chat') <> (v_client is not null) then
-    raise exception 'that send channel does not match this session' using errcode = 'insufficient_privilege', hint = 'email_wrong_channel';
-  end if;
-
-  v_d := hq_private.email_lock(p_id, v_caller, true);
-  if v_d.status in ('sending', 'sent') then
-    raise exception 'this email is already %', v_d.status using errcode = 'invalid_parameter_value', hint = 'email_already_sent';
-  end if;
-  if v_d.status in ('discarded', 'failed') then
-    raise exception 'this email is %; %', v_d.status,
-      case when v_d.status = 'failed' then 'approve it again in HQ to retry' else 'draft a new one' end
-      using errcode = 'invalid_parameter_value', hint = 'email_not_sendable';
-  end if;
-  -- the caller must be the person who drafted it or the person who approved it
-  if v_caller <> v_d.created_by and v_caller is distinct from v_d.approved_by then
-    raise exception 'only the person who drafted or approved this email can send it' using errcode = 'insufficient_privilege', hint = 'email_not_yours';
-  end if;
-  if v_d.status = 'draft' then
-    v_chat_mode := coalesce((select s.value = 'true'::jsonb from hq.settings s where s.key = 'email_chat_send_enabled'), false);
-    if not (p_via = 'chat' and v_chat_mode and v_d.created_via = 'mcp' and v_d.created_by = v_caller
-            and v_d.mcp_client_id = v_client and v_d.created_at > now() - interval '30 minutes') then
-      raise exception 'this email has not been approved: open it in HQ and tap Approve and send' using errcode = 'insufficient_privilege', hint = 'email_not_approved';
-    end if;
-    -- a new or unchecked address is approved by a person in HQ, never sent from chat on a yes
-    if v_d.recipient_contact_id is not null
-       and exists (select 1 from hq.contacts c where c.id = v_d.recipient_contact_id and c.needs_verification) then
-      raise exception 'this address is new to HQ and has not been checked yet: open the email in HQ and tap Approve and send' using errcode = 'insufficient_privilege', hint = 'email_contact_unverified';
-    end if;
-  end if;
-
-  v_problem := hq_private.email_recipient_problem(v_d);
-  if v_problem is not null then
-    raise exception 'not sent: %. Discard it and draft a new one', v_problem using errcode = 'invalid_parameter_value', hint = 'email_recipient_changed';
-  end if;
-
-  -- the daily limit: sends started by this person since midnight in the business timezone
-  perform pg_advisory_xact_lock(hashtextextended('hq.email_send:' || v_caller::text, 0));
-  v_limit := coalesce((select case when jsonb_typeof(s.value) = 'number' then (s.value #>> '{}')::integer end from hq.settings s where s.key = 'email_daily_limit'), 20);
-  v_tz := coalesce((select s.value #>> '{}' from hq.settings s where s.key = 'timezone'), 'Australia/Adelaide');
-  v_day_start := (hq.today()::timestamp) at time zone v_tz;
-  select count(*) into v_used from hq.email_drafts d
-  where d.sent_by = v_caller and d.send_started_at >= v_day_start and d.status in ('sending', 'sent', 'failed');
-  if v_used >= v_limit then
-    raise exception 'daily email limit reached (% per person per day)', v_limit using errcode = 'program_limit_exceeded', hint = 'email_daily_limit';
-  end if;
-
-  update hq.email_drafts set status = 'sending', send_started_at = now(), sent_by = v_caller, send_via = p_via, error_code = null
-  where id = v_d.id
-  returning * into v_d;
-
-  select sp.full_name, sp.first_name, sp.role into v_sender from hq.staff_profiles sp where sp.id = v_d.created_by;
-
-  perform hq_private.audit_write('send_start', 'email_draft', v_d.id,
-    'Sending email ' || hq_private.email_ref(v_d.ref_number) || ' to ' || v_d.to_name || case when p_via = 'chat' then ' (from a connected app)' else '' end,
-    jsonb_build_object('status', jsonb_build_object('to', 'sending'), 'via', jsonb_build_object('to', p_via)));
-
-  return hq_private.email_json(v_d) || jsonb_build_object(
-    'body_text', v_d.body_text,
-    'reply_to_email', v_d.reply_to_email::text,
-    'sender_name', v_sender.full_name,
-    'sender_first_name', v_sender.first_name,
-    'sender_role', v_sender.role,
-    'via', p_via,
-    'sent_today', v_used + 1,
-    'daily_limit', v_limit);
 end $$;
 
 notify pgrst, 'reload schema';
