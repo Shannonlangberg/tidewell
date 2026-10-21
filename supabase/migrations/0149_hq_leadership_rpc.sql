@@ -1,9 +1,9 @@
--- 0147_hq_leadership_rpc.sql
+-- 0149_hq_leadership_rpc.sql
 -- The command center RPCs (docs/hq-command-center.md): the task entry and update core (0144) taught the
--- 0146 fields, so update_project_task and bulk_update_tasks can set them with every existing rule,
+-- 0148 fields, so update_project_task and bulk_update_tasks can set them with every existing rule,
 -- check and history; save_planning_item; set_task_waiting and resolve_task_waiting (the "move training
 -- into Waiting on funding" and "Ailo called back" paths); set_milestone_launch_gate. Function
--- privileges in 0148.
+-- privileges in 0150.
 --
 -- New update fields (all optional; JSON null clears): waiting_on (text, 200), waiting_since,
 -- expected_response, next_follow_up, planned_for (dates YYYY-MM-DD within the next five years; past
@@ -22,7 +22,7 @@ begin
   return v;
 end $$;
 
--- ------------------------------------------------------------------ task_entry_errors (0144) with the 0146 update fields
+-- ------------------------------------------------------------------ task_entry_errors (0144) with the 0148 update fields
 create or replace function hq_private.task_entry_errors(p_e jsonb, p_mode text) returns text[]
 language plpgsql stable security definer set search_path = pg_catalog, public, extensions as $$
 declare
@@ -141,7 +141,7 @@ begin
   return v_err;
 end $$;
 
--- ------------------------------------------------------------------ task_update_core (0144) with the 0146 fields
+-- ------------------------------------------------------------------ task_update_core (0144) with the 0148 fields
 create or replace function hq_private.task_update_core(p_e jsonb) returns jsonb
 language plpgsql security definer set search_path = pg_catalog, public, extensions as $$
 declare
@@ -437,7 +437,7 @@ comment on function hq.set_task_waiting(uuid, text, uuid, date, date, date, text
 
 -- tasks.write, and the task-update rule. The wait is over ("Ailo has called me back"): ONE task that is
 -- waiting (or held up) moves to p_next (in_progress by default; to_do or completed allowed), the waiting
--- fields clear (0146 trigger), and the note goes into its comments. Optionally sets the next follow-up and
+-- fields clear (0148 trigger), and the note goes into its comments. Optionally sets the next follow-up and
 -- a new due date, when the person gives them.
 create function hq.resolve_task_waiting(
   p_task uuid,

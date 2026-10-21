@@ -1,8 +1,8 @@
--- 0146_hq_leadership.sql
+-- 0148_hq_leadership.sql
 -- The leadership command center (docs/hq-command-center.md): what a task is WAITING ON, the founder's
 -- own working plan for a task, launch requirements, and planning items (anticipated funding and other
 -- founder-reported context). The TABLE, the new columns, guards, the waiting history trigger, RLS and
--- the task_overview columns are here; the RPCs are in 0147; function privileges in 0148.
+-- the task_overview columns are here; the RPCs are in 0149; function privileges in 0150.
 --
 -- Nothing here changes the task status model: to_do, in_progress, waiting, completed and cancelled stay
 -- the only statuses. The Workboard's four lanes (Do now, In motion, Waiting, Coming next) are a VIEW
@@ -32,7 +32,7 @@
 --   status: funding and dependency go anticipated -> confirmed -> received, or closed; context is
 --   current or closed. amount_anticipated is allowed on funding only and is a planning figure.
 --   expected_text holds the founder's own words for timing ("within a month"); expected_by is a real
---   date only when one is known. Written only through hq.save_planning_item (0147); never deleted.
+--   date only when one is known. Written only through hq.save_planning_item (0149); never deleted.
 --
 -- SETTINGS: launch_project_id (null or a live project): the project the command center tracks as the
 --   business launch. When it is null, the command center looks for one live project whose name contains
@@ -369,4 +369,4 @@ left join lateral (
   join hq.tasks w on w.id = d.task_id and w.deleted_at is null and w.status not in ('completed', 'cancelled')
   where d.depends_on_task_id = t.id
 ) bk on true;
-comment on view hq.task_overview is 'One row per task the reader can see (tasks RLS; archived ones only for growth.delete; filter deleted_at is null): the task with assignee name, project ref / name / status / priority (null when the reader lacks projects.read), milestone name, due date and launch_gate, parent title (null when the parent is not visible), subtask counts (visible), checklist counts, dependency counts (dependency_count, open_dependency_count: correct even when the blocking task is not visible), is_blocked (open and waiting on an open dependency), blocking_count (visible open tasks waiting on this one), is_overdue and overdue_days; and (0146) waiting_on, waiting_since, expected_response_date, next_follow_up_date, planned_for, planning_item_id with its title, kind and status (null without planning.read).';
+comment on view hq.task_overview is 'One row per task the reader can see (tasks RLS; archived ones only for growth.delete; filter deleted_at is null): the task with assignee name, project ref / name / status / priority (null when the reader lacks projects.read), milestone name, due date and launch_gate, parent title (null when the parent is not visible), subtask counts (visible), checklist counts, dependency counts (dependency_count, open_dependency_count: correct even when the blocking task is not visible), is_blocked (open and waiting on an open dependency), blocking_count (visible open tasks waiting on this one), is_overdue and overdue_days; and (0148) waiting_on, waiting_since, expected_response_date, next_follow_up_date, planned_for, planning_item_id with its title, kind and status (null without planning.read).';

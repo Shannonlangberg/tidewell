@@ -1,4 +1,4 @@
--- Planted HQ: the command center (migrations 0146-0148). Planning items (capabilities, RLS, the
+-- Planted HQ: the command center (migrations 0148-0150). Planning items (capabilities, RLS, the
 -- funding-only amount, status by kind, version guard, never deleted, audited), the new task columns
 -- (existing rows untouched), set_task_waiting / resolve_task_waiting (the task-update rule, the waiting
 -- guard that clears on leaving waiting, history, priority and due date untouched), update_project_task
