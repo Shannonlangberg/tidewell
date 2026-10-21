@@ -59,7 +59,11 @@ Ties: earlier due date, then older task. "Important" = high or urgent priority, 
 
 ## 4. Launch readiness
 
-**Ready to open** = milestones marked required to open that are done, of all marked; shown as segments, one per requirement. **Tasks done** = the project's own progress (top-level, non-cancelled tasks), shown separately and labelled "every task counts the same". When no milestone is marked, no readiness figure is shown. The next actionable milestone is the first open one (by date, then order) with a task that can move now; its best task (by the focus score) is the next action. Blockers are the project's tasks in the Waiting lane. Commitments are open milestones and top-level tasks due within three weeks (and overdue ones).
+**Ready to open** = milestones marked required to open that are done, of all marked; shown as segments, one per requirement. **Tasks done** = the project's own progress (top-level, non-cancelled tasks), shown separately. When no milestone is marked, no readiness figure is shown. The next actionable milestone is the first open one (by date, then order) with a task that can move now; its best task (by the focus score) is the next action. Blockers are counted here and listed once, under Waiting on; dates live on the milestone timeline.
+
+## 4b. Each task in full once (the page layout)
+
+The pills at the top say four things: focus, moving, waiting, decisions (launch readiness and the goal are said in their own sections). A focus task is shown in full under My focus and as one short numbered line in its workboard lane. The workboard has three full lanes (Do now, In motion, Coming next); Waiting is a count that links to Waiting on, which lists every held-up task of yours (outside waits, planning items, held-up reasons and dependency chains). The launch project's name is not repeated on its tasks. With the command center, the older Leads and partners lists under "Also today" are replaced by Growth and relationships. (`launch_progress` in chat still lists blockers and commitments in full.)
 
 ## 5. Chat (MCP) tools
 
