@@ -40,11 +40,13 @@ test("what it says: thanks, received, will be in touch, the confirmed contacts, 
   assert.match(m.html, /Hello Jeff,/);
 });
 
-test("the branded look: the charcoal header with the wordmark and the ivory card, no remote images or links added", () => {
+test("the branded look: the forest header with the lockup and the ivory page; only the brand images, no link or other URL", () => {
   const { html } = enquiryAckEmail({ firstName: "Jeff", contact: CONTACT });
-  assert.match(html, /background:#252525;[^"]*">\s*<span[^>]*>PLANTED\.<\/span>/);
-  assert.match(html, /background:#F5F1EA/);
-  assert.ok(!/<img|<a\s|https?:\/\//i.test(html), "no image, no link, no URL");
+  assert.match(html, /background:#14291F;[^"]*">\s*<img src="https:\/\/plantedproperty\.com\.au\/brand\/logos\/png\/planted-lockup-horizontal-ivory-lime-1200\.png"/);
+  assert.match(html, /background:#F7F5EF/);
+  const rest = html.replace(/<img src="https:\/\/plantedproperty\.com\.au\/brand\/logos\/png\/planted-(?:lockup-horizontal-ivory-lime-1200|app-icon-512)\.png"[^>]*\/>/g, "");
+  assert.ok(!/<img|<a\s|https?:\/\//i.test(rest), "no other image, no link, no URL");
+  assert.match(html, /<span style="font-weight:600;">PLANTED\. Property Management<\/span>/, "signed by the business");
   assert.match(html, /<html lang="en-AU">/);
 });
 

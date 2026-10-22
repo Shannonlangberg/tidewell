@@ -13,7 +13,8 @@ const csp = (extra = {}) => {
     "script-src": ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
-    "img-src": ["'self'", "data:", "blob:", supabaseUrl],
+    // The public site's origin: HQ previews emails whose logo is served from it (lib/hq/email/render.ts).
+    "img-src": ["'self'", "data:", "blob:", supabaseUrl, "https://plantedproperty.com.au"],
     "connect-src": ["'self'", supabaseUrl, supabaseWs],
     "frame-src": ["'none'"],
     "object-src": ["'none'"],

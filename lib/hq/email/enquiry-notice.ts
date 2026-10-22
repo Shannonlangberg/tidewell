@@ -6,8 +6,11 @@
  * personal information as possible.
  *
  * Everything the public typed is escaped for HTML and reduced to one line; nothing in it becomes a
- * link. Pure with NO imports: unit tested with `node --test` (enquiry-notice.test.mts).
+ * link. Its look is the 2026 brand, shared with every HQ email (render.ts: the forest header with the
+ * lockup, the white card, the palette). Pure, importing only render.ts (which has no imports): unit
+ * tested with `node --test` (enquiry-notice.test.mts).
  */
+import { EMAIL_COLORS as C, EMAIL_FONT, emailHeader } from "./render";
 
 export type EnquiryNoticeInput = {
   ref: string;
@@ -20,8 +23,6 @@ export type EnquiryNoticeInput = {
   enquiryUrl: string;
   leadUrl: string | null;
 };
-
-const C = { charcoal: "#252525", ivory: "#F5F1EA", softWhite: "#FAF8F4", border: "#DED8D0", greyText: "#5F5B56" } as const;
 
 function esc(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -82,26 +83,25 @@ export function enquiryNotice(input: EnquiryNoticeInput): { subject: string; tex
   const rows = facts
     .map(
       ([k, v]) =>
-        `<tr><th align="left" style="padding:6px 16px 6px 0;vertical-align:top;font-weight:600;white-space:nowrap;color:${C.charcoal}">${esc(k)}</th>` +
-        `<td style="padding:6px 0;vertical-align:top;color:${C.charcoal}">${esc(v)}</td></tr>`,
+        `<tr><th align="left" style="padding:8px 16px 8px 0;vertical-align:top;font-weight:500;white-space:nowrap;color:${C.muted};border-top:1px solid ${C.line}">${esc(k)}</th>` +
+        `<td style="padding:8px 0;vertical-align:top;color:${C.ink};border-top:1px solid ${C.line}">${esc(v)}</td></tr>`,
     )
     .join("");
   const link = (href: string, label: string) =>
-    `<a href="${esc(href)}" style="display:inline-block;margin:0 12px 8px 0;padding:10px 16px;background:${C.charcoal};color:${C.ivory};text-decoration:none;border-radius:4px;font-weight:600">${esc(label)}</a>`;
+    `<a href="${esc(href)}" style="display:inline-block;margin:0 10px 10px 0;padding:12px 22px;background:${C.forest};color:${C.ivory};text-decoration:none;border-radius:999px;font-weight:500">${esc(label)}</a>`;
 
   const html = [
-    `<div style="background:${C.softWhite};padding:24px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${C.charcoal}">`,
-    `<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid ${C.border};border-radius:4px">`,
-    `<div style="background:${C.charcoal};color:${C.ivory};padding:16px 24px;font-family:Georgia,'Times New Roman',serif;font-size:20px;letter-spacing:0.04em">PLANTED.</div>`,
-    `<div style="padding:24px">`,
-    `<p style="margin:0 0 16px">A new website enquiry is in Planted HQ.</p>`,
+    `<div style="background:${C.ivory};padding:40px 16px;font-family:${EMAIL_FONT};font-size:15px;line-height:1.6;color:${C.ink}">`,
+    `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;font-family:${EMAIL_FONT}"><tr>${emailHeader()}</tr>`,
+    `<tr><td style="background:${C.white};border-radius:0 0 28px 28px;padding:36px">`,
+    `<p style="margin:0 0 20px;font-size:16px">A new website enquiry is in Planted HQ.</p>`,
     `<table cellpadding="0" cellspacing="0" border="0">${rows}</table>`,
-    `<p style="margin:20px 0 8px">`,
+    `<p style="margin:24px 0 6px">`,
     enquiryUrl ? link(enquiryUrl, "Read it in HQ") : "",
     leadUrl ? link(leadUrl, "Open the lead") : "",
     `</p>`,
-    `<p style="margin:12px 0 0;color:${C.greyText};font-size:13px">The message and contact details are in HQ. A follow-up task, due today, is on the owner&#39;s list. This is an automatic notice from the PLANTED. website.</p>`,
-    `</div></div></div>`,
+    `<p style="margin:12px 0 0;color:${C.muted};font-size:13px">The message and contact details are in HQ. A follow-up task, due today, is on the owner&#39;s list. This is an automatic notice from the PLANTED. website.</p>`,
+    `</td></tr></table></div>`,
   ].join("");
 
   return { subject, text, html };
