@@ -61,7 +61,7 @@ const EXPECTED_TOOLS = [
   // email
   "list_email_drafts", "get_email_draft", "draft_email", "update_email_draft", "discard_email_draft", "send_email_draft",
   // website enquiries
-  "list_enquiries", "get_enquiry",
+  "list_enquiries", "get_enquiry", "archive_enquiry", "restore_enquiry",
   // knowledge base
   "list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge",
   "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document",
@@ -157,7 +157,7 @@ const emailSettingsBefore = await director.db.from("settings").select("key, valu
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (108 tools, none missing, none extra)", EXPECTED_TOOLS.length === 108 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (110 tools, none missing, none extra)", EXPECTED_TOOLS.length === 110 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -917,6 +917,21 @@ try {
   check("junior: list_enquiries is refused by the tool, and forced past it shows nothing (RLS)", outcome(jEnq) === "refused" && outcome(jEnqForced) === "empty", `${jEnq.text}\n${jEnqForced.text}`);
   const roSpam = await readOnly.db.rpc("mark_enquiry_spam", { p_id: enq.enquiry_id ?? "" });
   check("read-only cannot mark an enquiry as spam (42501)", roSpam.error?.code === "42501", JSON.stringify(roSpam.error));
+  // archive and restore (reversible; nothing erased)
+  const roArch = await call(readOnly, "archive_enquiry", { enquiry: enq.ref ?? "" });
+  const roArchForced = await forced(readOnly, "archive_enquiry", { enquiry: enq.ref ?? "" });
+  check("read-only: archive_enquiry is refused by the tool, and forced past it by the database", outcome(roArch) === "refused" && outcome(roArchForced) === "refused", `${roArch.text}\n${roArchForced.text}`);
+  const ae = await call(director, "archive_enquiry", { enquiry: enq.ref ?? "", reason: "mcp-tools-smoke" });
+  const leOpen = await call(director, "list_enquiries", {});
+  const leArch = await call(director, "list_enquiries", { status: "archived" });
+  check("archive_enquiry archives it (nothing erased); it leaves the open list and shows under archived", outcome(ae) === "ok" && /Nothing was erased/.test(ae.text) && !leOpen.text.includes(enq.ref ?? "?") && leArch.text.includes(enq.ref ?? "?"), `${ae.text}\n${leOpen.text.slice(0, 300)}\n${leArch.text.slice(0, 300)}`);
+  const ae2 = await call(director, "archive_enquiry", { enquiry: enq.ref ?? "" });
+  check("archive_enquiry again changes nothing", outcome(ae2) === "unchanged", ae2.text);
+  const re = await call(director, "restore_enquiry", { enquiry: enq.ref ?? "" });
+  const leBack = await call(director, "list_enquiries", {});
+  check("restore_enquiry brings it back to New and into the open list", outcome(re) === "ok" && re.text.includes("to New") && leBack.text.includes(enq.ref ?? "?"), `${re.text}\n${leBack.text.slice(0, 300)}`);
+  const re2 = await call(director, "restore_enquiry", { enquiry: enq.ref ?? "" });
+  check("restore_enquiry of one that is not archived changes nothing", outcome(re2) === "unchanged", re2.text);
 
   // ── 2g. the knowledge base (approved content never changes silently) ──
   const KB_TOOLS = ["list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge", "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document"];

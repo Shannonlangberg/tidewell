@@ -255,12 +255,47 @@ export function receivedAgo(iso: string, now: Date = new Date()): string | null 
 type Param = string | string[] | undefined;
 const first = (v: Param) => (Array.isArray(v) ? v[0] : v);
 
-/** ?status=new&kind=appraisal&page=2, validated. */
-export function parseEnquiryListParams(sp: Record<string, Param>): { status: EnquiryStatus | null; kind: EnquiryKindValue | null; page: number; filtered: boolean } {
+// ── which enquiries a list shows ─────────────────────────────
+
+/**
+ * The list's status filter: "open" (the default: New and In progress, so archived and spam enquiries
+ * leave the list), one status, or "all".
+ */
+export type EnquiryView = "open" | EnquiryStatus | "all";
+export const ENQUIRY_VIEW_OPTIONS = ["new", "in_progress", "archived", "spam", "all"] as const;
+export const ENQUIRY_VIEW_LABEL: Record<EnquiryView, string> = { open: "Open", ...ENQUIRY_STATUS_LABEL, all: "All, including archived" };
+
+export const isEnquiryView = (v: unknown): v is EnquiryView => v === "open" || v === "all" || isEnquiryStatus(v);
+
+/** What archiving means, in the confirmation (the list's row action and the enquiry's page). */
+export const ENQUIRY_ARCHIVE_CONSEQUENCE =
+  "It leaves the enquiries list and can be restored from Archived at any time. Nothing is deleted, and its lead, contact and reply task stay as they are.";
+
+/** The statuses a view shows; null means every status. */
+export function enquiryViewStatuses(view: EnquiryView): EnquiryStatus[] | null {
+  if (view === "all") return null;
+  if (view === "open") return ["new", "in_progress"];
+  return [view];
+}
+
+/** ?status=archived&kind=appraisal&page=2, validated. No status (or an unknown one) is the open view. */
+export function parseEnquiryListParams(sp: Record<string, Param>): { view: EnquiryView; kind: EnquiryKindValue | null; page: number; filtered: boolean } {
   const status = first(sp.status);
   const kind = first(sp.kind);
   const pageRaw = Number(first(sp.page));
-  const s = isEnquiryStatus(status) ? status : null;
+  const v = isEnquiryView(status) ? status : "open";
   const k = isEnquiryKind(kind) ? kind : null;
-  return { status: s, kind: k, page: Number.isInteger(pageRaw) && pageRaw >= 1 && pageRaw <= 10_000 ? pageRaw : 1, filtered: s !== null || k !== null };
+  return { view: v, kind: k, page: Number.isInteger(pageRaw) && pageRaw >= 1 && pageRaw <= 10_000 ? pageRaw : 1, filtered: v !== "open" || k !== null };
+}
+
+/**
+ * Where an archive or restore goes back to: the enquiries list (with its filters) or one enquiry's
+ * page, when the form says so and it is one of those; otherwise the fallback. Never another site or
+ * another part of HQ.
+ */
+export function enquiryReturnPath(raw: unknown, fallback: string): string {
+  if (typeof raw !== "string" || raw.length > 300) return fallback;
+  if (/^\/hq\/communications\/enquiries(\?[A-Za-z0-9_=&%.-]*)?$/.test(raw)) return raw;
+  if (/^\/hq\/growth\/enquiries\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(raw)) return raw;
+  return fallback;
 }

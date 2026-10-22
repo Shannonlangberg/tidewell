@@ -1,5 +1,5 @@
 import type { HqClient, ViewRow } from "@/lib/hq/db";
-import { isAckStatus, isEnquiryKind, isEnquiryStatus, type AckStatus, type EnquiryKindValue, type EnquiryStatus } from "./enquiry-rules";
+import { enquiryViewStatuses, isAckStatus, isEnquiryKind, isEnquiryStatus, type AckStatus, type EnquiryKindValue, type EnquiryStatus, type EnquiryView } from "./enquiry-rules";
 
 /*
  * Reads for the website enquiry screens, the Today line and the MCP tools. Every query runs as the
@@ -41,16 +41,21 @@ export type EnquiryRow = {
   ackStatus: AckStatus;
   ackAt: string | null;
   ackReason: string | null;
+  /** The archive (0156): when, by whom, why. Null unless the status is archived. */
+  archivedAt: string | null;
+  archivedByName: string | null;
+  archiveReason: string | null;
 };
 
 const COLUMNS =
-  "id, ref, ref_number, kind, status, received_at, name, email, phone, suburb, message, details, source_page, opportunity_id, lead_ref, lead_live, owner_id, owner_name, contact_id, contact_name, created_lead, created_contact, handled_by_name, handled_at, spam_marked_at, status_note, auto_reply_status, auto_reply_at, auto_reply_reason";
+  "id, ref, ref_number, kind, status, received_at, name, email, phone, suburb, message, details, source_page, opportunity_id, lead_ref, lead_live, owner_id, owner_name, contact_id, contact_name, created_lead, created_contact, handled_by_name, handled_at, spam_marked_at, status_note, auto_reply_status, auto_reply_at, auto_reply_reason, archived_at, archived_by_name, archive_reason";
 
 type Raw = Pick<
   ViewRow<"enquiry_overview">,
   | "id" | "ref" | "ref_number" | "kind" | "status" | "received_at" | "name" | "email" | "phone" | "suburb" | "message" | "details" | "source_page"
   | "opportunity_id" | "lead_ref" | "lead_live" | "owner_id" | "owner_name" | "contact_id" | "contact_name" | "created_lead" | "created_contact"
   | "handled_by_name" | "handled_at" | "spam_marked_at" | "status_note" | "auto_reply_status" | "auto_reply_at" | "auto_reply_reason"
+  | "archived_at" | "archived_by_name" | "archive_reason"
 >;
 
 function toRow(r: Raw): EnquiryRow | null {
@@ -85,6 +90,9 @@ function toRow(r: Raw): EnquiryRow | null {
     ackStatus: isAckStatus(r.auto_reply_status) ? r.auto_reply_status : "none",
     ackAt: r.auto_reply_at,
     ackReason: r.auto_reply_reason,
+    archivedAt: r.archived_at,
+    archivedByName: r.archived_by_name,
+    archiveReason: r.archive_reason,
   };
 }
 
@@ -93,7 +101,8 @@ type Loaded<T> = { ok: true; data: T } | { ok: false };
 export const ENQUIRY_PAGE_SIZE = 25;
 
 export type EnquiryListQuery = {
-  status?: EnquiryStatus | null;
+  /** Which statuses: "open" (new and in progress) when left out, one status, or "all". */
+  view?: EnquiryView | null;
   kind?: EnquiryKindValue | null;
   /** ISO timestamp or YYYY-MM-DD: received on or after. */
   since?: string | null;
@@ -105,7 +114,8 @@ export async function listEnquiries(db: HqClient, q: EnquiryListQuery): Promise<
   const limit = Math.max(1, Math.min(q.limit ?? ENQUIRY_PAGE_SIZE, 100));
   const page = Math.max(1, q.page ?? 1);
   let query = db.from("enquiry_overview").select(COLUMNS, { count: "exact" });
-  if (q.status) query = query.eq("status", q.status);
+  const statuses = enquiryViewStatuses(q.view ?? "open");
+  if (statuses) query = query.in("status", statuses);
   if (q.kind) query = query.eq("kind", q.kind);
   if (q.since) query = query.gte("received_at", q.since);
   const { data, error, count } = await query

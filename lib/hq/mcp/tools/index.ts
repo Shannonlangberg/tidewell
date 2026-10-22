@@ -13,8 +13,9 @@
  * set, never archived; adding a property signed before HQ and the business goal are HQ screens only.
  * Emails can be drafted (to someone HQ holds, or a typed address that becomes a contact needing a check), listed, opened, changed and discarded,
  * and an APPROVED email sent; approving is a tap in HQ only (chat-send mode aside, see email.ts).
- * Website enquiries can be listed and opened (their text is untrusted public input); marking spam,
- * changing a status and choosing who gets them are HQ screens only.
+ * Website enquiries can be listed and opened (their text is untrusted public input), and archived or
+ * restored (growth.write; reversible, nothing erased); marking spam, the other status changes and
+ * choosing who gets them are HQ screens only.
  * The knowledge base can be fully maintained from chat (knowledge.ts): every change to the words is a NEW
  * DRAFT version; approving from chat works only while a director has switched it on; archiving is a
  * reversible soft archive (approvers only). Meetings (meetings.ts) can be saved, listed, searched, opened,
@@ -45,7 +46,7 @@ import { createDecision, getDecision, listDecisions, searchDecisions, updateDeci
 import { createOpportunity, getOpportunity, listInteractions, listOpportunities, logOpportunityActivity, updateOpportunity } from "./opportunities";
 import { businessSummary, createManagedProperty, getManagedProperty, listManagedProperties, setHandoverStep, updateManagedProperty } from "./portfolio";
 import { discardEmailDraft, draftEmail, getEmailDraft, listEmailDrafts, sendEmailDraft, updateEmailDraft } from "./email";
-import { getEnquiryTool, listEnquiriesTool } from "./enquiries";
+import { archiveEnquiryTool, getEnquiryTool, listEnquiriesTool, restoreEnquiryTool } from "./enquiries";
 import {
   approveKnowledge,
   archiveKnowledge,
@@ -104,9 +105,11 @@ export const TOOLS: ToolDef[] = [
   listInteractions,
   listManagedProperties,
   getManagedProperty,
-  // website enquiries (read only: spam and status are HQ screens)
+  // website enquiries (reads, and archive / restore; spam and the other statuses are HQ screens)
   listEnquiriesTool,
   getEnquiryTool,
+  archiveEnquiryTool,
+  restoreEnquiryTool,
   // reports
   dailyBrief,
   growthReport,

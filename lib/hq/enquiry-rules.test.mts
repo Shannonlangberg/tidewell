@@ -110,9 +110,25 @@ test("receivedAgo and the list parameters", async () => {
   assert.equal(receivedAgo("2026-10-19T08:00:00Z", now), "Yesterday");
   assert.equal(receivedAgo("2026-10-16T08:00:00Z", now), "4 days ago");
   assert.equal(receivedAgo("2026-08-01T08:00:00Z", now), null);
-  assert.deepEqual(parseEnquiryListParams({ status: "new", kind: "appraisal", page: "2" }), { status: "new", kind: "appraisal", page: 2, filtered: true });
-  assert.deepEqual(parseEnquiryListParams({ status: "bogus", kind: ["contact"], page: "-1" }), { status: null, kind: "contact", page: 1, filtered: true });
-  assert.deepEqual(parseEnquiryListParams({}), { status: null, kind: null, page: 1, filtered: false });
+  assert.deepEqual(parseEnquiryListParams({ status: "new", kind: "appraisal", page: "2" }), { view: "new", kind: "appraisal", page: 2, filtered: true });
+  assert.deepEqual(parseEnquiryListParams({ status: "bogus", kind: ["contact"], page: "-1" }), { view: "open", kind: "contact", page: 1, filtered: true });
+  assert.deepEqual(parseEnquiryListParams({}), { view: "open", kind: null, page: 1, filtered: false });
+  assert.deepEqual(parseEnquiryListParams({ status: "archived" }), { view: "archived", kind: null, page: 1, filtered: true });
+  assert.deepEqual(parseEnquiryListParams({ status: "all" }), { view: "all", kind: null, page: 1, filtered: true });
+});
+
+test("the enquiry list hides archived and spam unless asked; archive and restore only return to enquiry pages", async () => {
+  const { enquiryViewStatuses, enquiryReturnPath } = await import("./enquiry-rules.ts");
+  assert.deepEqual(enquiryViewStatuses("open"), ["new", "in_progress"]);
+  assert.deepEqual(enquiryViewStatuses("archived"), ["archived"]);
+  assert.deepEqual(enquiryViewStatuses("spam"), ["spam"]);
+  assert.equal(enquiryViewStatuses("all"), null);
+  const fb = "/hq/communications/enquiries";
+  assert.equal(enquiryReturnPath("/hq/communications/enquiries?status=archived&kind=contact&page=2", fb), "/hq/communications/enquiries?status=archived&kind=contact&page=2");
+  assert.equal(enquiryReturnPath("/hq/growth/enquiries/0b6c1a3e-6f1d-4c8e-9a43-2f1d7e1b9c10", fb), "/hq/growth/enquiries/0b6c1a3e-6f1d-4c8e-9a43-2f1d7e1b9c10");
+  for (const bad of ["https://evil.test/hq/communications/enquiries", "//evil.test", "/hq/settings", "/hq/communications/enquiries/../../settings", "/hq/communications/enquiries?x=<script>", 42, null]) {
+    assert.equal(enquiryReturnPath(bad, fb), fb, String(bad));
+  }
 });
 
 // ── the automatic thank-you ──

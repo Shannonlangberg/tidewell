@@ -1,17 +1,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatDateTime } from "@/lib/hq/format";
-import { ENQUIRY_KIND_LABEL, ENQUIRY_STATUS_LABEL, enquiryPath, leadPath, receivedAgo, type EnquiryKindValue, type EnquiryStatus } from "@/lib/hq/enquiry-rules";
+import { ENQUIRY_ARCHIVE_CONSEQUENCE, ENQUIRY_KIND_LABEL, ENQUIRY_STATUS_LABEL, enquiryPath, leadPath, receivedAgo, type EnquiryKindValue, type EnquiryStatus } from "@/lib/hq/enquiry-rules";
 import type { EnquiryRow } from "@/lib/hq/enquiry-queries";
 import { DataTable, ResponsiveTable, type Column } from "../../DataTable";
 import { MobileList } from "../../MobileList";
 import { StatusChip, type StatusTone } from "../../StatusChip";
+import type { ActionState } from "@/lib/hq/forms";
+import { SubmitButton } from "../../SubmitButton";
+import { ArchiveButton } from "../contacts/ArchiveButton";
 import { AckChip } from "./AckChip";
 
 /*
  * Small pieces of the website enquiry screens: the kind (a plain tag), the status (dot plus label,
  * never colour alone), the received time (relative and the date), the list (a table from 768px, one
- * card per enquiry below), and the "Website enquiry" chip for leads (WebsiteEnquiryChip.tsx). Server-rendered.
+ * card per enquiry below, each with Archive or Restore for growth.write), and the "Website enquiry" chip
+ * for leads (WebsiteEnquiryChip.tsx). Server-rendered.
  *
  * Every value here was typed by someone on the public website: it is rendered as text (React escapes
  * it), never as HTML or a link.
@@ -55,7 +59,45 @@ function LeadLink({ e }: { e: EnquiryRow }) {
   );
 }
 
-export function EnquiriesTable({ rows, caption, empty, timezone }: { rows: readonly EnquiryRow[]; caption: string; empty: ReactNode; timezone: string }) {
+/** Archive and Restore on each row (growth.write). `back` is the list with its filters, so the person lands where they were. */
+export type EnquiryRowActions = {
+  archive: (formData: FormData) => Promise<ActionState>;
+  restore: (formData: FormData) => void | Promise<void>;
+  back: string;
+};
+
+function RowAction({ e, actions }: { e: EnquiryRow; actions: EnquiryRowActions }) {
+  if (e.status === "new" || e.status === "in_progress") {
+    return <ArchiveButton id={e.id} noun="enquiry" name={`${e.ref} (${e.name})`} action={actions.archive} consequence={ENQUIRY_ARCHIVE_CONSEQUENCE} size="sm" fields={{ back: actions.back }} />;
+  }
+  if (e.status === "archived") {
+    return (
+      <form action={actions.restore}>
+        <input type="hidden" name="id" value={e.id} />
+        <input type="hidden" name="back" value={actions.back} />
+        <SubmitButton variant="secondary" size="sm">
+          Restore
+        </SubmitButton>
+      </form>
+    );
+  }
+  return null;
+}
+
+export function EnquiriesTable({
+  rows,
+  caption,
+  empty,
+  timezone,
+  actions,
+}: {
+  rows: readonly EnquiryRow[];
+  caption: string;
+  empty: ReactNode;
+  timezone: string;
+  /** Present only for people with growth.write. */
+  actions?: EnquiryRowActions;
+}) {
   if (rows.length === 0) return <>{empty}</>;
 
   const columns: Column<EnquiryRow>[] = [
@@ -95,6 +137,20 @@ export function EnquiriesTable({ rows, caption, empty, timezone }: { rows: reado
     },
     { key: "owner", header: "Owner", nowrap: true, hideBelow: "lg", cell: (e) => e.ownerName ?? <span className="hq-cell-nil">No owner</span> },
     { key: "lead", header: "Lead", nowrap: true, cell: (e) => <LeadLink e={e} /> },
+    ...(actions
+      ? [
+          {
+            key: "actions",
+            header: <span className="sr-only">Actions</span>,
+            cell: (e: EnquiryRow) => (
+              // The confirmation dialog renders inside this cell, so the cell's alignment and wrapping stay out of it.
+              <div className="flex justify-end text-left whitespace-normal">
+                <RowAction e={e} actions={actions} />
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -125,6 +181,11 @@ export function EnquiriesTable({ rows, caption, empty, timezone }: { rows: reado
                   </span>
                 </span>
               </div>
+              {actions && e.status !== "spam" ? (
+                <div className="relative z-10 mt-3 flex justify-end">
+                  <RowAction e={e} actions={actions} />
+                </div>
+              ) : null}
             </li>
           ))}
         </MobileList>

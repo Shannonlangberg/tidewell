@@ -83,7 +83,8 @@ update hq.settings set value = 'true'::jsonb where key = 'enquiry_auto_reply_ena
 select columns_are('hq', 'enquiries', array['id', 'ref_number', 'kind', 'received_at', 'name', 'email', 'phone', 'suburb', 'message', 'details', 'source_page',
   'ip_hash', 'submission_hash', 'status', 'opportunity_id', 'contact_id', 'task_id', 'interaction_id', 'created_lead', 'created_contact', 'handled_by', 'handled_at',
   'spam_marked_by', 'spam_marked_at', 'status_note', 'updated_at',
-  'auto_reply_status', 'auto_reply_at', 'auto_reply_message_id', 'auto_reply_reason', 'auto_reply_interaction_id']);
+  'auto_reply_status', 'auto_reply_at', 'auto_reply_message_id', 'auto_reply_reason', 'auto_reply_interaction_id',
+  'archived_at', 'archived_by', 'archived_from', 'archive_reason']);
 select enum_has_labels('hq', 'enquiry_auto_reply_status', array['none', 'sending', 'sent', 'failed', 'skipped']);
 select col_default_is('hq', 'enquiries', 'auto_reply_status', 'none'::hq.enquiry_auto_reply_status, 'a new enquiry starts with no thank-you');
 select is((select value from hq.settings where key = 'enquiry_auto_reply_enabled'), 'true'::jsonb, 'enquiry_auto_reply_enabled exists (default true)');

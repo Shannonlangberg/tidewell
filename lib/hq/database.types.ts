@@ -1144,6 +1144,10 @@ export type Database = {
       }
       enquiries: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
+          archived_from: Database["hq"]["Enums"]["enquiry_status"] | null
           auto_reply_at: string | null
           auto_reply_interaction_id: string | null
           auto_reply_message_id: string | null
@@ -1177,6 +1181,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          archived_from?: Database["hq"]["Enums"]["enquiry_status"] | null
           auto_reply_at?: string | null
           auto_reply_interaction_id?: string | null
           auto_reply_message_id?: string | null
@@ -1210,6 +1218,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          archived_from?: Database["hq"]["Enums"]["enquiry_status"] | null
           auto_reply_at?: string | null
           auto_reply_interaction_id?: string | null
           auto_reply_message_id?: string | null
@@ -1243,6 +1255,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "enquiries_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "enquiries_auto_reply_interaction_id_fkey"
             columns: ["auto_reply_interaction_id"]
@@ -4273,6 +4292,11 @@ export type Database = {
       }
       enquiry_overview: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
+          archived_by_name: string | null
+          archived_from: Database["hq"]["Enums"]["enquiry_status"] | null
           auto_reply_at: string | null
           auto_reply_interaction_id: string | null
           auto_reply_reason: string | null
@@ -4314,6 +4338,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "enquiries_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "enquiries_auto_reply_interaction_id_fkey"
             columns: ["auto_reply_interaction_id"]
@@ -5491,6 +5522,10 @@ export type Database = {
         Args: { p_id: string; p_reason?: string }
         Returns: Json
       }
+      archive_enquiry: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: Json
+      }
       archive_record: {
         Args: { p_entity: string; p_id: string; p_reason?: string }
         Returns: Json
@@ -5980,6 +6015,7 @@ export type Database = {
         Returns: Json
       }
       restore_brand_resource: { Args: { p_id: string }; Returns: Json }
+      restore_enquiry: { Args: { p_id: string }; Returns: Json }
       restore_knowledge_version: {
         Args: {
           p_base_version: number

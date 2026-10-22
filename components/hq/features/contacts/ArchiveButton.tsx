@@ -23,6 +23,7 @@ export function ArchiveButton({
   action,
   consequence,
   size = "md",
+  fields,
 }: {
   id: string;
   /** "contact" or "organisation". */
@@ -33,6 +34,8 @@ export function ArchiveButton({
   /** What archiving means for this record, in a sentence. */
   consequence: string;
   size?: "sm" | "md";
+  /** More hidden fields for the action (for example where to go back to). */
+  fields?: Record<string, string>;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -64,7 +67,7 @@ export function ArchiveButton({
       >
         Archive
       </Button>
-      <ConfirmDialog open={open} onClose={close} title={`Archive ${name}?`} confirmLabel={`Archive ${noun}`} tone="danger" action={submit} fields={{ id }}>
+      <ConfirmDialog open={open} onClose={close} title={`Archive ${name}?`} confirmLabel={`Archive ${noun}`} tone="danger" action={submit} fields={{ ...fields, id }}>
         <p>{consequence}</p>
         <div className="mt-4">
           <TextInput
