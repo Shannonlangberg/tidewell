@@ -10,7 +10,7 @@
  * Not here, deliberately: signing a management, marking a prospect lost, changing the credited
  * source, archiving anything, imports.
  */
-import { PARTNER_CATEGORIES, RELATIONSHIP_STATUSES, PRIORITIES, PRIORITY_LABEL, type OrgContactRole } from "../../constants";
+import { CALL_OUTCOME_LABEL, PARTNER_CATEGORIES, RELATIONSHIP_STATUSES, PRIORITIES, PRIORITY_LABEL, type OrgContactRole } from "../../constants";
 import { readContactForm } from "../../contacts/form";
 import { readInteractionForm } from "../../contacts/interaction-form";
 import { currentPrimary, findDuplicateContact, findDuplicateOrganisation } from "../../contacts/write";
@@ -152,6 +152,8 @@ export const logInteraction = defineTool({
         create_task: args.create_task ? "on" : null,
         task_assignee: assignee.id,
         new_status: args.new_relationship_status,
+        outcome: args.outcome,
+        callback_promised: args.callback_promised ? "on" : null,
       }),
       { timezone: ctx.staff.timezone, staffId: ctx.staff.id, canCreateTasks: can(ctx, "tasks.write") },
     );
@@ -168,6 +170,8 @@ export const logInteraction = defineTool({
       p_create_task: v.createTask,
       p_task_assignee: v.createTask ? (v.taskAssignee ?? undefined) : undefined,
       p_new_status: v.newStatus ?? undefined,
+      p_outcome: v.outcome ?? undefined,
+      p_callback_promised: v.callbackPromised,
     });
     if (error) return interactionFailure(error);
     const out = (data ?? {}) as { interaction_id?: string; task_id?: string | null };
@@ -178,6 +182,8 @@ export const logInteraction = defineTool({
       v.nextAction ? `Next action: ${clean(v.nextAction)}` : null,
       v.followUpDate ? `Follow-up date: ${day(ctx, v.followUpDate)}${contactId ? " (also set as the contact's next follow-up)" : ""}` : null,
       v.newStatus ? `Relationship status set to: ${relLabel(v.newStatus)}` : null,
+      v.outcome ? `Outcome: ${CALL_OUTCOME_LABEL[v.outcome]}` : null,
+      v.callbackPromised ? "Promised to call back by the follow-up date" : null,
       out.task_id ? `Follow-up task created [id: ${out.task_id}]: ${link(ctx, HQ_PATHS.task(out.task_id))}` : null,
     ].filter((l): l is string => !!l);
     return respond("ok", `Logged 1 ${interactionLabel(v.type).toLowerCase()}${out.task_id ? " and created its follow-up task" : ""}: ${url}`, lines, { interaction_id: out.interaction_id ?? null, task_id: out.task_id ?? null, url });

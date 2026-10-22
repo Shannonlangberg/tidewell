@@ -26,11 +26,15 @@ import { EnquiriesToday } from "@/components/hq/features/enquiries/EnquiriesToda
 import { KnowledgeApprovalsToday } from "@/components/hq/features/knowledge/KnowledgeApprovalsToday";
 import { MeetingsToday } from "@/components/hq/features/meetings/MeetingsToday";
 import { CommandCenter } from "@/components/hq/features/leadership/CommandCenter";
+import { GrowToday } from "@/components/hq/features/grow/GrowToday";
+import { WorkspaceSwitch } from "@/components/hq/features/grow/WorkspaceSwitch";
 import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { todayIn } from "@/lib/hq/format";
 import { longDateIn, welcomeTitle } from "@/lib/hq/greeting";
 import { todayFigures, todayPlan, type TodayView } from "@/lib/hq/today";
+import { loadSavedWorkspace } from "@/lib/hq/workspace-queries";
+import { todayWorkspace, todayWorkspaces } from "@/lib/hq/workspaces";
 
 export const metadata: Metadata = { title: "Today" };
 
@@ -55,6 +59,11 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
  * what is waiting and growth. It replaces Your Focus, the business glance and the "overdue and due today"
  * task list here (the same tasks appear in the focus and on the workboard); everything else below stays.
  *
+ * Workspaces (docs/hq-workspaces.md): Today opens in the person's workspace, with a switch between the
+ * ones their capabilities support (?view=grow, ?view=overview). Grow (growth.read) is "Your next calls"
+ * (components/hq/features/grow/GrowToday.tsx). The Business overview is everything described above,
+ * unchanged. A workspace is a preference: it never shows anything the person could not already open.
+ *
  * requireStaff() here is the page's own gate: the (app) layout is only the first one.
  */
 export default async function TodayPage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -66,6 +75,48 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   if (todayResult.error) console.error("[hq] today() failed:", todayResult.error.code);
   // Dates in the business timezone (the same day the database uses for "overdue"); moments in the person's own.
   const today = typeof todayResult.data === "string" ? todayResult.data : todayIn(staff.timezone);
+
+  const saved = await loadSavedWorkspace(db, staff.id);
+  const offered = todayWorkspaces(staff.capabilities);
+  const workspace = todayWorkspace({ view: one(sp.view), saved, role: staff.role, capabilities: staff.capabilities });
+  const home = todayWorkspace({ view: null, saved, role: staff.role, capabilities: staff.capabilities });
+  const denied = Boolean(one(sp.denied));
+  const deniedNote = denied ? (
+    <InlineNote className="mt-6">
+      Your role does not include that part of Planted HQ. If you think it should, ask a director or an administrator.
+    </InlineNote>
+  ) : null;
+
+  if (workspace === "grow") {
+    return (
+      <>
+        <PageHeader
+          variant="welcome"
+          eyebrow={longDateIn(staff.timezone)}
+          title={welcomeTitle(staff.firstName, staff.timezone)}
+          actions={
+            can("growth.write") ? (
+              <LinkButton href={HQ_ROUTES.logCall} variant="primary" icon="phone">
+                Log a call
+              </LinkButton>
+            ) : null
+          }
+        />
+        <WorkspaceSwitch offered={offered} current={workspace} home={home} />
+        {deniedNote}
+        <GrowToday today={today} />
+        <EmailDraftsToday />
+        <KnowledgeApprovalsToday />
+        <p className="hq-today__foot">
+          Referral figures and trends are in{" "}
+          <Link href={HQ_ROUTES.reports} className="hq-today__inline">
+            Reports
+          </Link>
+          .
+        </p>
+      </>
+    );
+  }
 
   const skip = Promise.resolve(null);
   // The command center (tasks.write) shows Growth and relationships itself, so these lists are not loaded for it.
@@ -82,7 +133,6 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
   const quietParams = { toast: null, toast_tone: null, denied: null } as const;
   const returnTo = buildHref(HQ_BASE, sp, quietParams);
-  const denied = Boolean(one(sp.denied));
 
   const figures = todayFigures({
     call: calls?.ok ? calls.data.total + (leads?.ok ? leads.data.total : 0) : null,
@@ -152,6 +202,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader variant="welcome" eyebrow={longDateIn(staff.timezone)} title={welcomeTitle(staff.firstName, staff.timezone)} actions={primaryAction} />
+      <WorkspaceSwitch offered={offered} current={workspace} home={home} />
       <CommandCenter today={today} searchParams={sp} />
 
       {figures.length > 0 && !commandCenter ? (
@@ -164,11 +215,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         </ul>
       ) : null}
 
-      {denied ? (
-        <InlineNote className="mt-6">
-          Your role does not include that part of Planted HQ. If you think it should, ask a director or an administrator.
-        </InlineNote>
-      ) : null}
+      {deniedNote}
 
       {commandCenter ? (
         <p className="hq-label hq-cc-also" id="cc-also">

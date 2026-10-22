@@ -64,6 +64,7 @@ import { addMeetingAction, createMeeting, getMeeting, listMeetings, meetingDiges
 import { completeMilestone, createMilestone, createProject, getProject, listProjects, updateMilestone, updateProject } from "./projects";
 import { addTaskComment, addTaskDependency, completeTask, getTask, removeTaskDependency, setTaskChecklist } from "./project-tasks";
 import { founderPriorities, listOverdue, whatIsBlocking } from "./focus";
+import { nextCalls } from "./next-calls";
 import { bulkCreateTasks, bulkUpdateTasks } from "./bulk-tasks";
 import { getBrandResource, getBrandSummary, listBrandResources } from "./brand";
 import {
@@ -95,6 +96,7 @@ export const TOOLS: ToolDef[] = [
   listReferrals,
   pipelineSummary,
   whoToContact,
+  nextCalls,
   teamDirectory,
   listDecisions,
   searchDecisions,

@@ -46,7 +46,7 @@ const { todayIn } = (await import("../../lib/hq/format.ts")) as unknown as { tod
 const EXPECTED_TOOLS = [
   // read
   "search", "fetch", "search_contractors", "get_contractor", "contractor_expiries", "search_contacts", "get_contact", "search_organisations", "list_tasks", "list_referrals",
-  "pipeline_summary", "who_to_contact", "team_directory",
+  "pipeline_summary", "who_to_contact", "next_calls", "team_directory",
   // reports
   "daily_brief", "growth_report", "contractor_report", "weekly_report",
   // write
@@ -157,7 +157,7 @@ const emailSettingsBefore = await director.db.from("settings").select("key, valu
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (108 tools, none missing, none extra)", EXPECTED_TOOLS.length === 108 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (109 tools, none missing, none extra)", EXPECTED_TOOLS.length === 109 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -187,6 +187,7 @@ try {
     ["list_referrals", {}],
     ["pipeline_summary", {}],
     ["who_to_contact", {}],
+    ["next_calls", {}],
     ["team_directory", {}],
     ["daily_brief", {}],
     ["growth_report", { period: "fy" }],

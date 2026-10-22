@@ -117,7 +117,7 @@ select is((select needs_verification from hq.contacts where id = pg_temp.cid('e1
 select is((select source || ' / ' || full_name || ' / ' || location from hq.contacts where id = pg_temp.cid('e1')), 'website enquiry / [test] Ann Appraisal / Wallaroo', '... from the website, with the name and suburb');
 select is((select relationship_owner_id from hq.contacts where id = pg_temp.cid('e1')), pg_temp.fx('dir'), '... owned by the enquiry owner');
 -- the lead
-select is((select source::text || '/' || stage::text from hq.opportunities where id = pg_temp.oid_('e1')), 'website_enquiry/introduction_received', 'an open website lead at its first stage');
+select is((select source::text || '/' || stage::text from hq.opportunities where id = pg_temp.oid_('e1')), 'website_enquiry/appraisal_requested', 'an appraisal request starts its new lead at Appraisal requested (0160)');
 select is((select assigned_to from hq.opportunities where id = pg_temp.oid_('e1')), pg_temp.fx('dir'), 'no setting: owned by the earliest-created active director');
 select is((select next_action from hq.opportunities where id = pg_temp.oid_('e1')), 'Reply to the website enquiry', 'next action: reply to the website enquiry');
 select is((select next_action_due from hq.opportunities where id = pg_temp.oid_('e1')), hq.today(), '... due today in the business timezone');

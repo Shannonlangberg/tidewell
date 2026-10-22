@@ -276,6 +276,8 @@ export async function recordInteraction(_prev: ActionState, formData: FormData):
     p_create_task: v.createTask,
     p_task_assignee: v.createTask ? (v.taskAssignee ?? undefined) : undefined,
     p_new_status: v.newStatus ?? undefined,
+    p_outcome: v.outcome ?? undefined,
+    p_callback_promised: v.callbackPromised,
   });
 
   if (error) {

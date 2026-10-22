@@ -1,6 +1,6 @@
 // Run with: npm test   (node --test, no extra dependencies)
-// Communications: who sees the hub and which tabs, where it opens, the nav item that replaced Email,
-// which pages light it, the badge, and the old addresses.
+// Communications: who sees the hub and which tabs, where it opens, its two nav entries (Enquiries under
+// Grow, Emails under Work), which pages light them, the badge, and the old addresses.
 import "../../scripts/hq/ts-hooks.mts"; // nav.ts and communications.ts use "@/..." aliases
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -29,46 +29,43 @@ test("the hub opens on the first tab the person may see, or nowhere", () => {
   assert.equal(canSeeComms(DRAFTER_ONLY), true);
 });
 
-test("the nav: Communications replaces Email, right after Growth, for growth.read OR email.draft", () => {
+test("the nav (docs/hq-workspaces.md): Enquiries under Grow for growth.read, Emails under Work for email.draft", () => {
   const keys = PRIMARY_NAV.map((i) => i.key as string);
-  assert.ok(!keys.includes("email"), "no separate Email item");
-  assert.equal(keys.indexOf("communications"), keys.indexOf("growth") + 1);
-  const item = PRIMARY_NAV.find((i) => i.key === "communications");
-  assert.equal(item?.label, "Communications");
-  assert.equal(item?.href, "/hq/communications");
-  const has = (caps: string[]) => visibleNav(PRIMARY_NAV, caps as never).some((i) => i.key === "communications");
-  assert.equal(has(DIRECTOR), true);
-  assert.equal(has(READ_ONLY), true);
-  assert.equal(has(DRAFTER_ONLY), true);
-  assert.equal(has(JUNIOR), false);
-  // the other single-capability items are unchanged
-  assert.equal(visibleNav(PRIMARY_NAV, READ_ONLY as never).some((i) => i.key === "growth"), true);
-  assert.equal(visibleNav(PRIMARY_NAV, JUNIOR as never).some((i) => i.key === "growth"), false);
+  assert.ok(!keys.includes("communications") && !keys.includes("email"), "no single Communications or Email item");
+  const enq = PRIMARY_NAV.find((i) => i.key === "enquiries");
+  const em = PRIMARY_NAV.find((i) => i.key === "emails");
+  assert.equal(enq?.href, "/hq/communications/enquiries");
+  assert.equal(enq?.group, "grow");
+  assert.equal(em?.href, "/hq/communications/emails");
+  assert.equal(em?.group, "work");
+  const has = (caps: string[], key: string) => visibleNav(PRIMARY_NAV, caps as never).some((i) => i.key === key);
+  assert.equal(has(DIRECTOR, "enquiries") && has(DIRECTOR, "emails"), true);
+  assert.equal(has(READ_ONLY, "enquiries") && !has(READ_ONLY, "emails"), true);
+  assert.equal(!has(DRAFTER_ONLY, "enquiries") && has(DRAFTER_ONLY, "emails"), true);
+  assert.equal(has(JUNIOR, "enquiries") || has(JUNIOR, "emails"), false);
 });
 
-test("Communications is lit on the hub and on the enquiry and email pages kept at their old addresses", () => {
-  for (const p of [
-    "/hq/communications",
-    "/hq/communications/enquiries",
-    "/hq/communications/emails",
-    "/hq/growth/enquiries",
-    "/hq/growth/enquiries/0f9c1a2b-0000-4000-8000-000000000001",
-    "/hq/email",
-    "/hq/email/new",
-    "/hq/email/0f9c1a2b-0000-4000-8000-000000000001/edit",
-  ]) {
-    assert.equal(navKeyForPath(p), "communications", p);
+test("Enquiries lights on the hub and the old enquiry addresses; Emails on the email pages", () => {
+  for (const p of ["/hq/communications", "/hq/communications/enquiries", "/hq/growth/enquiries", "/hq/growth/enquiries/0f9c1a2b-0000-4000-8000-000000000001"]) {
+    assert.equal(navKeyForPath(p), "enquiries", p);
   }
-  assert.equal(navKeyForPath("/hq/growth"), "growth");
-  assert.equal(navKeyForPath("/hq/growth/opportunities/x"), "growth");
-  assert.equal(navKeyForPath("/hq/growth/enquiriesx"), "growth", "a prefix must end at a slash");
+  for (const p of ["/hq/communications/emails", "/hq/email", "/hq/email/new", "/hq/email/0f9c1a2b-0000-4000-8000-000000000001/edit"]) {
+    assert.equal(navKeyForPath(p), "emails", p);
+  }
+  assert.equal(navKeyForPath("/hq/growth"), "reports", "the Growth overview's figures are reached from Reports");
+  assert.equal(navKeyForPath("/hq/growth/opportunities/x"), "pipeline");
+  assert.equal(navKeyForPath("/hq/growth/organisations/x"), "contacts");
+  assert.equal(navKeyForPath("/hq/growth/partners"), "referralPartners");
+  assert.equal(navKeyForPath("/hq/growth/enquiriesx"), "reports", "a prefix must end at a slash");
   assert.equal(navKeyForPath("/hq/emailx"), null);
   assert.equal(navKeyForPath("/hq"), "dashboard");
 });
 
-test("on a phone it sits in More; the bottom tabs are unchanged", () => {
-  const visible = visibleNav(PRIMARY_NAV, DIRECTOR as never);
-  assert.deepEqual(mobileTabs(visible, "director").map((i) => i.key), ["dashboard", "growth", "operations"]);
+test("on a phone the workspace picks the tabs; Enquiries is a tab only in Support", () => {
+  const visible = visibleNav(PRIMARY_NAV, [...DIRECTOR, "projects.read"] as never);
+  assert.deepEqual(mobileTabs(visible, "grow").map((i) => i.key), ["dashboard", "contacts", "pipeline"]);
+  assert.deepEqual(mobileTabs(visible, "overview").map((i) => i.key), ["dashboard", "operations", "projects"]);
+  assert.deepEqual(mobileTabs(visible, "support").map((i) => i.key), ["dashboard", "enquiries", "operations"]);
 });
 
 test("the badge: a count of new enquiries; nothing for zero or junk; 99+ past 99", () => {
@@ -80,10 +77,10 @@ test("the badge: a count of new enquiries; nothing for zero or junk; 99+ past 99
   assert.equal(badgeText(null), null);
   assert.equal(badgeText(100), "99+");
   const visible = visibleNav(PRIMARY_NAV, DIRECTOR as never);
-  const entries = toEntries(visible, null, { communications: 2 });
-  assert.equal(entries.find((e) => e.key === "communications")?.badge, "2");
-  assert.equal(entries.filter((e) => e.badge).length, 1, "only Communications carries one");
-  assert.equal(toEntries(visible, null, { communications: 0 }).find((e) => e.key === "communications")?.badge, undefined);
+  const entries = toEntries(visible, null, { enquiries: 2 });
+  assert.equal(entries.find((e) => e.key === "enquiries")?.badge, "2");
+  assert.equal(entries.filter((e) => e.badge).length, 1, "only Enquiries carries one");
+  assert.equal(toEntries(visible, null, { enquiries: 0 }).find((e) => e.key === "enquiries")?.badge, undefined);
 });
 
 test("old list addresses redirect to the hub with their query kept", () => {

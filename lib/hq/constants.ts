@@ -163,6 +163,16 @@ export const INTERACTION_LABEL: Record<InteractionType, string> = {
   note: "Note",
 };
 
+/** What a phone call came to (0160). Phone calls only. */
+export const CALL_OUTCOMES = ["spoke", "left_message", "no_answer", "wrong_number"] as const;
+export type CallOutcome = (typeof CALL_OUTCOMES)[number];
+export const CALL_OUTCOME_LABEL: Record<CallOutcome, string> = {
+  spoke: "Spoke",
+  left_message: "Left a message",
+  no_answer: "No answer",
+  wrong_number: "Wrong number",
+};
+
 // ── growth: referrals and the pipeline ───────────────────────
 
 export const REFERRAL_DIRECTIONS = ["received", "sent"] as const;

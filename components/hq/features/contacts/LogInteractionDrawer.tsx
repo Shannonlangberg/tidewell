@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { recordInteraction } from "@/app/hq/(app)/growth/contacts/actions";
-import { INTERACTION_LABEL, INTERACTION_TYPES, RELATIONSHIP_LABEL, RELATIONSHIP_STATUSES, type InteractionType } from "@/lib/hq/constants";
+import { CALL_OUTCOME_LABEL, CALL_OUTCOMES, INTERACTION_LABEL, INTERACTION_TYPES, RELATIONSHIP_LABEL, RELATIONSHIP_STATUSES, type InteractionType } from "@/lib/hq/constants";
 import { idle } from "@/lib/hq/forms";
 import { nowLocalInput } from "@/lib/hq/growth/dates";
 import { parseLogParam } from "@/lib/hq/growth/params";
@@ -73,6 +73,8 @@ const LABELS = {
   create_task: "Follow-up task",
   task_assignee: "Assign the task to",
   new_status: "Relationship status",
+  outcome: "How the call went",
+  callback_promised: "Promised callback",
 };
 
 export function LogInteractionDrawer(props: LogInteractionDrawerProps) {
@@ -181,6 +183,17 @@ function LogSession({
             options={INTERACTION_TYPES.map((t) => ({ value: t, label: INTERACTION_LABEL[t] }))}
           />
 
+          <RadioGroup
+            name="outcome"
+            idPrefix="log"
+            legend="If it was a call, how did it go?"
+            segmented
+            hint="Optional, for phone calls."
+            defaultValue={retainedText(values, "outcome")}
+            error={fieldError(state, "outcome")}
+            options={CALL_OUTCOMES.map((o) => ({ value: o, label: CALL_OUTCOME_LABEL[o] }))}
+          />
+
           <Field name="occurred_at" idPrefix="log" label="When" required error={fieldError(state, "occurred_at")} hint="Back-date it if you are catching up. It can't be in the future.">
             {(a11y) => (
               <input
@@ -227,6 +240,18 @@ function LogSession({
             defaultValue={retainedText(values, "follow_up_date")}
             onChange={(e) => setFollowUp(e.target.value)}
           />
+
+          {followUp ? (
+            <Checkbox
+              name="callback_promised"
+              idPrefix="log"
+              label="I promised to call them back by then"
+              hint="They come to the top of your calls on Today that day."
+              defaultChecked={retainedText(values, "callback_promised") === "on"}
+              error={fieldError(state, "callback_promised")}
+            />
+          ) : null}
+          {!followUp && fieldError(state, "callback_promised") ? <FieldError>{fieldError(state, "callback_promised")}</FieldError> : null}
 
           {followUp && canCreateTasks ? (
             <div className="grid gap-4">

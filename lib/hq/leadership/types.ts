@@ -50,6 +50,9 @@ export type LeaderTask = {
   relationship: boolean;
   /** Linked to a lead (opportunity). */
   pipeline: boolean;
+  /** The contact and the lead it is linked to, when read from the database (the Grow workspace shows such a task on that person's call, not twice). */
+  relatedContactId?: string | null;
+  relatedOpportunityId?: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;

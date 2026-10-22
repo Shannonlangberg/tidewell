@@ -187,7 +187,7 @@ export const whoToContact = defineTool({
   name: "who_to_contact",
   title: "Who to contact",
   description:
-    "Lists partner contacts to get in touch with: follow-ups that are overdue or due today, then active contacts not contacted in the last N days (default 30; never contacted first). Inactive contacts and landlords are left out (lead follow-ups: list_opportunities with needs_attention). Read-only.",
+    "Lists partner contacts across the team (or only yours) to get in touch with: follow-ups that are overdue or due today, then active contacts not contacted in the last N days (default 30; never contacted first, high priority first, then the longest waiting, never by name). Inactive contacts and landlords are left out. For YOUR ranked call list with the reason each person appears (promised callbacks, leads, website enquiries), use next_calls: it is the list Today shows. Read-only.",
   inputSchema: whoToContactShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: "growth.read",
@@ -214,8 +214,9 @@ export const whoToContact = defineTool({
       stale = stale.eq("relationship_owner_id", ctx.staff.id);
     }
     const [a, b] = await Promise.all([
-      due.order("next_follow_up_date", { ascending: true }).order("full_name").limit(n),
-      stale.order("last_contact_at", { ascending: true, nullsFirst: true }).order("full_name").limit(n),
+      // The same order as next_calls (lib/hq/growth/next-calls.ts): earliest date, then priority (the enum runs high, medium, low), then the longest waiting. Never by name.
+      due.order("next_follow_up_date", { ascending: true }).order("priority").order("created_at").limit(n),
+      stale.order("last_contact_at", { ascending: true, nullsFirst: true }).order("priority").order("created_at").limit(n),
     ]);
     if (a.error) return dbFailure("who_to_contact (due)", a.error);
     if (b.error) return dbFailure("who_to_contact (stale)", b.error);

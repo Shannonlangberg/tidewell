@@ -5,6 +5,7 @@
  * estimated or filled in; an empty section says it is empty, and a section the person's role
  * cannot see says so rather than pretending to be zero.
  */
+import { nextCallLine, nextCallsFor } from "./next-calls";
 import { CONTRACTOR_STATUS_LABEL, type ContractorStatus } from "../../constants";
 import { coverageLabel, parseContractorSummary } from "../../contractors/widgets-summary";
 import { formatAud } from "../../format";
@@ -221,20 +222,35 @@ async function contractorSection(ctx: ToolContext): Promise<{ section: Section; 
   };
 }
 
+/** The person's own next calls (the list Today's Grow workspace shows), for the daily brief. */
+async function nextCallsSection(ctx: ToolContext): Promise<Section> {
+  if (!can(ctx, "growth.read")) return notIncluded("Your next calls", "growth.read");
+  const loaded = await nextCallsFor(ctx);
+  if (!loaded.ok) throw new Error("next calls");
+  const d = loaded.data;
+  const shown = d.calls.slice(0, 5);
+  return {
+    title: "Your next calls",
+    summary: d.calls.length === 0 ? "nobody to call: everyone you own has a later follow-up, or nothing is due." : `${d.calls.length} lined up${d.calls.length > shown.length ? ` (first ${shown.length} below; next_calls lists them all)` : ""}.`,
+    lines: shown.map((c, i) => nextCallLine(ctx, c, i + 1)),
+    figures: { total: d.calls.length, ...d.counts, unowned: d.unowned },
+  };
+}
+
 // ── the tools ────────────────────────────────────────────────
 
 export const dailyBrief = defineTool({
   name: "daily_brief",
   title: "Daily brief",
   description:
-    "The best first call for 'what's on my plate', 'what should I do today' or 'what needs attention': one call that covers everything below. Today's brief for you: your overdue and due-today tasks, partner follow-ups overdue or due today, contractor licences/insurance/documents expired or expiring soon, and referrals recorded since yesterday. Sections your role cannot see are named as not included, never shown as zero. Read-only.",
+    "The best first call for 'what's on my plate', 'what should I do today' or 'what needs attention': one call that covers everything below. Today's brief for you: your overdue and due-today tasks, your next calls (the first five of next_calls, the list Today shows, each with its reason), contractor licences/insurance/documents expired or expiring soon, and referrals recorded since yesterday. Sections your role cannot see are named as not included, never shown as zero. Read-only.",
   inputSchema: dailyBriefShape,
   annotations: { readOnlyHint: true, openWorldHint: false },
   capability: null,
   kind: "read",
   handler: async (_args, ctx) => {
     const t = today(ctx);
-    const sections = await Promise.all([myTasksSection(ctx), followUpsSection(ctx), expiriesSection(ctx), newReferralsSection(ctx, shiftDays(t, -1), "since yesterday")]);
+    const sections = await Promise.all([myTasksSection(ctx), nextCallsSection(ctx), expiriesSection(ctx), newReferralsSection(ctx, shiftDays(t, -1), "since yesterday")]);
     const text = sectionsText(`Daily brief for ${ctx.staff.fullName}, ${day(ctx, t)}. HQ: ${link(ctx, HQ_PATHS.dashboard())}`, sections);
     return result("ok", text, { date: t, sections: Object.fromEntries(sections.map((s) => [s.title, s.figures])) });
   },

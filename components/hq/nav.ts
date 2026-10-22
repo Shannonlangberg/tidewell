@@ -1,6 +1,6 @@
-import { HQ_BASE, type Capability, type StaffRole } from "@/lib/hq/constants";
-import { COMMS_BASE, OLD_EMAIL_LIST, OLD_ENQUIRIES_LIST, badgeText } from "@/lib/hq/communications";
-import { isPropertyManagerRole } from "@/lib/hq/today";
+import { HQ_BASE, type Capability } from "@/lib/hq/constants";
+import { COMMS_BASE, COMMS_TAB_PATH, OLD_EMAIL_LIST, OLD_ENQUIRIES_LIST, badgeText } from "@/lib/hq/communications";
+import { mobileTabKeys, navGroupOrder, NAV_GROUP_LABEL, type NavGroup, type Workspace } from "@/lib/hq/workspaces";
 import type { IconName } from "./icons";
 
 /*
@@ -25,6 +25,10 @@ export const HQ_ROUTES = {
   referrals: `${HQ_BASE}/growth/referrals`,
   referralNew: `${HQ_BASE}/growth/referrals/new`,
   pipeline: `${HQ_BASE}/growth/pipeline`,
+  /** The website enquiries tab of Communications (its own entry under Grow, with the new-enquiry badge). */
+  enquiries: COMMS_TAB_PATH.enquiries,
+  /** The emails tab of Communications (under Work). */
+  emails: COMMS_TAB_PATH.emails,
   partners: `${HQ_BASE}/partners`,
   partnerNew: `${HQ_BASE}/partners/new`,
   partnerImport: `${HQ_BASE}/partners/import`,
@@ -86,7 +90,25 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "contacts" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "resources" | "settings" | "profile";
+export type NavKey =
+  | "dashboard"
+  | "contacts"
+  | "referralPartners"
+  | "pipeline"
+  | "enquiries"
+  | "emails"
+  | "portfolio"
+  | "partners"
+  | "operations"
+  | "projects"
+  | "people"
+  | "reports"
+  | "meetings"
+  | "decisions"
+  | "knowledge"
+  | "resources"
+  | "settings"
+  | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -97,8 +119,8 @@ export type NavKey = "dashboard" | "growth" | "contacts" | "communications" | "p
  *   database (RLS) is the actual control.
  * - `also` lists other path prefixes that belong to the entry (pages kept at an older
  *   address), so it lights there too and wins over a shorter match.
- * - `mobile` says where it sits below 1024px by default: a bottom tab, or inside the More
- *   sheet. mobileTabs() picks the tabs for the person's role.
+ * - `group` is the labelled group (Grow, Work, Deliver, Company). The person's workspace decides the
+ *   order of the groups and the phone's three tabs (lib/hq/workspaces.ts); it never hides anything.
  */
 export type NavItem = {
   key: NavKey;
@@ -108,39 +130,47 @@ export type NavItem = {
   requires?: Capability;
   requiresAny?: readonly Capability[];
   also?: readonly string[];
-  mobile: "tab" | "more";
+  /** The labelled group it sits in (docs/hq-workspaces.md); Today and the account entries have none. */
+  group?: NavGroup;
 };
 
 export const PRIMARY_NAV: readonly NavItem[] = [
-  { key: "dashboard", label: "Today", href: HQ_ROUTES.dashboard, icon: "dashboard", mobile: "tab" },
-  { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", requires: "growth.read", mobile: "tab" },
+  { key: "dashboard", label: "Today", href: HQ_ROUTES.dashboard, icon: "dashboard" },
+  // Grow. Contacts also owns organisations, referrals and the import (their pages sit under /hq/growth);
+  // the Growth overview's referral figures are reached from Reports, so /hq/growth itself lights Reports.
   {
-    key: "communications",
-    label: "Communications",
-    href: HQ_ROUTES.communications,
-    icon: "mail",
-    requiresAny: ["growth.read", "email.draft"],
-    also: [OLD_ENQUIRIES_LIST, OLD_EMAIL_LIST],
-    mobile: "more",
+    key: "contacts",
+    label: "Contacts",
+    href: HQ_ROUTES.contacts,
+    icon: "user",
+    requires: "growth.read",
+    also: [HQ_ROUTES.organisations, HQ_ROUTES.referrals, `${HQ_BASE}/growth/import`],
+    group: "grow",
   },
-  // Contacts keep their address under Growth; the longer path wins in navKeyForPath, so this lights on its own pages.
-  { key: "contacts", label: "Contacts", href: HQ_ROUTES.contacts, icon: "user", requires: "growth.read", mobile: "more" },
-  { key: "portfolio", label: "Properties", href: HQ_ROUTES.portfolio, icon: "building", requires: "portfolio.read", mobile: "more" },
-  { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", mobile: "tab" },
-  { key: "projects", label: "Projects", href: HQ_ROUTES.projects, icon: "projects", requires: "projects.read", mobile: "more" },
-  { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", mobile: "more" },
-  { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", mobile: "more" },
-  { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", mobile: "more" },
-  { key: "meetings", label: "Meetings", href: HQ_ROUTES.meetings, icon: "calendar", requires: "meetings.read", mobile: "more" },
-  { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", mobile: "more" },
-  { key: "knowledge", label: "Knowledge", href: HQ_ROUTES.knowledge, icon: "book", requires: "knowledge.read", mobile: "more" },
-  { key: "resources", label: "Resources", href: HQ_ROUTES.resources, icon: "resources", requires: "resources.read", mobile: "more" },
+  { key: "referralPartners", label: "Referral partners", href: HQ_ROUTES.referralPartners, icon: "link", requires: "growth.read", group: "grow" },
+  { key: "pipeline", label: "Pipeline", href: HQ_ROUTES.pipeline, icon: "growth", requires: "growth.read", also: [`${HQ_BASE}/growth/opportunities`], group: "grow" },
+  // Enquiries also lights the Communications hub itself (it opens on this tab for anyone with growth.read).
+  { key: "enquiries", label: "Enquiries", href: HQ_ROUTES.enquiries, icon: "mail", requires: "growth.read", also: [OLD_ENQUIRIES_LIST, COMMS_BASE], group: "grow" },
+  // Work
+  { key: "operations", label: "Tasks", href: HQ_ROUTES.operations, icon: "operations", group: "work" },
+  { key: "projects", label: "Projects", href: HQ_ROUTES.projects, icon: "projects", requires: "projects.read", group: "work" },
+  { key: "meetings", label: "Meetings", href: HQ_ROUTES.meetings, icon: "calendar", requires: "meetings.read", group: "work" },
+  { key: "emails", label: "Emails", href: HQ_ROUTES.emails, icon: "note", requires: "email.draft", also: [OLD_EMAIL_LIST], group: "work" },
+  // Deliver
+  { key: "portfolio", label: "Properties", href: HQ_ROUTES.portfolio, icon: "building", requires: "portfolio.read", group: "deliver" },
+  { key: "partners", label: "Contractors", href: HQ_ROUTES.partners, icon: "partners", requires: "contractors.read", group: "deliver" },
+  // Company
+  { key: "decisions", label: "Decisions", href: HQ_ROUTES.decisions, icon: "note", requires: "decisions.read", group: "company" },
+  { key: "knowledge", label: "Knowledge", href: HQ_ROUTES.knowledge, icon: "book", requires: "knowledge.read", group: "company" },
+  { key: "resources", label: "Resources", href: HQ_ROUTES.resources, icon: "resources", requires: "resources.read", group: "company" },
+  { key: "people", label: "People", href: HQ_ROUTES.people, icon: "people", requires: "people.read", group: "company" },
+  { key: "reports", label: "Reports", href: HQ_ROUTES.reports, icon: "insights", also: [HQ_ROUTES.growth], group: "company" },
 ];
 
 /** Settings (sidebar footer) and Profile (the person block, and the mobile More sheet). */
 export const ACCOUNT_NAV: readonly NavItem[] = [
-  { key: "settings", label: "Settings", href: HQ_ROUTES.settings, icon: "settings", mobile: "more" },
-  { key: "profile", label: "Profile", href: HQ_ROUTES.profile, icon: "user", mobile: "more" },
+  { key: "settings", label: "Settings", href: HQ_ROUTES.settings, icon: "settings" },
+  { key: "profile", label: "Profile", href: HQ_ROUTES.profile, icon: "user" },
 ];
 
 export function visibleNav(items: readonly NavItem[], capabilities: readonly string[]): NavItem[] {
@@ -149,19 +179,30 @@ export function visibleNav(items: readonly NavItem[], capabilities: readonly str
   );
 }
 
+/** The visible entries in labelled groups, the person's workspace's group first (Today is not in a group). */
+export function navGroups(visible: readonly NavItem[], workspace: Workspace): { key: NavGroup; label: string; items: NavItem[] }[] {
+  return navGroupOrder(workspace)
+    .map((g) => ({ key: g, label: NAV_GROUP_LABEL[g], items: visible.filter((i) => i.group === g) }))
+    .filter((g) => g.items.length > 0);
+}
+
 /**
- * The bottom tabs on a phone (three, then More): Today, Growth, Tasks for most people; Today,
- * Tasks, Contractors for property managers, whose day is tasks and contractors. A page the person
- * cannot see is skipped and the next visible page takes its place. Sidebar order is kept.
+ * The bottom tabs on a phone (three, then More), chosen by the workspace: Grow: Today, Contacts, Pipeline;
+ * Deliver: Today, Tasks, Contractors; Support: Today, Enquiries, Tasks; Overview: Today, Tasks, Projects. A page
+ * the person cannot see is skipped and the next visible page (in the workspace's group order) takes its place.
  */
-export function mobileTabs(visible: readonly NavItem[], role: StaffRole): NavItem[] {
-  const wanted: NavKey[] = isPropertyManagerRole(role) ? ["dashboard", "operations", "partners"] : ["dashboard", "growth", "operations"];
-  const picked = new Set(wanted.filter((k) => visible.some((i) => i.key === k)));
-  for (const i of visible) {
-    if (picked.size >= 3) break;
-    picked.add(i.key);
+export function mobileTabs(visible: readonly NavItem[], workspace: Workspace): NavItem[] {
+  const ordered = [...visible.filter((i) => !i.group), ...navGroups(visible, workspace).flatMap((g) => g.items)];
+  const picked: NavItem[] = [];
+  for (const key of mobileTabKeys(workspace)) {
+    const item = ordered.find((i) => i.key === key);
+    if (item) picked.push(item);
   }
-  return visible.filter((i) => picked.has(i.key));
+  for (const i of ordered) {
+    if (picked.length >= 3) break;
+    if (!picked.includes(i)) picked.push(i);
+  }
+  return picked;
 }
 
 /**

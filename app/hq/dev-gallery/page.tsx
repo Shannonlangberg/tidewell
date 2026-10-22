@@ -235,7 +235,8 @@ export default async function DevGalleryPage({ searchParams }: { searchParams: P
   return (
     <AppShell
       staff={staff}
-      active="growth"
+      active="contacts"
+      workspace="grow"
       signOutAction={sampleSignOut}
       searchAction={sampleSearch}
       breadcrumb={<Breadcrumbs tone="bar" items={[{ label: "Dev gallery" }]} />}

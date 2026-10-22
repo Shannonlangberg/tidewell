@@ -7,16 +7,16 @@ import assert from "node:assert/strict";
 const { ACCOUNT_NAV, HQ_ROUTES, PRIMARY_NAV, mobileTabs, navKeyForPath, visibleNav } = await import("../../../components/hq/nav.ts");
 const { STAFF_ROLES } = await import("../constants.ts");
 
-test("Resources comes straight after Knowledge, opens /hq/resources and needs resources.read", () => {
+test("Resources comes straight after Knowledge in Company, opens /hq/resources and needs resources.read", () => {
   const keys = PRIMARY_NAV.map((i) => i.key as string);
   assert.equal(keys.indexOf("resources"), keys.indexOf("knowledge") + 1);
+  assert.equal(PRIMARY_NAV.find((i) => i.key === "resources")?.group, "company");
   const item = PRIMARY_NAV.find((i) => i.key === "resources");
   assert.equal(item?.label, "Resources");
   assert.equal(item?.href, "/hq/resources");
   assert.equal(HQ_ROUTES.resources, "/hq/resources");
   assert.equal(item?.requires, "resources.read");
   assert.equal(item?.icon, "resources");
-  assert.equal(item?.mobile, "more");
 });
 
 test("everyone who holds resources.read sees it, and nobody else", () => {
@@ -35,13 +35,14 @@ test("it is lit on the library, a resource and its download, and not on look-ali
   assert.equal(navKeyForPath("/hq/knowledge"), "knowledge");
 });
 
-test("on a phone it sits in More; the bottom tabs and the account entries are unchanged", () => {
+test("on a phone it sits in More; the account entries are unchanged", () => {
   const all = ["growth.read", "resources.read", "knowledge.read", "projects.read", "contractors.read", "people.read", "meetings.read", "decisions.read", "portfolio.read", "email.draft"];
   const visible = visibleNav(PRIMARY_NAV, all as never);
-  assert.deepEqual(mobileTabs(visible, "director").map((i) => i.key), ["dashboard", "growth", "operations"]);
-  assert.deepEqual(mobileTabs(visible, "property_manager").map((i) => i.key), ["dashboard", "operations", "partners"]);
+  assert.deepEqual(mobileTabs(visible, "grow").map((i) => i.key), ["dashboard", "contacts", "pipeline"]);
+  assert.deepEqual(mobileTabs(visible, "deliver").map((i) => i.key), ["dashboard", "operations", "partners"]);
   assert.deepEqual(ACCOUNT_NAV.map((i) => i.key), ["settings", "profile"]);
-  // a person whose only HQ pages are Today, Tasks and Resources still gets three tabs, then More
+  // a person whose only HQ pages are Today, Tasks, Resources and Reports still gets three tabs, then More
   const few = visibleNav(PRIMARY_NAV, ["resources.read"] as never);
-  assert.deepEqual(few.map((i) => i.key), ["dashboard", "operations", "reports", "resources"]);
+  assert.deepEqual(few.map((i) => i.key).sort(), ["dashboard", "operations", "reports", "resources"]);
+  assert.deepEqual(mobileTabs(few, "grow").map((i) => i.key), ["dashboard", "operations", "resources"]);
 });

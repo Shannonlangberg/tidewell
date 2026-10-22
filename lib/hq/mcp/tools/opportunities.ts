@@ -9,7 +9,7 @@
  * Not here, deliberately: moving a lead's stage (move_opportunity), signing, marking lost (HQ
  * screen only, where the reason is recorded), archiving or deleting anything.
  */
-import { INTERACTION_LABEL, STAGE_LABEL, TASK_STATUS_LABEL, type InteractionType, type OpportunityStage, type TaskStatus } from "../../constants";
+import { CALL_OUTCOME_LABEL, INTERACTION_LABEL, STAGE_LABEL, TASK_STATUS_LABEL, type InteractionType, type OpportunityStage, type TaskStatus } from "../../constants";
 import { FormReader } from "../../forms";
 import { formatAud } from "../../format";
 import { orIlike } from "../../growth/params";
@@ -452,10 +452,12 @@ export const logOpportunityActivity = defineTool({
         next_action_due: args.follow_up_date,
         create_task: args.create_task ? "on" : null,
         task_assignee: assignee.id,
+        outcome: args.outcome,
+        callback_promised: args.callback_promised ? "on" : null,
       }),
       { timezone: ctx.staff.timezone, today: today(ctx), staffId: ctx.staff.id, canCreateTasks: can(ctx, "tasks.write") },
     );
-    if (!reader.ok) return respond("invalid", invalidText(reader.errors, { interaction_type: "Type", occurred_at: "When", summary: "Summary", next_action: "Next action", next_action_due: "Follow-up date", create_task: "Create a task" }));
+    if (!reader.ok) return respond("invalid", invalidText(reader.errors, { interaction_type: "Type", occurred_at: "When", summary: "Summary", next_action: "Next action", next_action_due: "Follow-up date", create_task: "Create a task", callback_promised: "Promised callback" }));
     const { data, error } = await ctx.db.rpc("log_opportunity_activity", {
       p_opportunity: found.record.id,
       p_type: v.type,
@@ -465,6 +467,8 @@ export const logOpportunityActivity = defineTool({
       p_next_action_due: v.nextActionDue ?? undefined,
       p_create_task: v.createTask,
       p_task_assignee: v.createTask ? (v.taskAssignee ?? undefined) : undefined,
+      p_outcome: v.outcome ?? undefined,
+      p_callback_promised: v.callbackPromised,
     });
     if (error) return leadFailure("log_opportunity_activity", error);
     const out = (data ?? {}) as { interaction_id?: string; task_id?: string | null; next_action?: string | null; next_action_due?: string | null };
@@ -472,7 +476,9 @@ export const logOpportunityActivity = defineTool({
     const lines = [
       `${INTERACTION_LABEL[v.type]} on the lead ${clean(found.record.label)}, ${when(ctx, v.occurredAt.toISOString())}`,
       `Summary: ${clean(v.summary, 600)}`,
+      v.outcome ? `Outcome: ${CALL_OUTCOME_LABEL[v.outcome]}` : null,
       out.next_action ? `Next action now: ${clean(out.next_action)}${out.next_action_due ? `, due ${day(ctx, out.next_action_due)}` : ""}` : null,
+      v.callbackPromised ? "Promised to call back by the follow-up date" : null,
       out.task_id ? `Follow-up task created [id: ${out.task_id}]: ${link(ctx, HQ_PATHS.task(out.task_id))}` : null,
     ].filter((l): l is string => !!l);
     return respond("ok", `Logged 1 ${INTERACTION_LABEL[v.type].toLowerCase()} on the lead${out.task_id ? " and created its follow-up task" : ""}: ${url}`, lines, {

@@ -2,13 +2,13 @@
 
 import { useActionState, useState, type ReactNode } from "react";
 import { logLeadActivity, updateLeadDetails, updateLeadNextStep } from "@/app/hq/(app)/growth/opportunities/actions";
-import { INTERACTION_LABEL, INTERACTION_TYPES } from "@/lib/hq/constants";
+import { CALL_OUTCOME_LABEL, CALL_OUTCOMES, INTERACTION_LABEL, INTERACTION_TYPES } from "@/lib/hq/constants";
 import { idle } from "@/lib/hq/forms";
 import { retainedText, type RetainedValues } from "@/lib/hq/growth/retain";
 import { ACTIVITY_LABELS } from "@/lib/hq/leads/forms";
 import { DIRECT_LEAD_SOURCES, LEAD_FORM_LABELS, LEAD_SOURCE_LABEL } from "@/lib/hq/leads/rules";
 import { Button, type ButtonProps } from "../../Button";
-import { Checkbox } from "../../Choice";
+import { Checkbox, RadioGroup } from "../../Choice";
 import { Drawer } from "../../Drawer";
 import { Field, fieldError } from "../../Field";
 import { FormSummary } from "../../FormSummary";
@@ -275,12 +275,30 @@ function LogSession({
             defaultValue={retainedText(values, "interaction_type", defaultType)}
             error={fieldError(state, "interaction_type")}
           />
+          <RadioGroup
+            name="outcome"
+            idPrefix="leadlog"
+            legend="If it was a call, how did it go?"
+            segmented
+            hint="Optional, for phone calls."
+            defaultValue={retainedText(values, "outcome")}
+            error={fieldError(state, "outcome")}
+            options={CALL_OUTCOMES.map((o) => ({ value: o, label: CALL_OUTCOME_LABEL[o] }))}
+          />
           <Field name="occurred_at" idPrefix="leadlog" label="When" required error={fieldError(state, "occurred_at")} hint="Back-date it if you are catching up. It can't be in the future.">
             {(a11y) => <input {...a11y} name="occurred_at" type="datetime-local" className="hq-input hq-input--date" autoComplete="off" max={nowLocal} defaultValue={retainedText(values, "occurred_at", nowLocal)} />}
           </Field>
           <Textarea name="summary" idPrefix="leadlog" label="What was said" required rows={4} maxLength={4000} defaultValue={retainedText(values, "summary")} error={fieldError(state, "summary")} data-autofocus />
           <TextInput name="next_action" idPrefix="leadlog" label="New next action" maxLength={300} hint="Optional. Leave blank to keep the current one." defaultValue={retainedText(values, "next_action")} error={fieldError(state, "next_action")} />
           <DateInput name="next_action_due" idPrefix="leadlog" label="Follow-up date" min={today} hint="Optional, unless you give a new next action." defaultValue={retainedText(values, "next_action_due")} error={fieldError(state, "next_action_due")} />
+          <Checkbox
+            name="callback_promised"
+            idPrefix="leadlog"
+            label="I promised to call them back by the follow-up date"
+            hint="They come to the top of your calls on Today that day."
+            defaultChecked={retainedText(values, "callback_promised") === "on"}
+            error={fieldError(state, "callback_promised")}
+          />
           {canCreateTasks ? (
             <>
               <Checkbox

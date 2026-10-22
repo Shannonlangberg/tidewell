@@ -211,6 +211,8 @@ export async function logLeadActivity(_prev: ActionState, formData: FormData): P
     p_next_action_due: v.nextActionDue ?? undefined,
     p_create_task: v.createTask,
     p_task_assignee: v.createTask ? (v.taskAssignee ?? undefined) : undefined,
+    p_outcome: v.outcome ?? undefined,
+    p_callback_promised: v.callbackPromised,
   });
   if (error) {
     console.error("[hq] log_opportunity_activity failed:", logTag(error));
