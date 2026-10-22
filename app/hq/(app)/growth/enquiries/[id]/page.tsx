@@ -5,13 +5,13 @@ import { requireStaff } from "@/lib/hq/auth";
 import { COMMS_BASE, COMMS_TAB_PATH } from "@/lib/hq/communications";
 import { formatDateTime } from "@/lib/hq/format";
 import { isUuid } from "@/lib/hq/forms";
-import { ENQUIRY_KIND_LABEL, detailLines, leadPath } from "@/lib/hq/enquiry-rules";
+import { ENQUIRY_ARCHIVE_CONSEQUENCE, ENQUIRY_KIND_LABEL, detailLines, leadPath } from "@/lib/hq/enquiry-rules";
 import { getEnquiry } from "@/lib/hq/enquiry-queries";
 import { ErrorState, InlineNote, KeyValueList, LinkButton, PageHeader, Panel, PanelHeader, SectionLabel, type KeyValueItem } from "@/components/hq";
 import { EnquiryControls } from "@/components/hq/features/enquiries/EnquiryControls";
 import { AckChip } from "@/components/hq/features/enquiries/AckChip";
 import { EnquiryKindChip, EnquiryStatusChip } from "@/components/hq/features/enquiries/EnquiryParts";
-import { markEnquirySpamAction, setEnquiryStatusAction } from "../actions";
+import { archiveEnquiryAction, deleteEnquiryAction, markEnquirySpamAction, restoreEnquiryAction, setEnquiryStatusAction } from "../actions";
 
 export const metadata: Metadata = { title: "Website enquiry" };
 
@@ -100,6 +100,12 @@ export default async function EnquiryPage({ params }: { params: Params }) {
         ) : null,
       empty: e.contactId ? "Archived" : "No contact",
     },
+    ...(e.archivedAt
+      ? [
+          { label: "Archived", value: `${formatDateTime(e.archivedAt, tz)}${e.archivedByName ? ` by ${e.archivedByName}` : ""}` },
+          ...(e.archiveReason ? [{ label: "Why", value: <span className="break-words">{e.archiveReason}</span> }] : []),
+        ]
+      : []),
     ...(e.handledAt ? [{ label: e.status === "spam" ? "Marked as spam" : "Handled", value: `${formatDateTime(e.handledAt, tz)}${e.handledByName ? ` by ${e.handledByName}` : ""}` }] : []),
   ];
 
@@ -127,6 +133,7 @@ export default async function EnquiryPage({ params }: { params: Params }) {
       />
 
       {e.status === "spam" ? <InlineNote className="mb-6">Marked as spam. It stays here for the record.</InlineNote> : null}
+      {e.status === "archived" ? <InlineNote className="mb-6">Archived. It is out of the enquiries list and kept for the record; Restore brings it back.</InlineNote> : null}
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="grid min-w-0 content-start gap-8">
@@ -160,6 +167,11 @@ export default async function EnquiryPage({ params }: { params: Params }) {
                 createdLead={e.createdLead}
                 setStatus={setEnquiryStatusAction}
                 markSpam={markEnquirySpamAction}
+                archive={archiveEnquiryAction}
+                archiveConsequence={ENQUIRY_ARCHIVE_CONSEQUENCE}
+                deleteEnquiry={staff.role === "director" && can("growth.delete") ? deleteEnquiryAction : undefined}
+                name={e.name}
+                restore={restoreEnquiryAction}
               />
             </Panel>
           ) : null}
