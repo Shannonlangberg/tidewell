@@ -1,10 +1,16 @@
 /*
  * The branded PLANTED. email, as plain text and as HTML, from what a person wrote.
  *
- * The look matches supabase/templates/otp.html (the sign-in code email): a charcoal header with the
- * wordmark, a soft-white card with a hairline border and a 4px radius, Georgia for the wordmark and
- * Arial for the text (email clients ignore web fonts), everything inline. No remote images, no
- * tracking pixel, no links added: what the person wrote, their signature, and the footer.
+ * The look is the 2026 brand (the PLANTED. Design System, "Applications: email"): an ivory page, a
+ * forest header carrying the horizontal lockup (ivory letters, pale lime full stop), a white card with
+ * 28px corners, Hanken Grotesk for the text (most email clients fall back to Helvetica or Arial), ink
+ * on white, muted secondary text, and the signature as the app icon beside one line of details.
+ * Everything is inline.
+ *
+ * Images: only the two brand files below, served from the public site at fixed paths (no query string,
+ * so nothing identifies the recipient: no tracking pixel). The email reads correctly when images are
+ * blocked: the header's alt text is the brand name in ivory on forest, and the icon is decoration
+ * (alt=""). No links are added: what the person wrote, their signature, and the footer.
  *
  * The signature carries only what HQ knows for certain: the sender's name, their HQ role, and
  * "PLANTED. Property Management". No phone number, address, ABN or licence is invented.
@@ -30,15 +36,34 @@ export type RenderInput = {
 
 export type RenderedEmail = { subject: string; text: string; html: string };
 
-const C = {
-  charcoal: "#252525",
-  ivory: "#F5F1EA",
-  softWhite: "#FAF8F4",
-  border: "#DED8D0",
-  clay: "#A89A8B",
-  greyText: "#5F5B56",
-  muted: "#6F6B66",
+/** The 2026 palette (tokens/colors.css). Hairlines are 12% ink, flattened to hex for email clients. */
+export const EMAIL_COLORS = {
+  forest: "#14291F",
+  ivory: "#F7F5EF",
+  white: "#FFFFFF",
+  ink: "#1D241E",
+  muted: "#5A635B",
+  lime: "#E4F0A5",
+  line: "#E4E5E4",
+  lineOnIvory: "#DDDCD6",
 } as const;
+const C = EMAIL_COLORS;
+
+/** The site that serves the brand files (public/brand/logos/png). */
+const ASSET_BASE = "https://plantedproperty.com.au/brand/logos/png";
+/** The horizontal lockup, ivory and lime, 1200 by 117 (shown at 360 by 35). */
+export const EMAIL_LOCKUP_URL = `${ASSET_BASE}/planted-lockup-horizontal-ivory-lime-1200.png`;
+/** The app icon, forest with the lime full stop, 512 square (shown at 44). */
+export const EMAIL_ICON_URL = `${ASSET_BASE}/planted-app-icon-512.png`;
+
+export const EMAIL_FONT = "'Hanken Grotesk','Helvetica Neue',Helvetica,Arial,sans-serif";
+
+/** The forest header with the lockup: the top of every PLANTED. email (render.ts and enquiry-notice.ts). */
+export function emailHeader(): string {
+  return `<td style="background:${C.forest};padding:36px 36px 32px;border-radius:28px 28px 0 0;">
+                <img src="${EMAIL_LOCKUP_URL}" width="360" height="35" alt="${BRAND_LINE}" style="display:block;border:0;outline:none;width:360px;max-width:100%;height:auto;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:35px;letter-spacing:1px;color:${C.ivory};" />
+              </td>`;
+}
 
 /** Escapes text for HTML element content and double-quoted attributes. */
 export function escapeHtml(value: string): string {
@@ -82,19 +107,28 @@ export function renderText(input: RenderInput): string {
   return [body, "", "--", ...signatureLines(input.senderName, input.senderRole), "", footerText(input.senderName), ""].join("\n");
 }
 
+/** The signature as the brand shows it: "Name · Role" in ink, then the business in muted text; the business alone when there is no sender. */
+function signatureHtml(senderName: string, senderRole: string | null): string {
+  const name = line(senderName);
+  const role = line(senderRole);
+  const first = name ? [name, role].filter(Boolean).join(" · ") : BRAND_LINE;
+  const second = name ? `<br /><span style="color:${C.muted};">${escapeHtml(BRAND_LINE)}</span>` : "";
+  return `<table role="presentation" cellspacing="0" cellpadding="0" style="border-top:1px solid ${C.line};width:100%;">
+                      <tr>
+                        <td width="44" style="padding-top:22px;vertical-align:middle;"><img src="${EMAIL_ICON_URL}" width="44" height="44" alt="" style="display:block;border:0;outline:none;width:44px;height:44px;border-radius:10px;" /></td>
+                        <td style="padding:22px 0 0 14px;vertical-align:middle;font-size:15px;line-height:1.5;color:${C.ink};"><span style="font-weight:600;">${escapeHtml(first)}</span>${second}</td>
+                      </tr>
+                    </table>`;
+}
+
 export function renderHtml(input: RenderInput): string {
   const subject = escapeHtml(line(input.subject));
   const paras = paragraphs(input.body)
     .map(
       (p) =>
-        `<tr><td style="font-size:16px;line-height:1.6;padding-bottom:16px;color:${C.charcoal};">${p.map((l) => escapeHtml(l)).join("<br />")}</td></tr>`,
+        `<tr><td style="font-size:16px;line-height:1.6;padding-bottom:16px;color:${C.ink};">${p.map((l) => escapeHtml(l)).join("<br />")}</td></tr>`,
     )
     .join("\n                  ");
-  const [name, ...rest] = signatureLines(input.senderName, input.senderRole);
-  const sig = [
-    `<span style="font-weight:bold;color:${C.charcoal};">${escapeHtml(name ?? "")}</span>`,
-    ...rest.map((r) => `<span style="color:${C.greyText};">${escapeHtml(r)}</span>`),
-  ].join("<br />");
   const footer = escapeHtml(footerText(input.senderName));
 
   return `<!doctype html>
@@ -105,25 +139,24 @@ export function renderHtml(input: RenderInput): string {
     <meta name="color-scheme" content="light" />
     <title>${subject}</title>
   </head>
-  <body style="margin:0;padding:0;background:${C.ivory};font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:${C.charcoal};">
+  <body style="margin:0;padding:0;background:${C.ivory};font-family:${EMAIL_FONT};color:${C.ink};">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${C.ivory};">
       <tr>
-        <td align="center" style="padding:32px 16px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;">
+        <td align="center" style="padding:40px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;font-family:${EMAIL_FONT};">
             <tr>
-              <td style="background:${C.charcoal};padding:26px 32px;border-radius:4px 4px 0 0;">
-                <span style="font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1;letter-spacing:1.5px;color:${C.ivory};">${BRAND_NAME}</span><br />
-                <span style="font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1;letter-spacing:3px;color:${C.clay};text-transform:uppercase;display:inline-block;margin-top:10px;">Property Management</span>
+              ${emailHeader()}
+            </tr>
+            <tr>
+              <td style="background:${C.white};border-radius:0 0 28px 28px;padding:36px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  ${paras}
+                  <tr><td style="padding-top:8px;">${signatureHtml(input.senderName, input.senderRole)}</td></tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="background:${C.softWhite};border:1px solid ${C.border};border-top:0;border-radius:0 0 4px 4px;padding:32px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                  ${paras}
-                  <tr><td style="font-size:15px;line-height:1.6;padding-top:8px;padding-bottom:22px;">${sig}</td></tr>
-                  <tr><td style="font-size:13px;line-height:1.6;color:${C.muted};border-top:1px solid ${C.border};padding-top:18px;">${footer}</td></tr>
-                </table>
-              </td>
+              <td style="padding:24px 36px 0;font-size:12px;line-height:1.6;color:${C.muted};">${footer}</td>
             </tr>
           </table>
         </td>

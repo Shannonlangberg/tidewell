@@ -1,7 +1,8 @@
 // Run with: npm test   (node --test, no extra dependencies)
+import "../../../scripts/hq/ts-hooks.mts"; // enquiry-notice.ts imports ./render without an extension
 import test from "node:test";
 import assert from "node:assert/strict";
-import { enquiryNotice } from "./enquiry-notice.ts";
+const { enquiryNotice } = await import("./enquiry-notice.ts");
 
 const base = {
   ref: "ENQ-0007",
