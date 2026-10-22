@@ -12,6 +12,7 @@ import {
   PRIMARY_NAV,
   toEntries,
   mobileTabs,
+  navGroups,
   visibleNav,
   visibleQuickActions,
   type NavBadges,
@@ -19,6 +20,7 @@ import {
   type NavKey,
 } from "./nav";
 import { badgeText } from "@/lib/hq/communications";
+import type { Workspace } from "@/lib/hq/workspaces";
 import { QuickAdd } from "./QuickAdd";
 import { AskPlantedButton, MobileSearchButton, SearchTrigger } from "./ShellButtons";
 import { ShellProvider } from "./ShellProvider";
@@ -31,10 +33,12 @@ import { Wordmark } from "./Wordmark";
  *  - 1024px and up: a fixed charcoal sidebar (wordmark block, navigation, Settings, the
  *    signed-in person) and a slim soft-white top bar (breadcrumb slot, search, Quick add,
  *    Ask Planted).
+ *  - the navigation is Today, then four labelled groups (Grow, Work, Deliver, Company). The person's
+ *    workspace (docs/hq-workspaces.md) puts its own group first; it orders, it never hides.
  *  - below 1024px: a purpose-built mobile layout, NOT the desktop shrunk: a charcoal header
- *    (wordmark, search, Ask Planted), a bottom tab bar (Today, Growth, Tasks, More; for property managers Today,
- *    Tasks, Contractors, More) with a clay marker on the current page, a More sheet for everything else, and
- *    a floating Quick add button.
+ *    (wordmark, search, Ask Planted), a bottom tab bar of three pages chosen by the workspace (Grow: Today,
+ *    Contacts, Pipeline; Deliver: Today, Tasks, Contractors; ...) then More, with a clay marker on the current
+ *    page, a More sheet for everything else, and a floating Quick add button.
  *
  * Contract:
  *  - `staff` is the verified signed-in person (from requireStaff()). Navigation entries and
@@ -57,8 +61,10 @@ export type AppShellProps = {
   signOutAction: SignOutAction;
   searchAction: SearchAction;
   breadcrumb?: ReactNode;
-  /** Small counts on nav entries (Communications: new website enquiries). Zero or absent shows nothing. */
+  /** Small counts on nav entries (Enquiries: new website enquiries). Zero or absent shows nothing. */
   badges?: NavBadges;
+  /** The workspace the navigation follows (the saved default, else the role's). */
+  workspace: Workspace;
 };
 
 function SidebarLink({ item, active, badge }: { item: NavItem; active?: NavKey | null; badge?: string | null }) {
@@ -71,7 +77,7 @@ function SidebarLink({ item, active, badge }: { item: NavItem; active?: NavKey |
   );
 }
 
-export function AppShell({ staff, active, children, signOutAction, searchAction, breadcrumb, badges = {} }: AppShellProps) {
+export function AppShell({ staff, active, children, signOutAction, searchAction, breadcrumb, badges = {}, workspace }: AppShellProps) {
   const caps = staff.capabilities;
   const primary = visibleNav(PRIMARY_NAV, caps);
   const account = visibleNav(ACCOUNT_NAV, caps);
@@ -80,11 +86,14 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
   const quickActions = visibleQuickActions(caps);
   const roleLabel = ROLE_LABEL[staff.role];
 
-  const tabs = mobileTabs(primary, staff.role);
-  const more = [...primary.filter((i) => !tabs.includes(i)), ...account];
+  const ungrouped = primary.filter((i) => !i.group);
+  const groups = navGroups(primary, workspace);
+  const ordered = [...ungrouped, ...groups.flatMap((g) => g.items)];
+  const tabs = mobileTabs(primary, workspace);
+  const more = [...ordered.filter((i) => !tabs.includes(i)), ...account];
 
   return (
-    <ShellProvider searchAction={searchAction} nav={toEntries(primary, active ?? null, badges)} quickActions={quickActions}>
+    <ShellProvider searchAction={searchAction} nav={toEntries(ordered, active ?? null, badges)} quickActions={quickActions}>
       <a className="hq-skip" href="#hq-main">
         Skip to content
       </a>
@@ -95,12 +104,26 @@ export function AppShell({ staff, active, children, signOutAction, searchAction,
           <Wordmark />
           <nav aria-label="Primary">
             <ul className="hq-nav">
-              {primary.map((item) => (
+              {ungrouped.map((item) => (
                 <li key={item.key}>
                   <SidebarLink item={item} active={active} badge={badgeText(badges[item.key])} />
                 </li>
               ))}
             </ul>
+            {groups.map((g) => (
+              <div key={g.key} className="hq-nav__group" role="group" aria-labelledby={`hq-nav-${g.key}`}>
+                <p className="hq-nav__grouplabel" id={`hq-nav-${g.key}`}>
+                  {g.label}
+                </p>
+                <ul className="hq-nav">
+                  {g.items.map((item) => (
+                    <li key={item.key}>
+                      <SidebarLink item={item} active={active} badge={badgeText(badges[item.key])} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
             {settings ? (
               <>
                 <hr className="hq-nav__rule" />

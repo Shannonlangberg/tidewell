@@ -1,5 +1,7 @@
 # Planted HQ: the leadership command center
 
+Since the workspaces (docs/hq-workspaces.md) this is the **Business overview** on Today (`/hq?view=overview`), the default for directors and administrators unless they choose another. It is otherwise unchanged.
+
 The top of `/hq` for anyone who holds tasks. It answers, in five seconds and in this order: my three most important actions today; what is moving; what is waiting and on whom; what decisions need me; whether we are getting closer to launch and to the goal. Built on the existing tasks, projects, milestones, dependencies, decisions, growth records, permissions, audit trail and MCP server. Nothing about the task status model changes.
 
 Code: `components/hq/features/leadership/*` (page sections and controls), `lib/hq/leadership/rules.ts` (every rule below, pure and unit tested), `lib/hq/leadership/queries.ts` (the loaders the page AND the chat tools share), `lib/hq/mcp/tools/leadership.ts` (chat). Migrations `0148_hq_leadership.sql`, `0149_hq_leadership_rpc.sql`, `0150_hq_function_acl_leadership.sql`; tests `supabase/tests/hq_18_leadership.sql`, `lib/hq/leadership/rules.test.mts`, the command-center section of `scripts/hq/mcp-tools-smoke.mts`.

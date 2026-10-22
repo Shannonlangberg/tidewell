@@ -1,4 +1,4 @@
-import { INTERACTION_TYPES, type InteractionType } from "../constants";
+import { CALL_OUTCOMES, INTERACTION_TYPES, type CallOutcome, type InteractionType } from "../constants";
 import { FormReader } from "../forms";
 import { checkOccurredAt, zonedLocalToDate } from "../growth/dates";
 import { checkExpectedClose, checkFollowUp, DIRECT_LEAD_SOURCES, type LeadSource } from "./rules";
@@ -17,6 +17,10 @@ export type LeadActivityValues = {
   nextActionDue: string | null;
   createTask: boolean;
   taskAssignee: string | null;
+  /** How a phone call went; null for anything else. */
+  outcome: CallOutcome | null;
+  /** We promised to call back by the follow-up date. */
+  callbackPromised: boolean;
 };
 
 export const ACTIVITY_LABELS: Record<string, string> = {
@@ -27,6 +31,8 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   next_action_due: "Follow-up date",
   create_task: "Create a task",
   task_assignee: "Task for",
+  outcome: "How the call went",
+  callback_promised: "Promised callback",
 };
 
 export function readLeadActivityForm(
@@ -51,7 +57,11 @@ export function readLeadActivityForm(
   const createTask = f.bool("create_task");
   if (createTask && !ctx.canCreateTasks) f.errors.create_task = "You don't have permission to create tasks.";
   const taskAssignee = f.uuid("task_assignee") ?? (createTask ? ctx.staffId : null);
-  return { reader: f, values: { type, occurredAt, summary, nextAction, nextActionDue, createTask, taskAssignee } };
+  const outcomeRaw = f.oneOf("outcome", CALL_OUTCOMES);
+  const outcome = type === "phone_call" ? outcomeRaw : null;
+  const callbackPromised = f.bool("callback_promised");
+  if (callbackPromised && !nextActionDue && !f.errors.next_action_due) f.errors.callback_promised = "Set the follow-up date you promised to call back by.";
+  return { reader: f, values: { type, occurredAt, summary, nextAction, nextActionDue, createTask, taskAssignee, outcome, callbackPromised } };
 }
 
 export type LeadEditValues = {

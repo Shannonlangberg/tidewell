@@ -1,4 +1,4 @@
-import { INTERACTION_TYPES, RELATIONSHIP_STATUSES, type InteractionType, type RelationshipStatus } from "../constants";
+import { CALL_OUTCOMES, INTERACTION_TYPES, RELATIONSHIP_STATUSES, type CallOutcome, type InteractionType, type RelationshipStatus } from "../constants";
 import { FormReader } from "../forms";
 import { checkFollowUpDate, checkOccurredAt, taskNeedsDate, todayInZone, zonedLocalToDate } from "../growth/dates";
 
@@ -6,7 +6,8 @@ import { checkFollowUpDate, checkOccurredAt, taskNeedsDate, todayInZone, zonedLo
  * Reads and validates the "log a call / meeting / note" form. All the rules the person sees are
  * enforced here, on the server: a real type, a time that is not in the future, a required
  * summary, a follow-up date that is today or later, and "create a task" only when there is a date
- * to give it and the person may create tasks.
+ * to give it and the person may create tasks. A phone call may say how it went (outcome) and that we
+ * promised to call back, which needs the follow-up date.
  */
 
 export type InteractionFormValues = {
@@ -23,6 +24,8 @@ export type InteractionFormValues = {
   createTask: boolean;
   taskAssignee: string | null;
   newStatus: RelationshipStatus | null;
+  outcome: CallOutcome | null;
+  callbackPromised: boolean;
 };
 
 export function readInteractionForm(
@@ -73,8 +76,13 @@ export function readInteractionForm(
   const newStatus = f.oneOf("new_status", RELATIONSHIP_STATUSES);
   if (newStatus && !contactId) f.errors.new_status = "A relationship status belongs to a person, so choose a contact first.";
 
+  const outcomeRaw = f.oneOf("outcome", CALL_OUTCOMES);
+  const outcome = type === "phone_call" ? outcomeRaw : null;
+  const callbackPromised = f.bool("callback_promised");
+  if (callbackPromised && !followUpDate && !f.errors.follow_up_date) f.errors.callback_promised = "Set the follow-up date you promised to call back by.";
+
   return {
     reader: f,
-    values: { contactId, organisationId, returnTo: returnRaw, returnPath, type, occurredAt, summary, nextAction, followUpDate, createTask, taskAssignee, newStatus },
+    values: { contactId, organisationId, returnTo: returnRaw, returnPath, type, occurredAt, summary, nextAction, followUpDate, createTask, taskAssignee, newStatus, outcome, callbackPromised },
   };
 }

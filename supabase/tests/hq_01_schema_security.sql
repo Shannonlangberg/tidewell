@@ -91,7 +91,7 @@ select throws_ok('select hq.growth_summary(null)', '42501', null, 'anon cannot c
 select pg_temp.unbecome();
 
 -- ------------------------------------------------------------ function privileges (from pg_proc)
-select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 115::bigint, 'hq holds 114 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades, 5 decisions, 3 leads, 6 portfolio, 6 email, 4 enquiries, 3 enquiry thank-you, 6 knowledge, 8 meetings, 26 projects, 4 command center, 6 brand resources) plus bootstrap_first_director');
+select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace), 116::bigint, 'hq holds 115 RPCs (16 Phase 1, 13 Phase 2, 3 Phase 3, 5 trades, 5 decisions, 3 leads, 6 portfolio, 6 email, 4 enquiries, 3 enquiry thank-you, 6 knowledge, 8 meetings, 26 projects, 4 command center, 6 brand resources, 1 workspaces) plus bootstrap_first_director');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and (p.proacl is null or exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0))),
   0::bigint, 'no hq or hq_private function is executable by public');
@@ -99,7 +99,7 @@ select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regname
             and has_function_privilege('anon', p.oid, 'execute')),
   0::bigint, 'anon can execute no hq or hq_private function');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('authenticated', p.oid, 'execute')),
-  109::bigint, 'authenticated can execute the 109 staff RPCs (every RPC but bootstrap_first_director, submit_enquiry, the three thank-you RPCs and import_brand_resource)');
+  110::bigint, 'authenticated can execute the 110 staff RPCs (every RPC but bootstrap_first_director, submit_enquiry, the three thank-you RPCs and import_brand_resource)');
 select ok(not has_function_privilege('authenticated', 'hq.bootstrap_first_director(uuid,text,text,text)', 'execute'), 'authenticated cannot execute bootstrap_first_director');
 select ok(not has_function_privilege('authenticated', 'hq.submit_enquiry(hq.enquiry_kind,text,text,text,text,text,jsonb,text,text)', 'execute'), 'authenticated cannot execute submit_enquiry (the website calls it with the secret key)');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
@@ -120,7 +120,7 @@ select is((select array_agg(p.proname::text order by p.proname) from pg_proc p w
   '... and they are the capability helpers, normalise_name, abn_is_valid and expiry_state');
 select is((select count(*) from pg_proc p where p.pronamespace = 'hq_private'::regnamespace and has_function_privilege('service_role', p.oid, 'execute')),
   1::bigint, 'service_role can execute only normalise_name in hq_private');
-select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 114::bigint, 'every hq function but one is security definer');
+select is((select count(*) from pg_proc p where p.pronamespace = 'hq'::regnamespace and p.prosecdef), 115::bigint, 'every hq function but one is security definer');
 select ok(not (select prosecdef from pg_proc where pronamespace = 'hq'::regnamespace and proname = 'global_search'), 'global_search is security invoker, so RLS decides what it returns');
 select is((select count(*) from pg_proc p where p.pronamespace in ('hq'::regnamespace, 'hq_private'::regnamespace)
             and not coalesce(p.proconfig::text, '') ~ 'search_path=(pg_catalog|"?pg_catalog, public, extensions)'),
@@ -198,12 +198,12 @@ select ok(not has_column_privilege('authenticated', 'hq.opportunities', 'lost_re
 
 -- ------------------------------------------------------------ columns (section 4, exact; plus created/updated bookkeeping)
 select columns_are('hq', 'pods', array['id', 'name', 'region', 'is_active', 'created_at', 'updated_at', 'created_by']);
-select columns_are('hq', 'staff_profiles', array['id', 'full_name', 'first_name', 'email', 'role', 'pod_id', 'employment_status', 'start_date', 'responsibilities', 'timezone', 'dashboard_widgets', 'is_active', 'invited_by', 'invited_at', 'created_at', 'updated_at', 'created_by']);
+select columns_are('hq', 'staff_profiles', array['id', 'full_name', 'first_name', 'email', 'role', 'pod_id', 'employment_status', 'start_date', 'responsibilities', 'timezone', 'dashboard_widgets', 'is_active', 'invited_by', 'invited_at', 'created_at', 'updated_at', 'created_by', 'workspace']);
 select columns_are('hq', 'role_capabilities', array['role', 'capability']);
 select columns_are('hq', 'settings', array['key', 'value', 'updated_by', 'updated_at']);
 select columns_are('hq', 'organisations', array['id', 'name', 'name_key', 'categories', 'website', 'phone', 'email', 'location', 'service_region', 'relationship_owner_id', 'notes', 'source', 'needs_verification', 'verified_at', 'verified_by', 'external_ids', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);
 select columns_are('hq', 'contacts', array['id', 'organisation_id', 'full_name', 'name_key', 'position', 'categories', 'phone', 'email', 'website', 'location', 'service_region', 'org_contact_role', 'relationship_owner_id', 'relationship_status', 'priority', 'last_contact_at', 'next_follow_up_date', 'notes', 'source', 'needs_verification', 'verified_at', 'verified_by', 'external_ids', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'contact_kind']);
-select columns_are('hq', 'interactions', array['id', 'contact_id', 'organisation_id', 'contractor_id', 'interaction_type', 'occurred_at', 'summary', 'staff_id', 'next_action', 'follow_up_date', 'task_id', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'opportunity_id']);
+select columns_are('hq', 'interactions', array['id', 'contact_id', 'organisation_id', 'contractor_id', 'interaction_type', 'occurred_at', 'summary', 'staff_id', 'next_action', 'follow_up_date', 'task_id', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'opportunity_id', 'outcome', 'callback_promised']);
 select columns_are('hq', 'opportunities', array['id', 'display_number', 'prospect_name', 'prospect_phone', 'prospect_email', 'property_suburb', 'property_address', 'stage', 'stage_changed_at', 'estimated_annual_value_cents', 'assigned_to', 'signed_at', 'management_reference', 'lost_reason', 'notes', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by', 'source', 'next_action', 'next_action_due', 'expected_close_date', 'owner_contact_id', 'lost_reason_code', 'last_activity_at']);
 select columns_are('hq', 'opportunity_stage_history', array['id', 'opportunity_id', 'from_stage', 'to_stage', 'changed_by', 'changed_at', 'note']);
 select columns_are('hq', 'referrals', array['id', 'ref_number', 'direction', 'referring_contact_id', 'referring_organisation_id', 'receiving_contact_id', 'receiving_organisation_id', 'opportunity_id', 'referral_date', 'assigned_to', 'is_attributed', 'sent_outcome', 'prospect_name', 'prospect_phone', 'prospect_email', 'property_suburb', 'property_address', 'notes', 'created_at', 'updated_at', 'created_by', 'deleted_at', 'deleted_by']);

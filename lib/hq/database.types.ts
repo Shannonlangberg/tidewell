@@ -1428,6 +1428,7 @@ export type Database = {
       }
       interactions: {
         Row: {
+          callback_promised: boolean
           contact_id: string | null
           contractor_id: string | null
           created_at: string
@@ -1441,12 +1442,14 @@ export type Database = {
           occurred_at: string
           opportunity_id: string | null
           organisation_id: string | null
+          outcome: Database["hq"]["Enums"]["call_outcome"] | null
           staff_id: string | null
           summary: string
           task_id: string | null
           updated_at: string
         }
         Insert: {
+          callback_promised?: boolean
           contact_id?: string | null
           contractor_id?: string | null
           created_at?: string
@@ -1460,12 +1463,14 @@ export type Database = {
           occurred_at?: string
           opportunity_id?: string | null
           organisation_id?: string | null
+          outcome?: Database["hq"]["Enums"]["call_outcome"] | null
           staff_id?: string | null
           summary: string
           task_id?: string | null
           updated_at?: string
         }
         Update: {
+          callback_promised?: boolean
           contact_id?: string | null
           contractor_id?: string | null
           created_at?: string
@@ -1479,6 +1484,7 @@ export type Database = {
           occurred_at?: string
           opportunity_id?: string | null
           organisation_id?: string | null
+          outcome?: Database["hq"]["Enums"]["call_outcome"] | null
           staff_id?: string | null
           summary?: string
           task_id?: string | null
@@ -3397,6 +3403,7 @@ export type Database = {
           start_date: string | null
           timezone: string
           updated_at: string
+          workspace: Database["hq"]["Enums"]["workspace"] | null
         }
         Insert: {
           created_at?: string
@@ -3416,6 +3423,7 @@ export type Database = {
           start_date?: string | null
           timezone?: string
           updated_at?: string
+          workspace?: Database["hq"]["Enums"]["workspace"] | null
         }
         Update: {
           created_at?: string
@@ -3435,6 +3443,7 @@ export type Database = {
           start_date?: string | null
           timezone?: string
           updated_at?: string
+          workspace?: Database["hq"]["Enums"]["workspace"] | null
         }
         Relationships: [
           {
@@ -5758,11 +5767,13 @@ export type Database = {
       }
       log_opportunity_activity: {
         Args: {
+          p_callback_promised?: boolean
           p_create_task?: boolean
           p_next_action?: string
           p_next_action_due?: string
           p_occurred_at?: string
           p_opportunity: string
+          p_outcome?: Database["hq"]["Enums"]["call_outcome"]
           p_summary?: string
           p_task_assignee?: string
           p_type?: Database["hq"]["Enums"]["interaction_type"]
@@ -5882,6 +5893,8 @@ export type Database = {
       }
       record_interaction: {
         Args: {
+          p_callback_promised?: boolean
+          p_clear_follow_up?: boolean
           p_contact?: string
           p_create_task?: boolean
           p_follow_up_date?: string
@@ -5889,6 +5902,7 @@ export type Database = {
           p_next_action?: string
           p_occurred_at?: string
           p_organisation?: string
+          p_outcome?: Database["hq"]["Enums"]["call_outcome"]
           p_summary?: string
           p_task_assignee?: string
           p_type?: Database["hq"]["Enums"]["interaction_type"]
@@ -6055,6 +6069,10 @@ export type Database = {
       }
       set_milestone_launch_gate: {
         Args: { p_gate: boolean; p_id: string }
+        Returns: Json
+      }
+      set_my_workspace: {
+        Args: { p_workspace?: Database["hq"]["Enums"]["workspace"] }
         Returns: Json
       }
       set_project_status: {
@@ -6300,6 +6318,7 @@ export type Database = {
         | "tokens"
         | "ui_kit"
         | "other"
+      call_outcome: "spoke" | "left_message" | "no_answer" | "wrong_number"
       contact_kind: "partner" | "landlord" | "other"
       contractor_document_type:
         | "licence"
@@ -6498,6 +6517,7 @@ export type Database = {
         | "in_progress"
         | "done"
         | "not_applicable"
+      workspace: "grow" | "deliver" | "support" | "overview"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6635,6 +6655,7 @@ export const Constants = {
         "ui_kit",
         "other",
       ],
+      call_outcome: ["spoke", "left_message", "no_answer", "wrong_number"],
       contact_kind: ["partner", "landlord", "other"],
       contractor_document_type: [
         "licence",
@@ -6857,6 +6878,7 @@ export const Constants = {
         "done",
         "not_applicable",
       ],
+      workspace: ["grow", "deliver", "support", "overview"],
     },
   },
 } as const

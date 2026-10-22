@@ -62,6 +62,8 @@ export function toLeaderTask(r: Record<string, unknown>): LeaderTask {
     planningItemStatus: s(r.planning_item_status) as PlanningStatus | null,
     relationship: !!(s(r.related_contact_id) || s(r.related_organisation_id) || s(r.related_referral_id)),
     pipeline: !!s(r.related_opportunity_id),
+    relatedContactId: s(r.related_contact_id),
+    relatedOpportunityId: s(r.related_opportunity_id),
     createdAt: s(r.created_at) ?? "",
     updatedAt: s(r.updated_at) ?? "",
     completedAt: s(r.completed_at),

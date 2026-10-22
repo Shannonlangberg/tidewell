@@ -38,16 +38,16 @@ select has_function('hq', 'update_opportunity', 'update_opportunity exists');
 select has_function('hq', 'log_opportunity_activity', 'log_opportunity_activity exists');
 select ok(has_function_privilege('authenticated', 'hq.create_opportunity(text,text,text,text,text,hq.lead_source,uuid,text,date,date,bigint,text,boolean,boolean)', 'execute')
       and has_function_privilege('authenticated', 'hq.update_opportunity(uuid,text,text,text,text,text,hq.lead_source,uuid,text,date,date,bigint,text,uuid,text[],timestamptz)', 'execute')
-      and has_function_privilege('authenticated', 'hq.log_opportunity_activity(uuid,hq.interaction_type,timestamptz,text,text,date,boolean,uuid)', 'execute')
+      and has_function_privilege('authenticated', 'hq.log_opportunity_activity(uuid,hq.interaction_type,timestamptz,text,text,date,boolean,uuid,hq.call_outcome,boolean)', 'execute')
       and has_function_privilege('authenticated', 'hq.move_opportunity(uuid,hq.opportunity_stage,text,timestamptz,text,text,hq.lost_reason)', 'execute'),
   'authenticated can execute the four lead RPCs');
 select ok(not has_function_privilege('anon', 'hq.create_opportunity(text,text,text,text,text,hq.lead_source,uuid,text,date,date,bigint,text,boolean,boolean)', 'execute')
-      and not has_function_privilege('anon', 'hq.log_opportunity_activity(uuid,hq.interaction_type,timestamptz,text,text,date,boolean,uuid)', 'execute')
+      and not has_function_privilege('anon', 'hq.log_opportunity_activity(uuid,hq.interaction_type,timestamptz,text,text,date,boolean,uuid,hq.call_outcome,boolean)', 'execute')
       and not has_function_privilege('service_role', 'hq.update_opportunity(uuid,text,text,text,text,text,hq.lead_source,uuid,text,date,date,bigint,text,uuid,text[],timestamptz)', 'execute'),
   'anon and service_role cannot execute them');
 select is((select count(*) from pg_proc where pronamespace = 'hq'::regnamespace and proname = 'move_opportunity'), 1::bigint, 'there is one move_opportunity (the six-argument one was replaced)');
 select ok((select prosecdef from pg_proc where oid = 'hq.create_opportunity(text,text,text,text,text,hq.lead_source,uuid,text,date,date,bigint,text,boolean,boolean)'::regprocedure)
-      and (select prosecdef from pg_proc where oid = 'hq.log_opportunity_activity(uuid,hq.interaction_type,timestamptz,text,text,date,boolean,uuid)'::regprocedure), 'the lead RPCs are security definer');
+      and (select prosecdef from pg_proc where oid = 'hq.log_opportunity_activity(uuid,hq.interaction_type,timestamptz,text,text,date,boolean,uuid,hq.call_outcome,boolean)'::regprocedure), 'the lead RPCs are security definer');
 select is((select count(*) from pg_class where oid in ('hq.opportunity_overview'::regclass, 'hq.overdue_opportunities'::regclass) and reloptions @> array['security_invoker=true']), 2::bigint, 'both new views are security_invoker');
 select is((select count(*) from hq.opportunities o where o.stage not in ('management_signed', 'lost') and o.deleted_at is null and (o.next_action is null or o.next_action_due is null)), 0::bigint, 'every live open lead has a next action and a follow-up date (backfill)');
 select is((select column_default from information_schema.columns where table_schema = 'hq' and table_name = 'contacts' and column_name = 'contact_kind'), '''partner''::hq.contact_kind', 'contact_kind defaults to partner');

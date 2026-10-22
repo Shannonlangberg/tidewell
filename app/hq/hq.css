@@ -638,6 +638,19 @@
     border: 0;
     border-top: 1px solid var(--planted-border-dark);
   }
+  /* A labelled group of entries (Grow, Work, Deliver, Company). Sage on forest, about 6.9:1. */
+  .hq-nav__group {
+    margin-top: 14px;
+  }
+  .hq-nav__grouplabel {
+    margin: 0 0 4px;
+    padding: 0 14px;
+    color: var(--planted-taupe);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 
   .hq-person {
     display: flex;
@@ -5626,3 +5639,90 @@
   .hq-cc-launch__next .hq-cc-subhead { margin: 0; }
   .hq-cc-launch__next a:not(.hq-cc-textlink) { color: var(--planted-charcoal); text-underline-offset: 3px; text-decoration-color: var(--planted-border); }
 }
+/* === Workspaces (docs/hq-workspaces.md) ===
+ * The workspace switch on Today and the Grow workspace. The command center's language throughout:
+ * hairlines, forest rules, pills, 16px panels; lime only as the accent (the call numerals, the selected
+ * switch's hover). Every colour is a token.
+ */
+@layer components {
+  .hq-ws { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 22px; }
+  .hq-ws__switch { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid var(--planted-border); border-radius: var(--radius-pill); background: var(--planted-white); }
+  .hq-ws__opt {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    color: var(--planted-grey-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.16s var(--hq-ease), color 0.16s var(--hq-ease);
+  }
+  .hq-ws__opt:hover { background: var(--planted-ivory); color: var(--planted-charcoal); }
+  .hq-ws__opt[aria-current="page"] { background: var(--planted-charcoal); color: var(--planted-ivory); }
+  .hq-ws__short { display: none; }
+  @media (max-width: 639px) {
+    .hq-ws__long { display: none; }
+    .hq-ws__short { display: inline; }
+    .hq-ws__opt { padding: 0 14px; }
+  }
+  .hq-ws__save { display: inline-flex; align-items: center; gap: 8px; color: var(--planted-grey-text); font-size: 13px; }
+
+  .hq-grow__cols { display: grid; gap: 40px; }
+  @media (min-width: 1100px) { .hq-grow__cols { grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 48px; align-items: start; } }
+  .hq-grow__side { display: grid; gap: 14px; align-content: start; min-width: 0; }
+  @media (min-width: 640px) and (max-width: 1099px) { .hq-grow__side { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  .hq-grow-how { position: relative; }
+  .hq-grow-how > summary { cursor: pointer; list-style: none; }
+  .hq-grow-how > summary::-webkit-details-marker { display: none; }
+  .hq-grow-how[open] .hq-cc-note { max-width: 36rem; }
+  .hq-grow-how__list { display: grid; gap: 6px; margin: 0; padding-left: 20px; }
+  .hq-grow-how__list b { color: var(--planted-charcoal); font-weight: 600; }
+
+  .hq-grow-calls { display: grid; margin: 0; padding: 0; list-style: none; }
+  .hq-grow-call { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--planted-border); }
+  @media (min-width: 640px) { .hq-grow-call { grid-template-columns: 28px minmax(0, 1fr) auto; } }
+  .hq-grow-call__n {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--planted-lime);
+    color: var(--planted-forest);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .hq-grow-call__body { display: grid; gap: 4px; min-width: 0; }
+  .hq-grow-call__who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 16px; font-weight: 500; line-height: 1.35; }
+  .hq-grow-call__who a { color: var(--planted-charcoal); text-decoration: none; overflow-wrap: anywhere; }
+  .hq-grow-call__who a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .hq-grow-call__why { margin-top: 4px; padding: 6px 10px; border-radius: 10px; background: var(--planted-ivory); color: var(--planted-charcoal); font-size: 13.5px; line-height: 1.45; }
+  .hq-grow-call__whylabel { font-weight: 600; }
+  .hq-grow-call__next { font-size: 13.5px; color: var(--planted-charcoal); }
+  .hq-grow-call__acts { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; grid-column: 2; }
+  @media (min-width: 640px) { .hq-grow-call__acts { grid-column: 3; flex-direction: column; align-items: flex-end; } }
+  .hq-grow-more { margin-top: 12px; }
+  .hq-grow-more > summary { cursor: pointer; }
+
+  .hq-grow-card { display: grid; gap: 10px; align-content: start; padding: 18px 20px; border: 1px solid var(--planted-border); border-radius: var(--radius-card); background: var(--planted-white); min-width: 0; }
+  .hq-grow-card__label { color: var(--planted-grey-text); font-size: 12px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; }
+  .hq-grow-card__figure { font-size: 15px; }
+  .hq-grow-card__figure b { font-size: 30px; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .hq-grow-stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .hq-grow-stages li { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--planted-ivory); }
+  .hq-grow-stages__n { font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .hq-grow-stages__name { color: var(--planted-grey-text); font-size: 11.5px; line-height: 1.25; }
+  .hq-grow-rows { display: grid; margin: 0; padding: 0; list-style: none; }
+  .hq-grow-rows li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--planted-border); font-size: 14px; }
+  .hq-grow-rows li:last-child { border-bottom: 0; }
+  .hq-grow-rows b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .hq-grow-lanes { display: grid; gap: 12px; }
+  @media (min-width: 900px) { .hq-grow-lanes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+}
+/* === end Workspaces === */

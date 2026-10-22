@@ -20,6 +20,9 @@ export const PARTNER_CATEGORY_VALUES = [
 export const RELATIONSHIP_STATUS_VALUES = ["identified", "contacted", "meeting_booked", "met", "active_relationship", "referring_partner", "inactive"] as const;
 export const PRIORITY_VALUES = ["high", "medium", "low"] as const;
 export const INTERACTION_TYPE_VALUES = ["phone_call", "coffee_meeting", "office_meeting", "email", "message", "note"] as const;
+export const CALL_OUTCOME_VALUES = ["spoke", "left_message", "no_answer", "wrong_number"] as const;
+const callOutcome = z.enum(CALL_OUTCOME_VALUES).optional().describe("Optional, phone calls only. How it went: spoke, left_message, no_answer or wrong_number.");
+const callbackPromised = z.boolean().optional().describe("Optional. true = we promised to call them back by the follow-up date (needs follow_up_date). They come first on next_calls that day.");
 export const OPPORTUNITY_STAGE_VALUES = [
   "introduction_received", "contacted", "qualified", "appraisal_requested", "appraisal_completed", "proposal_sent", "management_signed", "lost",
 ] as const;
@@ -152,6 +155,8 @@ export const whoToContactShape = {
   limit,
 };
 
+export const nextCallsShape = { limit };
+
 export const teamDirectoryShape = {};
 
 // ── reports ──────────────────────────────────────────────────
@@ -210,6 +215,8 @@ export const logInteractionShape = {
   create_task: z.boolean().optional().describe("Optional. true = also create a follow-up task due on follow_up_date (needs follow_up_date and tasks.write)."),
   task_assignee: z.string().trim().max(200).optional().describe('Optional. Who the follow-up task is for: "me" (default), a staff name or id.'),
   new_relationship_status: z.enum(RELATIONSHIP_STATUS_VALUES).optional().describe("Optional, contacts only. Move the contact's relationship status."),
+  outcome: callOutcome,
+  callback_promised: callbackPromised,
   mark_contacted: z.boolean().optional().describe("Optional, contractors only. true = move a prospect contractor to contacted (never further)."),
 };
 
@@ -480,6 +487,8 @@ export const logOpportunityActivityShape = {
   follow_up_date: optFollowUp("Optional. When the new next step is due"),
   create_task: z.boolean().optional().describe("Optional. true = also create a follow-up task linked to the lead (needs tasks.write), due on the follow-up date."),
   task_assignee: logInteractionShape.task_assignee,
+  outcome: callOutcome,
+  callback_promised: callbackPromised,
 };
 
 export const listInteractionsShape = {
