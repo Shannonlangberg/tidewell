@@ -10,6 +10,7 @@ import type { ActionState } from "@/lib/hq/forms";
 import { SubmitButton } from "../../SubmitButton";
 import { ArchiveButton } from "../contacts/ArchiveButton";
 import { AckChip } from "./AckChip";
+import { DeleteEnquiryButton } from "./DeleteEnquiryButton";
 
 /*
  * Small pieces of the website enquiry screens: the kind (a plain tag), the status (dot plus label,
@@ -21,7 +22,12 @@ import { AckChip } from "./AckChip";
  * it), never as HTML or a link.
  */
 
-const STATUS_TONE: Record<EnquiryStatus, StatusTone> = { new: "info", in_progress: "warning", spam: "error", archived: "neutral" };
+const STATUS_TONE: Record<EnquiryStatus, StatusTone> = {
+  new: "info",
+  in_progress: "warning",
+  spam: "error",
+  archived: "neutral",
+};
 
 export function EnquiryStatusChip({ status }: { status: EnquiryStatus }) {
   return <StatusChip tone={STATUS_TONE[status]}>{ENQUIRY_STATUS_LABEL[status]}</StatusChip>;
@@ -64,9 +70,24 @@ export type EnquiryRowActions = {
   archive: (formData: FormData) => Promise<ActionState>;
   restore: (formData: FormData) => void | Promise<void>;
   back: string;
+  /** Directors only: Delete on archived and spam rows. */
+  deleteEnquiry?: (formData: FormData) => Promise<ActionState>;
 };
 
 function RowAction({ e, actions }: { e: EnquiryRow; actions: EnquiryRowActions }) {
+  const del =
+    actions.deleteEnquiry && (e.status === "archived" || e.status === "spam") ? (
+      <DeleteEnquiryButton id={e.id} refLabel={e.ref} name={e.name} createdLead={e.createdLead} spam={e.status === "spam"} action={actions.deleteEnquiry} back={actions.back} size="sm" />
+    ) : null;
+  return (
+    <>
+      <MainRowAction e={e} actions={actions} />
+      {del}
+    </>
+  );
+}
+
+function MainRowAction({ e, actions }: { e: EnquiryRow; actions: EnquiryRowActions }) {
   if (e.status === "new" || e.status === "in_progress") {
     return <ArchiveButton id={e.id} noun="enquiry" name={`${e.ref} (${e.name})`} action={actions.archive} consequence={ENQUIRY_ARCHIVE_CONSEQUENCE} size="sm" fields={{ back: actions.back }} />;
   }
@@ -112,7 +133,12 @@ export function EnquiriesTable({
         </Link>
       ),
     },
-    { key: "kind", header: "Form", nowrap: true, cell: (e) => <EnquiryKindChip kind={e.kind} /> },
+    {
+      key: "kind",
+      header: "Form",
+      nowrap: true,
+      cell: (e) => <EnquiryKindChip kind={e.kind} />,
+    },
     {
       key: "name",
       header: "Name",
@@ -126,8 +152,18 @@ export function EnquiriesTable({
         </>
       ),
     },
-    { key: "received", header: "Received", nowrap: true, cell: (e) => <Received at={e.receivedAt} timezone={timezone} /> },
-    { key: "status", header: "Status", nowrap: true, cell: (e) => <EnquiryStatusChip status={e.status} /> },
+    {
+      key: "received",
+      header: "Received",
+      nowrap: true,
+      cell: (e) => <Received at={e.receivedAt} timezone={timezone} />,
+    },
+    {
+      key: "status",
+      header: "Status",
+      nowrap: true,
+      cell: (e) => <EnquiryStatusChip status={e.status} />,
+    },
     {
       key: "ack",
       header: "Thank-you",
@@ -135,8 +171,19 @@ export function EnquiriesTable({
       hideBelow: "lg",
       cell: (e) => (e.ackStatus === "none" ? <span className="hq-cell-nil">None</span> : <AckChip status={e.ackStatus} at={e.ackAt} reason={e.ackReason} timezone={timezone} />),
     },
-    { key: "owner", header: "Owner", nowrap: true, hideBelow: "lg", cell: (e) => e.ownerName ?? <span className="hq-cell-nil">No owner</span> },
-    { key: "lead", header: "Lead", nowrap: true, cell: (e) => <LeadLink e={e} /> },
+    {
+      key: "owner",
+      header: "Owner",
+      nowrap: true,
+      hideBelow: "lg",
+      cell: (e) => e.ownerName ?? <span className="hq-cell-nil">No owner</span>,
+    },
+    {
+      key: "lead",
+      header: "Lead",
+      nowrap: true,
+      cell: (e) => <LeadLink e={e} />,
+    },
     ...(actions
       ? [
           {
@@ -144,7 +191,7 @@ export function EnquiriesTable({
             header: <span className="sr-only">Actions</span>,
             cell: (e: EnquiryRow) => (
               // The confirmation dialog renders inside this cell, so the cell's alignment and wrapping stay out of it.
-              <div className="flex justify-end text-left whitespace-normal">
+              <div className="flex justify-end gap-2 text-left whitespace-normal">
                 <RowAction e={e} actions={actions} />
               </div>
             ),
@@ -181,8 +228,8 @@ export function EnquiriesTable({
                   </span>
                 </span>
               </div>
-              {actions && e.status !== "spam" ? (
-                <div className="relative z-10 mt-3 flex justify-end">
+              {actions && (e.status !== "spam" || actions.deleteEnquiry) ? (
+                <div className="relative z-10 mt-3 flex justify-end gap-2">
                   <RowAction e={e} actions={actions} />
                 </div>
               ) : null}

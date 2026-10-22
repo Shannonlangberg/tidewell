@@ -11,7 +11,7 @@ import { ErrorState, InlineNote, KeyValueList, LinkButton, PageHeader, Panel, Pa
 import { EnquiryControls } from "@/components/hq/features/enquiries/EnquiryControls";
 import { AckChip } from "@/components/hq/features/enquiries/AckChip";
 import { EnquiryKindChip, EnquiryStatusChip } from "@/components/hq/features/enquiries/EnquiryParts";
-import { archiveEnquiryAction, markEnquirySpamAction, restoreEnquiryAction, setEnquiryStatusAction } from "../actions";
+import { archiveEnquiryAction, deleteEnquiryAction, markEnquirySpamAction, restoreEnquiryAction, setEnquiryStatusAction } from "../actions";
 
 export const metadata: Metadata = { title: "Website enquiry" };
 
@@ -169,6 +169,8 @@ export default async function EnquiryPage({ params }: { params: Params }) {
                 markSpam={markEnquirySpamAction}
                 archive={archiveEnquiryAction}
                 archiveConsequence={ENQUIRY_ARCHIVE_CONSEQUENCE}
+                deleteEnquiry={staff.role === "director" && can("growth.delete") ? deleteEnquiryAction : undefined}
+                name={e.name}
                 restore={restoreEnquiryAction}
               />
             </Panel>

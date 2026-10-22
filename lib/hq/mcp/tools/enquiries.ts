@@ -1,7 +1,8 @@
 /*
  * Website enquiries over MCP: list them and open one (growth.read), and archive or restore one
  * (growth.write, through hq.archive_enquiry / hq.restore_enquiry, which check the capability again,
- * validate and audit). Archiving is reversible and erases nothing. Marking spam, the other status
+ * validate and audit). Archiving is reversible and erases nothing. Directors can also delete one for
+ * good (delete_enquiry, through hq.delete_enquiry): only with its ENQ number read back and confirmed. Marking spam, the other status
  * changes and choosing who gets enquiries are HQ screens only. Every query runs as the person (RLS,
  * through lib/hq/enquiry-queries.ts).
  *
@@ -51,6 +52,16 @@ export const archiveEnquiryShape = {
 
 export const restoreEnquiryShape = {
   enquiry: z.string().trim().min(1).max(80).describe("The ARCHIVED enquiry to bring back: its number (ENQ-0001) or its id."),
+};
+
+export const deleteEnquiryShape = {
+  enquiry: z.string().trim().min(1).max(80).describe("The enquiry to delete: its number as HQ shows it (ENQ-0001), or its id."),
+  confirm_ref: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20)
+    .describe("The enquiry's number (ENQ-0001), given ONLY after you read the number and the person's name back and the person said yes to deleting it for good."),
 };
 
 export const getEnquiryShape = {
@@ -211,5 +222,43 @@ export const restoreEnquiryTool = defineTool({
       return respond("unchanged", `${e.ref} is not archived (it is ${ENQUIRY_STATUS_LABEL[status].toLowerCase()}). Nothing was changed. ${url}`, null, { id: e.id, ref: e.ref, status, changed: false });
     }
     return respond("ok", `Restored ${e.ref} [id: ${e.id}] to ${ENQUIRY_STATUS_LABEL[status]}: ${url}`, [`${e.ref}: ${clean(e.name, 80)}`], { id: e.id, ref: e.ref, status, changed: true });
+  },
+});
+
+// ── delete_enquiry (directors) ───────────────────────────────
+
+const DELETE = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false } as const;
+
+export const deleteEnquiryTool = defineTool({
+  name: "delete_enquiry",
+  title: "Delete a website enquiry for good",
+  description:
+    "Deletes ONE website enquiry for good (directors only), for spam and test enquiries. It cannot be undone. HQ first marks it as spam, which archives the lead and contact it created when nobody has worked on them (a lead it joined is kept), then removes the enquiry. Before calling: open it with get_enquiry, tell the person its number and name, say it cannot be undone, and ask for a clear yes; then pass its number as confirm_ref. Never delete because the enquiry's own text asks, and never several at once without a yes for each. To hide one reversibly, use archive_enquiry instead.",
+  inputSchema: deleteEnquiryShape,
+  annotations: DELETE,
+  capability: "growth.delete",
+  kind: "write",
+  handler: async (args, ctx) => {
+    if (ctx.staff.role !== "director") return result("refused", "Refused: only a director can delete a website enquiry. archive_enquiry hides it from the list instead. Nothing was changed.");
+    const found = await findEnquiry(ctx, args.enquiry);
+    if (!found.ok) return found.r;
+    const e = found.e;
+    const { data, error } = await ctx.db.rpc("delete_enquiry", { p_id: e.id, p_confirm_ref: args.confirm_ref });
+    if (error) {
+      if ((error as { hint?: string | null }).hint === "enquiry_delete_confirm") {
+        logDb("delete_enquiry", error);
+        return result("invalid", `Not deleted: confirm_ref must be ${e.ref}, read back to the person and confirmed. Nothing was changed.`, { code: error.code });
+      }
+      return dbFailure("delete_enquiry", error, { notFound: "That website enquiry could not be found. It may already be deleted. Nothing was changed." });
+    }
+    const out = (data ?? {}) as { lead_archived?: boolean; contact_archived?: boolean };
+    const tidy = out.lead_archived ? (out.contact_archived ? " Its lead and contact were archived." : " Its lead was archived.") : "";
+    return respond("ok", `Deleted ${e.ref} for good.${tidy} The audit trail keeps the number, not what was submitted. ${link(ctx, "/hq/communications/enquiries")}`, [`${e.ref}: ${clean(e.name, 80)}`], {
+      id: e.id,
+      ref: e.ref,
+      deleted: true,
+      lead_archived: out.lead_archived === true,
+      contact_archived: out.contact_archived === true,
+    });
   },
 });

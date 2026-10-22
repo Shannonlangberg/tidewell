@@ -5714,6 +5714,10 @@ export type Database = {
         Args: { p_reason?: string; p_staff_id: string }
         Returns: Json
       }
+      delete_enquiry: {
+        Args: { p_confirm_ref: string; p_id: string }
+        Returns: Json
+      }
       discard_email_draft: {
         Args: { p_id: string; p_reason?: string }
         Returns: Json

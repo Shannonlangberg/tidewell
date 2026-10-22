@@ -61,7 +61,7 @@ const EXPECTED_TOOLS = [
   // email
   "list_email_drafts", "get_email_draft", "draft_email", "update_email_draft", "discard_email_draft", "send_email_draft",
   // website enquiries
-  "list_enquiries", "get_enquiry", "archive_enquiry", "restore_enquiry",
+  "list_enquiries", "get_enquiry", "archive_enquiry", "restore_enquiry", "delete_enquiry",
   // knowledge base
   "list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge",
   "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document",
@@ -157,10 +157,10 @@ const emailSettingsBefore = await director.db.from("settings").select("key, valu
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (110 tools, none missing, none extra)", EXPECTED_TOOLS.length === 110 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (111 tools, none missing, none extra)", EXPECTED_TOOLS.length === 111 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
-    const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
+    const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === (t.name === "delete_enquiry") && t.annotations.openWorldHint === false;
     if (undescribed.length || !annOk || !t.description || !/^[a-z_]+$/.test(t.name)) check(`tool ${t.name} is well formed`, false, `undescribed: ${undescribed.join(",")} annotations ok: ${annOk}`);
   }
   check("every tool has a snake_case name, a description, described fields and the contract's annotations", true);
@@ -932,6 +932,20 @@ try {
   check("restore_enquiry brings it back to New and into the open list", outcome(re) === "ok" && re.text.includes("to New") && leBack.text.includes(enq.ref ?? "?"), `${re.text}\n${leBack.text.slice(0, 300)}`);
   const re2 = await call(director, "restore_enquiry", { enquiry: enq.ref ?? "" });
   check("restore_enquiry of one that is not archived changes nothing", outcome(re2) === "unchanged", re2.text);
+  // delete for good (directors only, the number confirmed), on a second enquiry made for it
+  const sub2 = await adminClient().schema("hq").rpc("submit_enquiry", { p_kind: "contact", p_name: `[test] ${RUN} Spam`, p_email: `spam-${enqEmail}`, p_message: "Buy now", p_source_page: "/contact" });
+  const enq2 = (sub2.data ?? {}) as { enquiry_id?: string; ref?: string; opportunity_id?: string };
+  if (enq2.enquiry_id) created.enquiries.push(enq2.enquiry_id);
+  const vaDel = await call(assistant, "delete_enquiry", { enquiry: enq2.ref ?? "", confirm_ref: enq2.ref ?? "" });
+  const vaDelForced = await forced(assistant, "delete_enquiry", { enquiry: enq2.ref ?? "", confirm_ref: enq2.ref ?? "" });
+  check("assistant (growth.write, not a director): delete_enquiry is refused by the tool, and forced past it", outcome(vaDel) === "refused" && outcome(vaDelForced) === "refused", `${vaDel.text}\n${vaDelForced.text}`);
+  const delWrong = await call(director, "delete_enquiry", { enquiry: enq2.ref ?? "", confirm_ref: enq.ref ?? "" });
+  check("delete_enquiry with the wrong number deletes nothing", outcome(delWrong) === "invalid" && /Nothing was changed/.test(delWrong.text), delWrong.text);
+  const del = await call(director, "delete_enquiry", { enquiry: enq2.ref ?? "", confirm_ref: enq2.ref ?? "" });
+  const delGone = await call(director, "get_enquiry", { enquiry: enq2.ref ?? "" });
+  const delLead = await director.db.from("opportunities").select("deleted_at").eq("id", enq2.opportunity_id ?? "").maybeSingle();
+  check("a director deletes it for good; it is not found afterwards and its untouched lead is archived", outcome(del) === "ok" && /Deleted .* for good/.test(del.text) && outcome(delGone) === "not_found" && !!delLead.data?.deleted_at, `${del.text}\n${delGone.text}\n${JSON.stringify(delLead.data)}`);
+  if (outcome(del) === "ok") created.enquiries = created.enquiries.filter((id) => id !== enq2.enquiry_id);
 
   // ── 2g. the knowledge base (approved content never changes silently) ──
   const KB_TOOLS = ["list_knowledge", "search_knowledge", "get_knowledge", "list_knowledge_versions", "get_knowledge_version", "create_knowledge", "update_knowledge", "restore_knowledge_version", "discard_knowledge_draft", "approve_knowledge", "archive_knowledge", "restore_knowledge_document"];

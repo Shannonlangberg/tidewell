@@ -11,13 +11,14 @@ import { withToast } from "@/components/hq/flash";
 
 /*
  * Server Actions for website enquiries. Each is reachable by a direct POST, so every one:
- *   1. calls requireStaff(capability) FIRST (growth.write for the status, archive, restore and spam; settings.admin for
+ *   1. calls requireStaff(capability) FIRST (growth.write for the status, archive, restore and spam;
+ *      growth.delete and the director role for delete; settings.admin for
  *      who gets enquiries), so a forged request from a role without it is redirected out before
  *      anything is read or written;
  *   2. takes identity from the session only (the database stamps who handled it);
  *   3. validates every input on the server (ids are UUIDs, statuses from the list);
  *   4. writes ONLY through the hq RPCs (set_enquiry_status, archive_enquiry, restore_enquiry,
- *      mark_enquiry_spam, set_enquiry_owner),
+ *      mark_enquiry_spam, delete_enquiry, set_enquiry_owner),
  *      which check the capability again and audit.
  * People see plain messages; only error codes are logged.
  */
@@ -99,6 +100,35 @@ export async function restoreEnquiryAction(formData: FormData): Promise<void> {
   const out = (data ?? {}) as { changed?: boolean; ref?: string; status?: string };
   const to = out.status === "in_progress" ? "In progress" : "New";
   redirect(withToast(back, out.changed === false ? "It is not archived" : `${out.ref ?? "Enquiry"} restored to ${to}`, out.changed === false ? "info" : "success"));
+}
+
+/**
+ * Directors: delete an enquiry for good (spam, a test), confirmed by typing its ENQ number. The
+ * database marks it spam first (archiving the untouched lead and contact it made), then deletes it, and
+ * checks the role and the number again. Returns an error for the dialog, or redirects to the list.
+ */
+export async function deleteEnquiryAction(formData: FormData): Promise<ActionState> {
+  const { db, staff } = await requireStaff("growth.delete");
+  if (staff.role !== "director") return fail("Only a director can delete a website enquiry.");
+  const f = new FormReader(formData);
+  const id = f.uuid("id", { required: true });
+  const confirm = f.text("confirm", { max: 20, label: "The enquiry number" });
+  if (!id || !f.ok) return fail("That enquiry could not be deleted.", f.errors);
+  const back = enquiryReturnPath(formData.get("back"), HUB);
+  const { data, error } = await db.rpc("delete_enquiry", { p_id: id, p_confirm_ref: confirm ?? "" });
+  if (error) {
+    console.error("[hq] deleteEnquiry failed:", error.code ?? "unknown");
+    if (error.code === "P0002") return fail("That enquiry could not be found. It may already be deleted.");
+    if (error.code === "42501") return fail("Only a director can delete a website enquiry.");
+    if (error.hint === "enquiry_delete_confirm") return fail("Type the enquiry's number exactly as shown to delete it.", { confirm: "Type the enquiry's number exactly as shown." });
+    return fail(GENERIC);
+  }
+  refresh(id);
+  revalidatePath(`${HQ_BASE}/growth/pipeline`);
+  const out = (data ?? {}) as { ref?: string; lead_archived?: boolean; contact_archived?: boolean };
+  const tidy = out.lead_archived ? (out.contact_archived ? " Its lead and contact were archived." : " Its lead was archived.") : "";
+  // The enquiry's own page no longer exists: from there, go to the list.
+  redirect(withToast(back.startsWith(LIST) ? HUB : back, `${out.ref ?? "Enquiry"} deleted.${tidy}`));
 }
 
 export async function markEnquirySpamAction(formData: FormData): Promise<void> {

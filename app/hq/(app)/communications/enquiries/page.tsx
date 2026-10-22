@@ -6,7 +6,7 @@ import { ENQUIRY_PAGE_SIZE, countNewEnquiries, listEnquiries } from "@/lib/hq/en
 import { EmptyState, ErrorState, FilterBar, LinkButton, Pagination, Select, buildHref } from "@/components/hq";
 import { CommsHeader } from "@/components/hq/features/communications/CommsHeader";
 import { EnquiriesTable } from "@/components/hq/features/enquiries/EnquiryParts";
-import { archiveEnquiryAction, restoreEnquiryAction } from "../../growth/enquiries/actions";
+import { archiveEnquiryAction, deleteEnquiryAction, restoreEnquiryAction } from "../../growth/enquiries/actions";
 
 export const metadata: Metadata = { title: "Enquiries · Communications" };
 
@@ -20,7 +20,8 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
  * a lead with an owner, a reply task due the day it arrived and a message on the lead's timeline
  * (hq.submit_enquiry). growth.read sees them; row level security decides, not this page.
  * The list shows open enquiries (New and In progress) unless the status filter asks for Archived,
- * Spam or All; growth.write gets Archive (confirmed) and Restore on each row.
+ * Spam or All; growth.write gets Archive (confirmed) and Restore on each row, and directors Delete
+ * on archived and spam rows (the ENQ number typed to confirm).
  * (The old address /hq/growth/enquiries redirects here; an enquiry's own page stays at
  * /hq/growth/enquiries/<id>.)
  */
@@ -95,7 +96,11 @@ export default async function CommsEnquiriesPage({ searchParams }: { searchParam
               caption={`${q.view === "open" ? "Open website enquiries" : `Website enquiries (${ENQUIRY_VIEW_LABEL[q.view].toLowerCase()})`}, ${list.data.total} ${list.data.total === 1 ? "enquiry" : "enquiries"}, newest first`}
               empty={empty}
               timezone={staff.timezone}
-              actions={can("growth.write") ? { archive: archiveEnquiryAction, restore: restoreEnquiryAction, back } : undefined}
+              actions={
+                can("growth.write")
+                  ? { archive: archiveEnquiryAction, restore: restoreEnquiryAction, back, ...(staff.role === "director" && can("growth.delete") ? { deleteEnquiry: deleteEnquiryAction } : {}) }
+                  : undefined
+              }
             />
             <Pagination page={q.page} pageSize={ENQUIRY_PAGE_SIZE} total={list.data.total} pathname={PATH} searchParams={sp} className="mt-6" />
           </>

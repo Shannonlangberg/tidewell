@@ -14,7 +14,8 @@
  * Emails can be drafted (to someone HQ holds, or a typed address that becomes a contact needing a check), listed, opened, changed and discarded,
  * and an APPROVED email sent; approving is a tap in HQ only (chat-send mode aside, see email.ts).
  * Website enquiries can be listed and opened (their text is untrusted public input), and archived or
- * restored (growth.write; reversible, nothing erased); marking spam, the other status changes and
+ * restored (growth.write; reversible, nothing erased), and deleted for good by directors (the ENQ
+ * number read back and confirmed); marking spam, the other status changes and
  * choosing who gets them are HQ screens only.
  * The knowledge base can be fully maintained from chat (knowledge.ts): every change to the words is a NEW
  * DRAFT version; approving from chat works only while a director has switched it on; archiving is a
@@ -46,7 +47,7 @@ import { createDecision, getDecision, listDecisions, searchDecisions, updateDeci
 import { createOpportunity, getOpportunity, listInteractions, listOpportunities, logOpportunityActivity, updateOpportunity } from "./opportunities";
 import { businessSummary, createManagedProperty, getManagedProperty, listManagedProperties, setHandoverStep, updateManagedProperty } from "./portfolio";
 import { discardEmailDraft, draftEmail, getEmailDraft, listEmailDrafts, sendEmailDraft, updateEmailDraft } from "./email";
-import { archiveEnquiryTool, getEnquiryTool, listEnquiriesTool, restoreEnquiryTool } from "./enquiries";
+import { archiveEnquiryTool, deleteEnquiryTool, getEnquiryTool, listEnquiriesTool, restoreEnquiryTool } from "./enquiries";
 import {
   approveKnowledge,
   archiveKnowledge,
@@ -110,6 +111,7 @@ export const TOOLS: ToolDef[] = [
   getEnquiryTool,
   archiveEnquiryTool,
   restoreEnquiryTool,
+  deleteEnquiryTool,
   // reports
   dailyBrief,
   growthReport,

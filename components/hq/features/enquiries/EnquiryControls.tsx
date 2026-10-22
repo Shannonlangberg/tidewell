@@ -6,12 +6,13 @@ import { ConfirmDialog } from "../../ConfirmDialog";
 import { SubmitButton } from "../../SubmitButton";
 import type { ActionState } from "@/lib/hq/forms";
 import { ArchiveButton } from "../contacts/ArchiveButton";
+import { DeleteEnquiryButton } from "./DeleteEnquiryButton";
 
 /*
  * The buttons on a website enquiry's page (growth.write): Mark in progress, Archive (confirmed, with an
  * optional reason; reversible), Restore (back to the status it had), Not spam: back to New, and Mark as
  * spam, which is confirmed in a dialog because it also archives the lead and the contact this enquiry
- * created when nobody has worked on them. Each posts to a Server Action passed
+ * created when nobody has worked on them. Directors also get Delete (the ENQ number typed to confirm). Each posts to a Server Action passed
  * in as a prop (this file imports no server code); the actions check the capability again and the
  * database decides in the end. The status buttons are plain forms, so they work without JavaScript.
  */
@@ -30,6 +31,10 @@ export type EnquiryControlsProps = {
   /** What archiving means, for the confirmation (ENQUIRY_ARCHIVE_CONSEQUENCE; passed in so this file imports no server code). */
   archiveConsequence: string;
   restore: Action;
+  /** Directors only: deletes the enquiry for good. */
+  deleteEnquiry?: (formData: FormData) => Promise<ActionState>;
+  /** The enquiry's name, for the delete confirmation. */
+  name: string;
 };
 
 function StatusButton({ id, to, label, action }: { id: string; to: string; label: string; action: Action }) {
@@ -42,7 +47,7 @@ function StatusButton({ id, to, label, action }: { id: string; to: string; label
   );
 }
 
-export function EnquiryControls({ id, refLabel, status, createdLead, setStatus, markSpam, archive, archiveConsequence, restore }: EnquiryControlsProps) {
+export function EnquiryControls({ id, refLabel, status, createdLead, setStatus, markSpam, archive, archiveConsequence, restore, deleteEnquiry, name }: EnquiryControlsProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -61,18 +66,10 @@ export function EnquiryControls({ id, refLabel, status, createdLead, setStatus, 
             Mark as spam
           </Button>
         ) : null}
+        {deleteEnquiry ? <DeleteEnquiryButton id={id} refLabel={refLabel} name={name} createdLead={createdLead} spam={status === "spam"} action={deleteEnquiry} /> : null}
       </div>
 
-      <ConfirmDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        title={`Mark ${refLabel} as spam?`}
-        confirmLabel="Mark as spam"
-        cancelLabel="Keep it"
-        tone="danger"
-        action={markSpam}
-        fields={{ id }}
-      >
+      <ConfirmDialog open={open} onClose={() => setOpen(false)} title={`Mark ${refLabel} as spam?`} confirmLabel="Mark as spam" cancelLabel="Keep it" tone="danger" action={markSpam} fields={{ id }}>
         <p>The enquiry is kept, marked as spam, with your name on it.</p>
         <p className="mt-2">
           {createdLead
