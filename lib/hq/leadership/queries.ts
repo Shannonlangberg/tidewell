@@ -9,6 +9,7 @@
 import type { HqClient } from "../db";
 import type { TaskPriority, TaskStatus } from "../constants";
 import type { LaunchMilestone, LeaderTask, PlanningItem, PlanningKind, PlanningStatus } from "./types";
+import { stageOf, type RelationshipStage } from "./rules";
 
 type Db = HqClient;
 // The views are typed loosely here on purpose: only the columns named below are used.
@@ -246,7 +247,8 @@ export type GrowthPanel = {
   partnersQuiet: number;
   partnersNever: number;
   partners: number;
-  stages: { connect: number; cultivate: number; champion: number };
+  /** Referral partners at each step of the pathway (inactive ones are not counted). */
+  stages: Record<RelationshipStage, number>;
   managed: number | null;
   goal: number | null;
   goalDate: string | null;
@@ -279,12 +281,10 @@ export async function loadGrowthPanel(db: Db, today: string, meId: string): Prom
     logErr("loadGrowthPanel", bad.error);
     return { ok: false };
   }
-  const counts = { connect: 0, cultivate: 0, champion: 0 };
+  const counts: Record<RelationshipStage, number> = { not_connected: 0, connect: 0, cultivate: 0, champion: 0 };
   for (const r of (stages.data ?? []) as { relationship_status: string | null }[]) {
-    const st = r.relationship_status;
-    if (st === "identified" || st === "contacted" || st === "meeting_booked") counts.connect += 1;
-    else if (st === "met" || st === "active_relationship") counts.cultivate += 1;
-    else if (st === "referring_partner") counts.champion += 1;
+    const st = stageOf(r.relationship_status);
+    if (st) counts[st] += 1;
   }
   const by = new Map(((settings.data ?? []) as { key: string; value: unknown }[]).map((r) => [r.key, r.value]));
   const g = by.get("goal_managed_properties");

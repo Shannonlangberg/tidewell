@@ -254,6 +254,10 @@ export const PARTNER_LIST_SORT_KEYS = Object.keys(PARTNER_LIST_SORT_COLUMNS) as 
 export const PARTNER_GROUPS = ["call", "warm", "quiet", "never"] as const;
 export type PartnerGroup = (typeof PARTNER_GROUPS)[number];
 
+/** The referral pathway places the list can filter by (?stage=). The same values as PATHWAY_STEPS plus "inactive" in pathway.ts (a test keeps them equal). */
+export const PARTNER_STAGE_VALUES = ["not_connected", "connect", "cultivate", "champion", "inactive"] as const;
+export type PartnerStageFilter = (typeof PARTNER_STAGE_VALUES)[number];
+
 export type PartnerListQuery = {
   /** Organisations (the default) or independent contacts, who belong to no organisation. */
   kind: "organisation" | "independent";
@@ -262,6 +266,8 @@ export type PartnerListQuery = {
   q: string;
   category: string | null;
   status: string | null;
+  /** Where the partner is on the referral pathway (Not yet connected, Connect, Cultivate, Champion, Not active). */
+  stage: PartnerStageFilter | null;
   owner: OwnerFilter | null;
   /** Not contacted in PARTNER_QUIET_DAYS days, or never. */
   quiet: boolean;
@@ -284,6 +290,7 @@ export function parsePartnerListParams(sp: RawParams, vocab: { categories: reado
   const q = searchTerm(first(sp.q));
   const category = oneOf(first(sp.category), vocab.categories);
   const status = oneOf(first(sp.status), vocab.statuses);
+  const stage = oneOf(first(sp.stage), PARTNER_STAGE_VALUES) as PartnerStageFilter | null;
   const owner = parseOwner(first(sp.owner));
   const quiet = first(sp.quiet) === String(PARTNER_QUIET_DAYS);
   const referredRaw = first(sp.referred);
@@ -297,6 +304,7 @@ export function parsePartnerListParams(sp: RawParams, vocab: { categories: reado
     q,
     category,
     status,
+    stage,
     owner,
     quiet,
     referred,
@@ -305,7 +313,7 @@ export function parsePartnerListParams(sp: RawParams, vocab: { categories: reado
     dir,
     sorted: (PARTNER_LIST_SORT_KEYS as readonly string[]).includes(first(sp.sort)),
     page,
-    filtered: Boolean(q || category || status || owner || quiet || referred || verify),
+    filtered: Boolean(q || category || status || stage || owner || quiet || referred || verify),
   };
 }
 

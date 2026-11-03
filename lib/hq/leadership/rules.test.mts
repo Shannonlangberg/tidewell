@@ -246,14 +246,15 @@ test("planWeek: a proposal of planned days only, respecting due dates and capaci
 
 // ── stages and planning ────────────────────────────────────
 
-test("stageOf: Connect, Cultivate, Champion from relationship_status", () => {
-  assert.equal(stageOf("identified"), "connect");
+test("stageOf: Not yet connected, Connect, Cultivate, Champion from relationship_status", () => {
+  assert.equal(stageOf("identified"), "not_connected");
+  assert.equal(stageOf("contacted"), "connect");
   assert.equal(stageOf("meeting_booked"), "connect");
   assert.equal(stageOf("met"), "cultivate");
   assert.equal(stageOf("active_relationship"), "cultivate");
   assert.equal(stageOf("referring_partner"), "champion");
   assert.equal(stageOf("inactive"), null);
-  assert.equal(stageOf(null), null);
+  assert.equal(stageOf(null), "not_connected", "a business with nobody recorded is not yet connected");
 });
 
 test("planning items are said as planning, never as money held", () => {
@@ -265,4 +266,12 @@ test("planning items are said as planning, never as money held", () => {
   assert.equal(planningIsLive({ kind: "funding", status: "anticipated" }), true);
   assert.equal(planningIsLive({ kind: "funding", status: "received" }), false);
   assert.equal(planningIsLive({ kind: "context", status: "current" }), false);
+});
+
+test("stageOf reads relationship_status exactly as the partner pathway does", async () => {
+  const { placeOf } = await import("../growth/pathway.ts");
+  for (const s of [null, "identified", "contacted", "meeting_booked", "met", "active_relationship", "referring_partner", "inactive"] as const) {
+    const place = placeOf(s);
+    assert.equal(stageOf(s), place === "inactive" ? null : place, String(s));
+  }
 });

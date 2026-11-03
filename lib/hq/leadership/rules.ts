@@ -439,21 +439,28 @@ export function planWeek(tasks: readonly LeaderTask[], today: string, meId: stri
 }
 
 // ════════════════════════════════════════════════════════════
-// 8. Relationship stages: Connect, Cultivate, Champion (a reading of relationship_status)
+// 8. The referral pathway: Not yet connected, Connect, Cultivate, Champion (a reading of relationship_status)
 // ════════════════════════════════════════════════════════════
+// The same reading as lib/hq/growth/pathway.ts (the partner pages and chat); rules.test.mts keeps them equal.
+// Kept here as well so this file stays free of runtime imports.
 
-export type RelationshipStage = "connect" | "cultivate" | "champion";
-export const STAGE_LABEL: Record<RelationshipStage, string> = { connect: "Connect", cultivate: "Cultivate", champion: "Champion" };
+export type RelationshipStage = "not_connected" | "connect" | "cultivate" | "champion";
+export const RELATIONSHIP_STAGES: readonly RelationshipStage[] = ["not_connected", "connect", "cultivate", "champion"];
+export const STAGE_LABEL: Record<RelationshipStage, string> = { not_connected: "Not yet connected", connect: "Connect", cultivate: "Cultivate", champion: "Champion" };
 export const STAGE_HINT: Record<RelationshipStage, string> = {
-  connect: "Identified, contacted or meeting booked",
+  not_connected: "Identified, not contacted yet",
+  connect: "Contacted, or a meeting booked",
   cultivate: "Met, or an active relationship",
   champion: "Referring to us",
 };
 
-/** identified, contacted, meeting_booked = connect; met, active_relationship = cultivate; referring_partner = champion; inactive or none = not counted. */
+/** identified or none = not yet connected; contacted, meeting_booked = connect; met, active_relationship = cultivate; referring_partner = champion; inactive = not counted. */
 export function stageOf(status: string | null | undefined): RelationshipStage | null {
   switch (status) {
+    case null:
+    case undefined:
     case "identified":
+      return "not_connected";
     case "contacted":
     case "meeting_booked":
       return "connect";

@@ -6,6 +6,7 @@
 
 import type { ViewRow } from "../db";
 import type { PartnerCategory, RelationshipStatus } from "../constants";
+import { placeOf, type PathwayPlace } from "../growth/pathway";
 
 export type ReferralPartner = {
   kind: "organisation" | "independent";
@@ -29,6 +30,8 @@ export type ReferralPartner = {
   followUpOverdue: boolean;
   /** The most advanced status among the partner's contacts; null when an organisation has none. */
   status: RelationshipStatus | null;
+  /** Where the partner is on the referral pathway (lib/hq/growth/pathway.ts), read from status. */
+  place: PathwayPlace;
   needsVerification: boolean;
   received: number;
   sent: number;
@@ -61,6 +64,7 @@ export function toReferralPartner(r: ViewRow<"referral_partner_overview">): Refe
     nextFollowUpDate: r.next_follow_up_date,
     followUpOverdue: Boolean(r.follow_up_overdue),
     status: r.relationship_status,
+    place: placeOf(r.relationship_status),
     needsVerification: Boolean(r.needs_verification),
     received: Number(r.referrals_received ?? 0),
     sent: Number(r.referrals_sent ?? 0),

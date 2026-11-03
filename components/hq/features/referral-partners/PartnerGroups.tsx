@@ -5,6 +5,7 @@ import type { PartnerGroup } from "@/lib/hq/growth/params";
 import { partnerHref, type ReferralPartner } from "@/lib/hq/referral-partners/types";
 import { LinkButton } from "../../Button";
 import { StatusChip } from "../../StatusChip";
+import { STEP_LABEL, type PathwayPlace } from "@/lib/hq/growth/pathway";
 
 /*
  * The Referral partners list as the groups a BDM works through: Call first (a follow-up is due),
@@ -62,6 +63,9 @@ function FollowUp({ date, today }: { date: string | null; today: string }) {
   return <span>Follow up {formatDay(date, today)}</span>;
 }
 
+/** The pathway step as a chip: Champion and Cultivate stand out, the rest stay quiet. */
+const PLACE_TONE: Record<PathwayPlace, "neutral" | "info" | "success"> = { not_connected: "neutral", connect: "neutral", cultivate: "info", champion: "success", inactive: "neutral" };
+
 function PartnerRow({
   partner: p,
   group,
@@ -98,6 +102,9 @@ function PartnerRow({
           <Link href={partnerHref(p)} className="hq-prow__name">
             {p.name}
           </Link>
+          <StatusChip tone={PLACE_TONE[p.place]} className="hq-prow__step">
+            {STEP_LABEL[p.place]}
+          </StatusChip>
           {showMarker ? (
             <StatusChip tone={marker === "needs" ? "warning" : "success"} className="hq-prow__marker">
               {marker === "needs" ? "Needs verifying" : "Verified"}

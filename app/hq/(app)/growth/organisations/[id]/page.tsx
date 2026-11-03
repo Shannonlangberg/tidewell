@@ -18,6 +18,8 @@ import { InteractionTimeline } from "@/components/hq/features/contacts/Timeline"
 import { VerifyNotice } from "@/components/hq/features/contacts/Verify";
 import { OrganisationContacts } from "@/components/hq/features/organisations/OrganisationContacts";
 import { PartnerSummaryBlock } from "@/components/hq/features/referral-partners/PartnerSummaryBlock";
+import { PartnerPathwayPanel } from "@/components/hq/features/referral-partners/Pathway";
+import { loadPartnerPathway } from "@/lib/hq/growth/pathway-queries";
 import { archiveOrganisation, verifyOrganisation } from "../actions";
 
 export const metadata: Metadata = { title: "Organisation" };
@@ -50,12 +52,13 @@ export default async function OrganisationPage({ params, searchParams }: { param
   const tz = staff.timezone;
   const today = todayInZone(tz);
 
-  const [contacts, history, referrals, staffList, partner] = await Promise.all([
+  const [contacts, history, referrals, staffList, partner, pathway] = await Promise.all([
     organisationContacts(db, id),
     listInteractions(db, { organisationId: id }),
     referralSummary(db, { organisationId: id }),
     canWrite ? staffOptions(db) : Promise.resolve([]),
     getReferralPartner(db, id),
+    loadPartnerPathway(db, { kind: "organisation", id }),
   ]);
   // The partner summary carries "last contacted" (contacts AND organisation-level interactions); the
   // details list only falls back to its own figure when the summary could not be loaded.
@@ -146,6 +149,8 @@ export default async function OrganisationPage({ params, searchParams }: { param
           ) : null}
         </div>
       ) : null}
+
+      <PartnerPathwayPanel partner={{ kind: "organisation", id: o.id }} name={o.name} pathway={pathway} canWrite={canWrite} returnTo={`${BASE}/${o.id}`} />
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">

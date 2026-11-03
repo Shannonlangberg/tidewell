@@ -5570,10 +5570,13 @@
   .hq-cc-stat__label { font-size: 13.5px; color: var(--planted-charcoal); }
   .hq-cc-growth__cols { display: grid; gap: 28px; margin-top: 24px; }
   @media (min-width: 900px) { .hq-cc-growth__cols { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 48px; } }
-  .hq-cc-stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0 0 8px; padding: 0; list-style: none; }
+  .hq-cc-stages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0 0 8px; padding: 0; list-style: none; }
+  @media (min-width: 640px) { .hq-cc-stages { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .hq-cc-stage__link { display: grid; gap: 2px; color: inherit; text-decoration: none; }
+  .hq-cc-stage__link:hover .hq-cc-stage__name { text-decoration: underline; text-underline-offset: 3px; }
   .hq-cc-stage { position: relative; display: grid; gap: 2px; padding: 14px 16px 14px 0; border-top: 2px solid var(--planted-stone); }
-  .hq-cc-stage:nth-child(2) { border-top-color: var(--planted-sage); }
-  .hq-cc-stage:nth-child(3) { border-top-color: var(--planted-forest); }
+  .hq-cc-stage:nth-child(3) { border-top-color: var(--planted-sage); }
+  .hq-cc-stage:nth-child(4) { border-top-color: var(--planted-forest); }
   .hq-cc-stage:not(:last-child)::after { content: "→"; position: absolute; right: 10px; top: 14px; color: var(--planted-sage); }
   .hq-cc-stage__n { font-size: 28px; font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   .hq-cc-stage__name { font-size: 14px; font-weight: 600; }
@@ -5626,3 +5629,52 @@
   .hq-cc-launch__next .hq-cc-subhead { margin: 0; }
   .hq-cc-launch__next a:not(.hq-cc-textlink) { color: var(--planted-charcoal); text-underline-offset: 3px; text-decoration-color: var(--planted-border); }
 }
+/* === Referral pathway (docs/hq-partner-pathway.md) ===
+ * Not yet connected, Connect, Cultivate, Champion: a four-step track on a partner's page and a row of step
+ * chips on the Referral partners list. Forest for steps passed, the current step forest with the lime
+ * accent ring, stone for steps ahead. Every colour is a token.
+ */
+@layer components {
+  .hq-path { display: grid; gap: 14px; margin-bottom: 40px; padding: 20px 22px; border: 1px solid var(--planted-border); border-radius: var(--radius-card); background: var(--planted-white); }
+  .hq-path__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  .hq-path__label { color: var(--planted-grey-text); font-size: 12px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; }
+  .hq-path__all { color: var(--planted-charcoal); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+  .hq-path__track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .hq-path__step { position: relative; display: grid; align-content: start; gap: 2px; padding: 12px 12px 10px; border-top: 4px solid var(--planted-stone); border-radius: 4px 4px 10px 10px; background: var(--planted-ivory); min-width: 0; }
+  .hq-path__step--done { border-top-color: var(--planted-sage); }
+  .hq-path__step--here { border-top-color: var(--planted-forest); background: var(--planted-charcoal); color: var(--planted-ivory); box-shadow: 0 0 0 2px var(--planted-lime) inset; }
+  .hq-path__name { font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+  .hq-path__hint { color: var(--planted-grey-text); font-size: 12px; line-height: 1.35; }
+  .hq-path__step--here .hq-path__hint { color: var(--planted-muted-dark); }
+  .hq-path__here { margin-top: 4px; color: var(--planted-lime); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .hq-path__note { color: var(--planted-charcoal); font-size: 14px; line-height: 1.5; max-width: 52rem; }
+  .hq-path__moves { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 639px) {
+    .hq-path { padding: 16px; }
+    .hq-path__track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* the list's step chips */
+  .hq-pstages { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; padding: 0; list-style: none; }
+  .hq-pstages__chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    min-height: 38px;
+    padding: 8px 14px;
+    border: 1px solid var(--planted-border);
+    border-radius: var(--radius-pill);
+    background: var(--planted-white);
+    color: var(--planted-charcoal);
+    font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .hq-pstages__chip:hover { border-color: var(--planted-charcoal); }
+  .hq-pstages__chip[aria-current="true"] { background: var(--planted-charcoal); border-color: var(--planted-charcoal); color: var(--planted-ivory); }
+  .hq-pstages__n { color: var(--planted-grey-text); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .hq-pstages__chip[aria-current="true"] .hq-pstages__n { color: var(--planted-muted-dark); }
+  .hq-prow__step { margin-left: 8px; }
+}
+/* === end Referral pathway === */

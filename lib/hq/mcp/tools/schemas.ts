@@ -152,6 +152,18 @@ export const whoToContactShape = {
   limit,
 };
 
+const PATHWAY_PLACE_VALUES = ["not_connected", "connect", "cultivate", "champion", "inactive"] as const;
+export const partnerPathwayShape = {
+  partner: optRef("referral partner (a business, or an independent partner contact)", "Where this one partner is, who sets it and its next and previous steps."),
+  stage: z.enum(PATHWAY_PLACE_VALUES).optional().describe("Optional. List the partners at this step: not_connected, connect, cultivate, champion or inactive."),
+  independent: z.boolean().optional().describe("Optional. true = independent partner contacts instead of businesses."),
+  limit,
+};
+export const movePartnerStageShape = {
+  partner: ref("referral partner (a business, or an independent partner contact)"),
+  to: z.enum(["not_connected", "connect", "cultivate", "champion", "next", "back"]).describe("The step to move to: not_connected, connect, cultivate or champion, or next / back from where they are now."),
+};
+
 export const teamDirectoryShape = {};
 
 // ── reports ──────────────────────────────────────────────────

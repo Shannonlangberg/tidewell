@@ -46,11 +46,11 @@ const { todayIn } = (await import("../../lib/hq/format.ts")) as unknown as { tod
 const EXPECTED_TOOLS = [
   // read
   "search", "fetch", "search_contractors", "get_contractor", "contractor_expiries", "search_contacts", "get_contact", "search_organisations", "list_tasks", "list_referrals",
-  "pipeline_summary", "who_to_contact", "team_directory",
+  "pipeline_summary", "who_to_contact", "partner_pathway", "team_directory",
   // reports
   "daily_brief", "growth_report", "contractor_report", "weekly_report",
   // write
-  "create_task", "update_task", "log_interaction", "log_contractor_contact", "create_contact", "update_contact", "create_organisation", "update_contractor",
+  "create_task", "update_task", "log_interaction", "move_partner_stage", "log_contractor_contact", "create_contact", "update_contact", "create_organisation", "update_contractor",
   "record_contractor_review", "record_contractor_job", "set_vetting_step", "record_referral", "move_opportunity",
   // decisions
   "list_decisions", "search_decisions", "get_decision", "create_decision", "update_decision",
@@ -157,7 +157,7 @@ const emailSettingsBefore = await director.db.from("settings").select("key, valu
 try {
   // ── 0. the tool list itself ──────────────────────────────────
   console.log(`\nRun ${RUN}: ${TOOLS.length} tools\n`);
-  check("the tool list matches the contract exactly (108 tools, none missing, none extra)", EXPECTED_TOOLS.length === 108 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
+  check("the tool list matches the contract exactly (110 tools, none missing, none extra)", EXPECTED_TOOLS.length === 110 && TOOLS.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => byName.has(n)) && TOOLS.every((t) => EXPECTED_TOOLS.includes(t.name)), `missing: ${EXPECTED_TOOLS.filter((n) => !byName.has(n)).join(", ") || "none"}; extra: ${TOOLS.filter((t) => !EXPECTED_TOOLS.includes(t.name)).map((t) => t.name).join(", ") || "none"}`);
   for (const t of TOOLS) {
     const undescribed = Object.entries(t.inputSchema).filter(([, s]) => !s.description).map(([k]) => k);
     const annOk = t.kind === "read" ? t.annotations.readOnlyHint === true : t.annotations.readOnlyHint === false && t.annotations.destructiveHint === false && t.annotations.openWorldHint === false;
@@ -187,6 +187,7 @@ try {
     ["list_referrals", {}],
     ["pipeline_summary", {}],
     ["who_to_contact", {}],
+    ["partner_pathway", {}],
     ["team_directory", {}],
     ["daily_brief", {}],
     ["growth_report", { period: "fy" }],
@@ -275,6 +276,21 @@ try {
   check("  ...audited as the interaction, the contact's follow-up dates and the task (record_interaction's one transaction)", kinds === "create interaction, create task, update contact" && audit.every((a) => [personId, li.structured?.interaction_id, li.structured?.task_id].includes(a.entity_id)), auditText(audit));
   const future = await call(director, "log_interaction", { contact: personId, type: "note", summary: "x", occurred_at: `${plusDays(2)}T10:00` });
   check("log_interaction refuses a time in the future", outcome(future) === "invalid" && /future/.test(future.text), future.text);
+
+  // The referral pathway: the person is contacted, so their partner is at Connect.
+  const pwRead = await call(director, "partner_pathway", { partner: personId });
+  check("partner_pathway says where the partner is (Connect, from contacted)", outcome(pwRead) === "ok" && pwRead.structured?.place === "connect", pwRead.text);
+  mark = await auditMark();
+  const pwMove = await call(director, "move_partner_stage", { partner: personId, to: "next" });
+  audit = await auditSince(mark, director.staff.id);
+  const moved = await director.db.from("contacts").select("relationship_status").eq("id", personId).single();
+  check("move_partner_stage next moves the partner to Cultivate (the person becomes Met)", outcome(pwMove) === "ok" && pwMove.structured?.to === "cultivate" && moved.data?.relationship_status === "met", pwMove.text);
+  check("  ...audited as one update of that contact, nothing else", audit.length === 1 && audit[0].entity_type === "contact" && audit[0].entity_id === personId && audit[0].action === "update", auditText(audit));
+  const pwBack = await call(director, "move_partner_stage", { partner: personId, to: "back" });
+  const back = await director.db.from("contacts").select("relationship_status").eq("id", personId).single();
+  check("move_partner_stage back returns them to Connect (Contacted)", outcome(pwBack) === "ok" && back.data?.relationship_status === "contacted", pwBack.text);
+  const pwJunior = await call(junior, "move_partner_stage", { partner: personId, to: "champion" });
+  check("a junior property manager cannot move a partner (no growth.write)", outcome(pwJunior) === "refused", pwJunior.text);
 
   mark = await auditMark();
   const task = await call(director, "create_task", { title: `${RUN} send the appraisal`, contact: personId, due_date: plusDays(1), priority: "high" });
