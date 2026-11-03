@@ -43,7 +43,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: CLI v3 (2 Nov 2026) no longer reads [inbucket] in supabase/config.toml. Move to v3 together with the config.
+          version: 2.122.1
       - name: Start the local Supabase stack
         run: supabase start -x logflare,vector,imgproxy,edge-runtime,studio,mailpit,postgres-meta
       - name: Apply every migration from scratch
