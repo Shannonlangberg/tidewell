@@ -1,6 +1,8 @@
 import "server-only";
 
 import { PARTNER_CATEGORIES, RELATIONSHIP_STATUSES } from "../constants";
+import { STEP_STATUSES } from "../growth/pathway";
+import { NOT_CONNECTED_CONDITION, partnerPlaceCounts } from "../growth/pathway-queries";
 import type { HqClient, ViewRow } from "../db";
 import { logTag } from "../growth/db-errors";
 import {
@@ -65,6 +67,7 @@ export async function listReferralPartners(
       orIlike(["name", "primary_contact_name"], query.q),
       query.quiet ? QUIET_CONDITION : null,
       group && group !== "call" ? `next_follow_up_date.is.null,next_follow_up_date.gt.${ctx.today}` : null,
+      query.stage === "not_connected" ? NOT_CONNECTED_CONDITION : null,
     ].filter((c): c is string => c !== null);
     if (anyOf.length === 1) q = q.or(anyOf[0]);
     else if (anyOf.length > 1) q = q.or(`and(${anyOf.map((c) => `or(${c})`).join(",")})`);
@@ -74,6 +77,7 @@ export async function listReferralPartners(
     if (group === "never") q = q.is("last_contacted_at", null);
     if (query.category) q = q.contains("categories", [query.category as (typeof PARTNER_CATEGORIES)[number]]);
     if (query.status) q = q.eq("relationship_status", query.status as (typeof RELATIONSHIP_STATUSES)[number]);
+    if (query.stage && query.stage !== "not_connected") q = q.in("relationship_status", [...STEP_STATUSES[query.stage]]);
     if (query.owner) {
       if (query.owner.kind === "none") q = q.is("relationship_owner_id", null);
       else q = q.eq("relationship_owner_id", query.owner.kind === "me" ? ctx.staffId : query.owner.id);
@@ -166,6 +170,9 @@ export async function getReferralPartner(db: HqClient, id: string): Promise<Load
   }
   return { ok: true, data: data ? toReferralPartner(data as ViewRow<"referral_partner_overview">) : null };
 }
+
+/** How many partners of one kind are at each place on the referral pathway (shared with chat). */
+export const referralPartnerPlaceCounts = partnerPlaceCounts;
 
 /** How many partners of each kind, for the Organisations / Independent contacts tabs. Null when the count failed. */
 export async function referralPartnerKindCounts(db: HqClient): Promise<{ organisation: number | null; independent: number | null }> {

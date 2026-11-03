@@ -15,10 +15,12 @@ import {
   listReferralPartners,
   partnerListQuery,
   referralPartnerKindCounts,
+  referralPartnerPlaceCounts,
   referralPartnerSummary,
   type PartnerSummary,
 } from "@/lib/hq/referral-partners/queries";
 import type { ReferralPartner } from "@/lib/hq/referral-partners/types";
+import { PATHWAY_STEPS, STEP_HINT, STEP_LABEL, type PathwayPlace } from "@/lib/hq/growth/pathway";
 import { newTaskHref } from "@/lib/hq/tasks/rules";
 import { EmptyState, ErrorState, FilterBar, HQ_ROUTES, LinkButton, PageHeader, Pagination, SearchInput, Select, Tabs, buildHref } from "@/components/hq";
 import { LogInteractionDrawer } from "@/components/hq/features/contacts/LogInteractionDrawer";
@@ -83,13 +85,14 @@ export default async function ReferralPartnersPage({ searchParams }: { searchPar
   const logOpen = canWrite && parseLogParam(sp.log) !== null;
   const logPartnerId = logOpen && isUuid(first(sp.partner)) ? first(sp.partner) : null;
 
-  const [groups, single, summary, kinds, staffList, logPartner] = await Promise.all([
+  const [groups, single, summary, kinds, staffList, logPartner, places] = await Promise.all([
     query.group ? Promise.resolve(null) : listPartnerGroups(db, query, ctx, GROUP_LIMIT),
     query.group ? listReferralPartners(db, query, ctx, { group: query.group }) : Promise.resolve(null),
     referralPartnerSummary(db, query.kind),
     referralPartnerKindCounts(db),
     staffOptions(db),
     logPartnerId ? getReferralPartner(db, logPartnerId) : Promise.resolve(null),
+    referralPartnerPlaceCounts(db, query.kind),
   ]);
   const subject: ReferralPartner | null = logPartner && logPartner.ok ? logPartner.data : null;
   const pickerContacts: Option[] = !logOpen
@@ -121,6 +124,9 @@ export default async function ReferralPartnersPage({ searchParams }: { searchPar
   const s = summary.ok ? summary.data : null;
   const verify = verification(s);
   const moreFilters = [query.category, query.status, query.owner, query.quiet, query.referred, query.verify].filter(Boolean).length;
+  // The pathway chips: every step, and Not active only when someone is.
+  const placeChips: (PathwayPlace | null)[] = [null, ...PATHWAY_STEPS, ...(places && places.inactive > 0 ? (["inactive"] as const) : [])];
+  const stageHref = (p: PathwayPlace | null) => buildHref(PATH, sp, { stage: p, page: null, log: null, partner: null });
 
   const loadFailed = groups ? PARTNER_GROUPS.some((g) => !groups[g].ok) : !single?.ok;
   const shownTotal = groups
@@ -269,6 +275,7 @@ export default async function ReferralPartnersPage({ searchParams }: { searchPar
         hidden={{
           show: independent ? "independent" : undefined,
           group: query.group ?? undefined,
+          stage: query.stage ?? undefined,
           sort: query.sorted ? query.sort : undefined,
           dir: query.sorted ? query.dir : undefined,
         }}
@@ -328,6 +335,19 @@ export default async function ReferralPartnersPage({ searchParams }: { searchPar
       >
         <SearchInput placeholder={independent ? "Search by name" : "Search by partner or person"} defaultValue={query.q} />
       </FilterBar>
+
+      <nav aria-label="Referral pathway">
+        <ul className="hq-pstages">
+          {placeChips.map((p) => (
+            <li key={p ?? "all"}>
+              <Link href={stageHref(p)} className="hq-pstages__chip" aria-current={query.stage === p || (!query.stage && p === null) ? "true" : undefined} title={p ? STEP_HINT[p] : undefined}>
+                {p ? STEP_LABEL[p] : "Whole pathway"}
+                {places ? <span className="hq-pstages__n">{(p ? places[p] : Object.values(places).reduce((a, b) => a + b, 0)).toLocaleString("en-AU")}</span> : null}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       {!s && !loadFailed ? <p className="hq-muted mt-4 text-[13px]">The totals could not be loaded just now; the list below is complete.</p> : null}
       {verify.line && shownTotal > 0 ? <p className="hq-pnote">{verify.line}</p> : null}

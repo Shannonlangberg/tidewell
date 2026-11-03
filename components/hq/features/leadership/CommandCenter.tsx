@@ -7,6 +7,7 @@ import {
   LANE_HINT,
   LANE_LABEL,
   POINTS,
+  RELATIONSHIP_STAGES,
   STAGE_HINT,
   STAGE_LABEL,
   alsoDueToday,
@@ -758,7 +759,7 @@ function GrowthSection({ g, canPortfolio }: { g: GrowthPanel; canPortfolio: bool
     { key: "followups", label: "Follow-ups due", value: g.followUpsDue + g.leadFollowUpsDue, href: "/hq/growth/contacts", hint: g.leadFollowUpsDue ? `${g.leadFollowUpsDue} of them on your leads` : null },
     { key: "partners", label: "Partners to contact", value: g.partnersQuiet + g.partnersNever, href: "/hq/growth/partners", hint: g.partners ? `${g.partnersNever} never contacted, ${g.partnersQuiet} quiet over 30 days` : "No partners recorded yet" },
   ];
-  const total = g.stages.connect + g.stages.cultivate + g.stages.champion;
+  const total = g.stages.not_connected + g.stages.connect + g.stages.cultivate + g.stages.champion;
   const managedPct = g.managed !== null && g.goal ? Math.min(100, Math.round((100 * g.managed) / g.goal)) : 0;
   return (
     <section className="hq-cc-section" aria-labelledby="cc-growth-h" id="cc-growth">
@@ -778,15 +779,17 @@ function GrowthSection({ g, canPortfolio }: { g: GrowthPanel; canPortfolio: bool
         <div>
           <h3 className="hq-cc-subhead">Referral partners</h3>
           <ol className="hq-cc-stages" aria-label="Referral partners by stage">
-            {(["connect", "cultivate", "champion"] as const).map((k) => (
+            {RELATIONSHIP_STAGES.map((k) => (
               <li key={k} className="hq-cc-stage">
-                <span className="hq-cc-stage__n">{g.stages[k]}</span>
-                <span className="hq-cc-stage__name">{STAGE_LABEL[k]}</span>
-                <span className="hq-cc-small">{STAGE_HINT[k]}</span>
+                <Link href={`/hq/growth/partners?stage=${k}`} className="hq-cc-stage__link">
+                  <span className="hq-cc-stage__n">{g.stages[k]}</span>
+                  <span className="hq-cc-stage__name">{STAGE_LABEL[k]}</span>
+                  <span className="hq-cc-small">{STAGE_HINT[k]}</span>
+                </Link>
               </li>
             ))}
           </ol>
-          <p className="hq-cc-small">{total === 0 ? "No partner has a relationship stage yet." : `${total} partners with a stage; inactive ones are not counted.`}</p>
+          <p className="hq-cc-small">{total === 0 ? "No referral partners yet." : `${total} partners on the pathway; inactive ones are not counted.`}</p>
         </div>
         <div>
           <h3 className="hq-cc-subhead">First-year goal</h3>

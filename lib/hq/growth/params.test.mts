@@ -236,6 +236,7 @@ test("referral partners: defaults, with nothing filtered", () => {
     q: "",
     category: null,
     status: null,
+    stage: null,
     owner: null,
     quiet: false,
     referred: null,
@@ -314,4 +315,11 @@ test("referral partners: never-contacted sorts first only for last contacted, ol
   assert.equal(partnerNullsFirst("last_contacted", "desc"), false);
   assert.equal(partnerNullsFirst("follow_up", "asc"), false);
   assert.equal(PARTNER_QUIET_DAYS, 30);
+});
+
+test("referral partners: ?stage= filters by the pathway place, and anything else is ignored", () => {
+  assert.equal(parsePartnerListParams({ stage: "cultivate" }, PARTNER_VOCAB).stage, "cultivate");
+  assert.equal(parsePartnerListParams({ stage: "cultivate" }, PARTNER_VOCAB).filtered, true);
+  assert.equal(parsePartnerListParams({ stage: "not_connected" }, PARTNER_VOCAB).stage, "not_connected");
+  assert.equal(parsePartnerListParams({ stage: "nonsense" }, PARTNER_VOCAB).stage, null);
 });

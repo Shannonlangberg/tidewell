@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { PRIORITIES, PRIORITY_LABEL, RELATIONSHIP_LABEL, RELATIONSHIP_STATUSES, STAGE_LABEL } from "@/lib/hq/constants";
 import { requireStaff } from "@/lib/hq/auth";
 import { MeetingsFor } from "@/components/hq/features/meetings/MeetingsFor";
+import { PartnerPathwayPanel } from "@/components/hq/features/referral-partners/Pathway";
+import { loadPartnerPathway } from "@/lib/hq/growth/pathway-queries";
 import {
   firstInteractionAt,
   getContact,
@@ -73,7 +75,9 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
   const tz = staff.timezone;
 
   const partner = c.kind === "partner";
-  const [timeline, firstAt, sameOrg, referrals, tasks, staffList, leads] = await Promise.all([
+  // An independent partner (a partner contact with no organisation) is a referral partner in their own right.
+  const independentPartner = partner && !c.organisationId;
+  const [timeline, firstAt, sameOrg, referrals, tasks, staffList, leads, pathway] = await Promise.all([
     listInteractions(db, { contactId: id }),
     firstInteractionAt(db, id),
     c.organisationId ? sameOrganisationContacts(db, c.organisationId, id) : Promise.resolve(null),
@@ -81,6 +85,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
     openTasksForContact(db, id),
     canWrite ? staffOptions(db) : Promise.resolve([]),
     leadsForContact(db, id),
+    independentPartner ? loadPartnerPathway(db, { kind: "independent", id }) : Promise.resolve(null),
   ]);
   const leadList = leads.ok ? leads.data : [];
 
@@ -263,6 +268,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pa
           ) : null}
         </div>
       ) : null}
+
+      {pathway ? <PartnerPathwayPanel partner={{ kind: "independent", id: c.id }} name={c.fullName} pathway={pathway} canWrite={canWrite} returnTo={`${BASE}/${c.id}`} /> : null}
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
