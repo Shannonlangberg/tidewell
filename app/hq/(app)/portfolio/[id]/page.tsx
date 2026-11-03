@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/hq/auth";
-import { formatDate, formatDateTime } from "@/lib/hq/format";
+import { formatAud, formatDate, formatDateTime } from "@/lib/hq/format";
 import { isUuid } from "@/lib/hq/forms";
 import { HANDOVER_STEP_STATUS_LABEL, SERVICE_TYPE_LABEL, feeText } from "@/lib/hq/portfolio/rules";
 import { getProperty } from "@/lib/hq/portfolio/queries";
@@ -10,7 +10,9 @@ import { ErrorState, InlineNote, KeyValueList, LinkButton, PageHeader, Panel, Pa
 import { HandoverChecklist, type ChecklistStep } from "@/components/hq/features/portfolio/HandoverChecklist";
 import { AiloChip, HandoverProgress, ManagedStatusChip, ServiceChip } from "@/components/hq/features/portfolio/PortfolioParts";
 import { ArchiveProperty, RestoreProperty } from "@/components/hq/features/portfolio/PropertyControls";
-import { archiveProperty, restoreProperty, setHandoverStepAction } from "../actions";
+import { archiveProperty, restoreProperty, setHandoverStepAction, setPropertyTermsAction } from "../actions";
+import { PropertyTermsForm } from "@/components/hq/features/portfolio/PropertyTermsForm";
+import { END_REASON_LABEL, annualFeeFromRent, isEndReason } from "@/lib/hq/ceo/rules";
 
 export const metadata: Metadata = { title: "Property" };
 
@@ -130,6 +132,39 @@ export default async function PropertyPage({ params }: { params: Params }) {
             />
           </section>
 
+          <section aria-labelledby="p-terms">
+            <SectionLabel as="h2" id="p-terms" className="mb-4 border-b border-line pb-3.5">
+              Agreement terms
+            </SectionLabel>
+            <p className="mb-4 text-[15px]">What the management agreement says, for the contracted fees on the Command Centre. Excluding GST; Ailo keeps the live rent.</p>
+            <KeyValueList
+              items={[
+                ...(p.feeBasis === "percent_of_rent"
+                  ? [
+                      { label: "Weekly rent", value: p.weeklyRentCents !== null ? formatAud(p.weeklyRentCents) : nil },
+                      { label: "Fee a year", value: p.weeklyRentCents !== null && p.feePercent !== null ? `${formatAud(annualFeeFromRent(p.weeklyRentCents, p.feePercent))} (worked out)` : nil },
+                    ]
+                  : [{ label: "Fee a year", value: p.annualFeeCents !== null ? formatAud(p.annualFeeCents) : nil }]),
+                ...(p.status === "offboarding" || p.status === "ended" ? [{ label: "Why it is ending", value: p.endReason && isEndReason(p.endReason) ? END_REASON_LABEL[p.endReason] : nil }] : []),
+              ]}
+            />
+            {canWrite && !p.archived ? (
+              <details className="mt-4">
+                <summary className="cursor-pointer text-[14px] underline underline-offset-4">Record the terms</summary>
+                <div className="mt-4">
+                  <PropertyTermsForm
+                    action={setPropertyTermsAction}
+                    propertyId={p.id}
+                    percentFee={p.feeBasis === "percent_of_rent"}
+                    ending={p.status === "offboarding" || p.status === "ended"}
+                    weeklyRent={p.weeklyRentCents !== null ? String(p.weeklyRentCents / 100) : ""}
+                    annualFee={p.annualFeeCents !== null ? String(p.annualFeeCents / 100) : ""}
+                    endReason={p.endReason}
+                  />
+                </div>
+              </details>
+            ) : null}
+          </section>
           <section aria-labelledby="p-handover">
             <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line pb-3.5">
               <SectionLabel as="h2" id="p-handover">

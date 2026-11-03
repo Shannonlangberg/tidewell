@@ -6,6 +6,7 @@ import { requireStaff } from "@/lib/hq/auth";
 import { HQ_BASE } from "@/lib/hq/constants";
 import { todayIn } from "@/lib/hq/format";
 import { FormReader, fail, isUuid, succeed, type ActionState } from "@/lib/hq/forms";
+import { dollarsToCents, isEndReason } from "@/lib/hq/ceo/rules";
 import { GOAL_MAX, HANDOVER_STEPS, HANDOVER_STEP_STATUSES, NOTE_MAX, readPropertyFields } from "@/lib/hq/portfolio/rules";
 import { retainedValues } from "@/lib/hq/tasks/retain";
 import { withToast } from "@/components/hq/flash";
@@ -255,4 +256,49 @@ export async function setBusinessGoal(_prev: ActionState, formData: FormData): P
   revalidatePath(`${HQ_BASE}/settings`);
   const changed = (data as { changed?: boolean } | null)?.changed !== false;
   return succeed(changed ? "Goal saved." : "Nothing changed.");
+}
+
+// ── agreement terms: rent, yearly fee, why it ended (0162) ───
+
+/*
+ * The figures the CEO Command Centre's contracted fees come from. Blank fields are cleared; the RPC checks
+ * portfolio.write again and the rules (a yearly fee only where the fee is not a percentage of rent; a
+ * reason only when offboarding or ended), and the audit trigger records the change.
+ */
+export async function setPropertyTermsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { db } = await requireStaff("portfolio.write");
+  const id = idFrom(formData);
+  if (!id) return fail(NOT_FOUND);
+  const reader = new FormReader(formData);
+  const money = (name: string, label: string, max: number): number | null => {
+    const raw = (reader.text(name, { max: 16, label }) ?? "").trim();
+    if (!raw) return null;
+    const cents = dollarsToCents(raw);
+    if (cents === null || Number.isNaN(cents) || cents < 1 || cents > max) {
+      reader.errors[name] = `Enter an amount in dollars, like 650 or 650.50.`;
+      return null;
+    }
+    return cents;
+  };
+  const rent = money("weekly_rent", "The weekly rent", 10_000_000);
+  const fee = money("annual_fee", "The yearly fee", 100_000_000);
+  const reasonRaw = reader.text("end_reason", { max: 40, label: "The reason" });
+  const reason = reasonRaw && isEndReason(reasonRaw) ? reasonRaw : null;
+  if (reasonRaw && !reason) reader.errors.end_reason = "Choose a reason from the list.";
+  if (!reader.ok) return withValues(reader.fail(CHECK), formData);
+  const clear = [rent === null ? "weekly_rent_cents" : null, fee === null ? "annual_fee_cents" : null, reason === null ? "end_reason" : null].filter((x): x is string => x !== null);
+  const { data, error } = await db.rpc("set_property_terms", {
+    p_id: id,
+    ...(rent !== null ? { p_weekly_rent_cents: rent } : {}),
+    ...(fee !== null ? { p_annual_fee_cents: fee } : {}),
+    ...(reason !== null ? { p_end_reason: reason } : {}),
+    p_clear: clear,
+  });
+  if (error) {
+    logged("setPropertyTerms", error);
+    return withValues(fail(messageFor(error)), formData);
+  }
+  refresh(id);
+  revalidatePath(`${HQ_BASE}/ceo`, "layout");
+  return succeed((data as { changed?: boolean } | null)?.changed === false ? "Nothing changed." : "Agreement terms saved.");
 }

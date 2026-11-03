@@ -1803,6 +1803,9 @@ export type Database = {
           suburb: string | null
           updated_at: string
           updated_by: string | null
+          annual_fee_cents: number | null
+          end_reason: Database["hq"]["Enums"]["management_end_reason"] | null
+          weekly_rent_cents: number | null
         }
         Insert: {
           address_key?: string | null
@@ -1831,6 +1834,9 @@ export type Database = {
           suburb?: string | null
           updated_at?: string
           updated_by?: string | null
+          annual_fee_cents?: number | null
+          end_reason?: Database["hq"]["Enums"]["management_end_reason"] | null
+          weekly_rent_cents?: number | null
         }
         Update: {
           address_key?: string | null
@@ -1859,6 +1865,9 @@ export type Database = {
           suburb?: string | null
           updated_at?: string
           updated_by?: string | null
+          annual_fee_cents?: number | null
+          end_reason?: Database["hq"]["Enums"]["management_end_reason"] | null
+          weekly_rent_cents?: number | null
         }
         Relationships: [
           {
@@ -4808,6 +4817,9 @@ export type Database = {
           status: Database["hq"]["Enums"]["managed_status"] | null
           suburb: string | null
           updated_at: string | null
+          annual_fee_cents: number | null
+          end_reason: Database["hq"]["Enums"]["management_end_reason"] | null
+          weekly_rent_cents: number | null
         }
         Relationships: [
           {
@@ -5525,6 +5537,10 @@ export type Database = {
       }
       business_summary: { Args: never; Returns: Json }
       can: { Args: { p_capability: string }; Returns: boolean }
+      ceo_overview: {
+        Args: { p_from: string; p_prev_from?: string; p_prev_to?: string; p_to: string }
+        Returns: Json
+      }
       complete_milestone: {
         Args: { p_force?: boolean; p_id: string; p_note?: string }
         Returns: Json
@@ -6012,6 +6028,7 @@ export type Database = {
         Args: { p_opportunity: string; p_referral: string }
         Returns: Json
       }
+      set_ceo_targets: { Args: { p_targets: Json }; Returns: Json }
       set_business_goal: {
         Args: { p_date?: string; p_target: number }
         Returns: Json
@@ -6062,6 +6079,17 @@ export type Database = {
           p_id: string
           p_note?: string
           p_status: Database["hq"]["Enums"]["project_status"]
+        }
+        Returns: Json
+      }
+      set_property_terms: {
+        Args: {
+          p_annual_fee_cents?: number
+          p_clear?: string[]
+          p_end_reason?: Database["hq"]["Enums"]["management_end_reason"]
+          p_expected_updated_at?: string
+          p_id: string
+          p_weekly_rent_cents?: number
         }
         Returns: Json
       }
@@ -6397,6 +6425,7 @@ export type Database = {
         | "own_marketing"
         | "direct_approach"
         | "other"
+      management_end_reason: "owner_sold" | "owner_self_managing" | "moved_to_another_manager" | "owner_moving_in" | "service" | "fees" | "other"
       lost_reason:
         | "price"
         | "chose_another_manager"
@@ -6744,6 +6773,7 @@ export const Constants = {
         "direct_approach",
         "other",
       ],
+      management_end_reason: ["owner_sold", "owner_self_managing", "moved_to_another_manager", "owner_moving_in", "service", "fees", "other"],
       lost_reason: [
         "price",
         "chose_another_manager",

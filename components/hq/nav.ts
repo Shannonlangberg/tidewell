@@ -14,6 +14,8 @@ import type { IconName } from "./icons";
 
 export const HQ_ROUTES = {
   dashboard: HQ_BASE,
+  /** The CEO Command Centre: performance, growth, money, service and what needs a decision (planning.read). */
+  ceo: `${HQ_BASE}/ceo`,
   growth: `${HQ_BASE}/growth`,
   /** Referral partners (agencies, brokers, advisers who refer to us). NOT the contractor "Partners" module below. */
   referralPartners: `${HQ_BASE}/growth/partners`,
@@ -86,7 +88,7 @@ export const SEARCH_GROUPS: ReadonlyArray<{ kind: SearchKind; label: string; ico
 
 // ── primary navigation ───────────────────────────────────────
 
-export type NavKey = "dashboard" | "growth" | "contacts" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "resources" | "settings" | "profile";
+export type NavKey = "dashboard" | "ceo" | "growth" | "contacts" | "communications" | "portfolio" | "partners" | "operations" | "projects" | "people" | "reports" | "meetings" | "decisions" | "knowledge" | "resources" | "settings" | "profile";
 
 /**
  * One navigation entry. Labels are the words a property manager or BDM would use; the routes
@@ -113,6 +115,7 @@ export type NavItem = {
 
 export const PRIMARY_NAV: readonly NavItem[] = [
   { key: "dashboard", label: "Today", href: HQ_ROUTES.dashboard, icon: "dashboard", mobile: "tab" },
+  { key: "ceo", label: "Command Centre", href: HQ_ROUTES.ceo, icon: "insights", requires: "planning.read", mobile: "more" },
   { key: "growth", label: "Growth", href: HQ_ROUTES.growth, icon: "growth", requires: "growth.read", mobile: "tab" },
   {
     key: "communications",

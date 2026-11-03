@@ -53,7 +53,7 @@ select has_table('hq', 'managed_properties', 'hq.managed_properties exists');
 select has_table('hq', 'property_handover_steps', 'hq.property_handover_steps exists');
 select columns_are('hq', 'managed_properties', array['id', 'ref_number', 'opportunity_id', 'manual_origin_note', 'owner_contact_id', 'owner_name', 'property_address', 'address_key', 'suburb',
   'service_type', 'fee_basis', 'fee_percent', 'fee_notes', 'agreement_signed_on', 'managed_from', 'status', 'ended_on', 'ailo_reference', 'ailo_status', 'notes',
-  'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at', 'deleted_by']);
+  'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at', 'deleted_by', 'weekly_rent_cents', 'annual_fee_cents', 'end_reason']);
 select columns_are('hq', 'property_handover_steps', array['property_id', 'step', 'status', 'note', 'completed_by', 'completed_at', 'updated_at']);
 select enum_has_labels('hq', 'service_type', array['long_term_residential', 'short_term_accommodation']);
 select enum_has_labels('hq', 'fee_basis', array['percent_of_rent', 'flat_fee', 'other']);
@@ -364,7 +364,8 @@ select is((select array_agg(column_name::text order by ordinal_position) from in
   array['id', 'ref_number', 'ref', 'property_address', 'suburb', 'service_type', 'status', 'fee_basis', 'fee_percent', 'fee_notes', 'agreement_signed_on', 'managed_from', 'ended_on',
         'ailo_reference', 'ailo_status', 'notes', 'opportunity_id', 'opportunity_number', 'opportunity_prospect_name', 'opportunity_signed_at', 'manual_origin_note',
         'owner_contact_id', 'owner_display_name', 'owner_name', 'owner_phone', 'owner_email', 'handover_done', 'handover_total', 'handover_open_steps',
-        'created_by', 'created_at', 'updated_at', 'deleted_at'],
+        'created_by', 'created_at', 'updated_at', 'deleted_at',
+        'weekly_rent_cents', 'annual_fee_cents', 'end_reason'],
   'overview: the documented columns, in order');
 select is(hq_private.mp_ref(7), 'MP-0007', 'mp_ref pads to four digits');
 select is(hq_private.mp_ref(123456), 'MP-123456', 'mp_ref never truncates a long number');
