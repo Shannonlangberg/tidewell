@@ -57,10 +57,14 @@ export type PropertyRow = {
   createdAt: string;
   updatedAt: string;
   archived: boolean;
+  /** The agreed weekly rent and yearly fee (0162), in cents, and why a management is ending. */
+  weeklyRentCents: number | null;
+  annualFeeCents: number | null;
+  endReason: string | null;
 };
 
 export const PORTFOLIO_COLUMNS =
-  "id, ref, ref_number, property_address, suburb, service_type, status, fee_basis, fee_percent, fee_notes, agreement_signed_on, managed_from, ended_on, ailo_reference, ailo_status, notes, opportunity_id, opportunity_number, opportunity_prospect_name, manual_origin_note, owner_contact_id, owner_display_name, owner_name, owner_phone, owner_email, handover_done, handover_total, handover_open_steps, created_at, updated_at, deleted_at";
+  "id, ref, ref_number, property_address, suburb, service_type, status, fee_basis, fee_percent, fee_notes, agreement_signed_on, managed_from, ended_on, ailo_reference, ailo_status, notes, opportunity_id, opportunity_number, opportunity_prospect_name, manual_origin_note, owner_contact_id, owner_display_name, owner_name, owner_phone, owner_email, handover_done, handover_total, handover_open_steps, created_at, updated_at, deleted_at, weekly_rent_cents, annual_fee_cents, end_reason";
 
 type OverviewRow = {
   id: string | null;
@@ -94,6 +98,9 @@ type OverviewRow = {
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null;
+  weekly_rent_cents?: number | null;
+  annual_fee_cents?: number | null;
+  end_reason?: string | null;
 };
 
 export function toPropertyRow(r: OverviewRow): PropertyRow | null {
@@ -130,6 +137,9 @@ export function toPropertyRow(r: OverviewRow): PropertyRow | null {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     archived: r.deleted_at !== null,
+    weeklyRentCents: r.weekly_rent_cents === null || r.weekly_rent_cents === undefined ? null : Number(r.weekly_rent_cents),
+    annualFeeCents: r.annual_fee_cents === null || r.annual_fee_cents === undefined ? null : Number(r.annual_fee_cents),
+    endReason: r.end_reason ?? null,
   };
 }
 
