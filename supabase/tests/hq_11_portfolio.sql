@@ -364,7 +364,8 @@ select is((select array_agg(column_name::text order by ordinal_position) from in
   array['id', 'ref_number', 'ref', 'property_address', 'suburb', 'service_type', 'status', 'fee_basis', 'fee_percent', 'fee_notes', 'agreement_signed_on', 'managed_from', 'ended_on',
         'ailo_reference', 'ailo_status', 'notes', 'opportunity_id', 'opportunity_number', 'opportunity_prospect_name', 'opportunity_signed_at', 'manual_origin_note',
         'owner_contact_id', 'owner_display_name', 'owner_name', 'owner_phone', 'owner_email', 'handover_done', 'handover_total', 'handover_open_steps',
-        'created_by', 'created_at', 'updated_at', 'deleted_at'],
+        'created_by', 'created_at', 'updated_at', 'deleted_at',
+        'weekly_rent_cents', 'annual_fee_cents', 'end_reason'],
   'overview: the documented columns, in order');
 select is(hq_private.mp_ref(7), 'MP-0007', 'mp_ref pads to four digits');
 select is(hq_private.mp_ref(123456), 'MP-123456', 'mp_ref never truncates a long number');
